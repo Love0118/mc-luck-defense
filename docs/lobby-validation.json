@@ -1,0 +1,33 @@
+{
+  "blockStates": 480,
+  "clients": 2,
+  "sessionIsolation": true,
+  "defeatReturn": true,
+  "slotReuse": true,
+  "victoryReturn": true,
+  "source": {
+    "source": "starhill120.schem",
+    "sha256": "0bce285bdbf0348bbe7739deee85a5d801f3f8672ec51639589e703d725fbc3d",
+    "sourceDataVersion": 3578,
+    "size": [
+      512,
+      355,
+      512
+    ],
+    "origin": [
+      -256,
+      0,
+      -256
+    ],
+    "chunks": 1024,
+    "nonAirBlocks": 10466021,
+    "blockEntities": 320
+  },
+  "javaTests": {
+    "run": 125,
+    "passed": 124,
+    "skippedNative": 1,
+    "failures": 0
+  },
+  "scope": "Paper 26.3-mud; two localhost protocol clients; no rendered Minecraft UI verification"
+}

@@ -14,7 +14,6 @@ final class GameSession {
     final Campaign campaign;
     final HashRandom random = HashRandom.secure();
     final Set<UUID> hitEffects = new LinkedHashSet<>();
-    boolean resultShown;
     boolean assisted;
     int announcedRound;
 

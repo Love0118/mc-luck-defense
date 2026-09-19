@@ -11,17 +11,31 @@ final class GameService {
     private final MomaPlugin plugin;
     private final ArenaMaps maps;
     private final CampaignRules settings;
+    private final Lobby lobby;
     final EntityAdapter entities;
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private final CombatEngine combat = new CombatEngine();
     private long tick;
 
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings) {
-        this.plugin = plugin; this.maps = maps; this.settings = settings; entities = new EntityAdapter(plugin);
+        this(plugin, maps, settings, null);
+    }
+    GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings, Lobby lobby) {
+        this.plugin = plugin; this.maps = maps; this.settings = settings; this.lobby = lobby; entities = new EntityAdapter(plugin);
     }
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
     boolean tracks(UUID entity) { return sessions.values().stream().anyMatch(s -> s.arena.hasEntity(entity)); }
+    boolean available(String id) {
+        ArenaMap map = maps.get(id);
+        return map != null && map.grid().size() == settings.gridSize() && sessions.values().stream().noneMatch(s -> s.map.id().equals(id));
+    }
+    void start(Player player) {
+        if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
+        String id = maps.all().stream().map(ArenaMap::id).filter(this::available).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("빈 개인 전장이 없습니다. 잠시 후 다시 시도하세요."));
+        join(player, id);
+    }
     void join(Player player, String id) {
         if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
         ArenaMap map = maps.get(id);
@@ -42,18 +56,26 @@ final class GameService {
     }
     void leave(Player player) {
         GameSession session = sessions.remove(player.getUniqueId());
-        if (session == null) return;
+        if (session == null) { if (lobby != null) lobby.send(player); return; }
         player.closeInventory();
+        release(session);
+        if (lobby != null) lobby.send(player);
+        else { player.setGameMode(session.returnMode); player.teleport(session.returnLocation); }
+    }
+    void disconnect(Player player) {
+        GameSession session = sessions.remove(player.getUniqueId());
+        if (session != null) release(session);
+    }
+    private void release(GameSession session) {
         session.arena.defenders().forEach(d -> entities.remove(d.entityId()));
         session.arena.enemies().forEach(e -> entities.remove(e.entityId()));
         session.tickets.forEach(c -> c.removePluginChunkTicket(plugin));
-        player.setGameMode(session.returnMode);
-        player.teleport(session.returnLocation);
     }
     void shutdown() {
         for (UUID id : List.copyOf(sessions.keySet())) {
             Player player = Bukkit.getPlayer(id);
             if (player != null) leave(player);
+            else release(sessions.remove(id));
         }
     }
     void summon(Player player) {
@@ -113,20 +135,10 @@ final class GameService {
         tick++;
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
-            if (player == null) continue;
+            if (player == null) { sessions.remove(session.arena.owner()); release(session); continue; }
             if (!session.map.contains(player.getLocation()) || player.getY() < session.map.floorY()) player.teleport(session.map.entrance());
             if (session.arena.ended()) {
-                if (!session.resultShown) {
-                    session.resultShown = true;
-                    player.closeInventory();
-                    String result = switch (session.arena.outcome()) {
-                        case VICTORY -> "100라운드 클리어!";
-                        case ENEMY_LIMIT -> "적 마릿수 한도에 도달했습니다. 패배!";
-                        case TIME_LIMIT -> "최종 정리 시간이 끝났습니다. 패배!";
-                        case PLAYING -> throw new IllegalStateException();
-                    };
-                    player.sendMessage(Component.text((session.assisted ? "[관리자 개입] " : "") + result + " /mud leave로 나가세요.", NamedTextColor.GOLD));
-                }
+                finish(player, session);
                 continue;
             }
             try {
@@ -136,6 +148,7 @@ final class GameService {
                 player.sendMessage(Component.text("적 생성에 실패하여 전장을 종료합니다.", NamedTextColor.RED));
                 leave(player); continue;
             }
+            if (session.arena.ended()) { finish(player, session); continue; }
             if (session.campaign.round() != session.announcedRound) {
                 session.announcedRound = session.campaign.round();
                 player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
@@ -149,6 +162,7 @@ final class GameService {
             }
             session.arena.collectDeadEnemies().forEach(entities::remove);
             session.campaign.afterCombat(session.arena);
+            if (session.arena.ended()) { finish(player, session); continue; }
             boolean intact = entities.advanceAll(session.arena, session.map);
             // Anchor unusual vanilla bodies such as shulkers as well as ordinary mobs.
             for (Defender defender : session.arena.activeDefenders())
@@ -162,6 +176,17 @@ final class GameService {
                 player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + session.arena.coins() + "원 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
+    }
+    private void finish(Player player, GameSession session) {
+        String result = switch (session.arena.outcome()) {
+            case VICTORY -> "100라운드 클리어!";
+            case ENEMY_LIMIT -> "적 마릿수 한도에 도달했습니다. 패배!";
+            case TIME_LIMIT -> "최종 정리 시간이 끝났습니다. 패배!";
+            case PLAYING -> throw new IllegalStateException();
+        };
+        player.sendMessage(Component.text((session.assisted ? "[관리자 개입] " : "") + result
+                + " · R" + session.campaign.round() + (lobby != null ? " · 로비로 돌아갑니다." : " · 전장을 종료합니다."), NamedTextColor.GOLD));
+        leave(player);
     }
     static void tell(Player player, Arena.Result result) {
         if (result == Arena.Result.OK) return;

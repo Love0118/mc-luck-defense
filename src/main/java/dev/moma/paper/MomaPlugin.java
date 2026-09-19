@@ -14,12 +14,19 @@ public final class MomaPlugin extends JavaPlugin {
         CampaignRules settings = CampaignRules.standard();
         var maps = new ArenaMaps(this);
         maps.load();
-        games = new GameService(this, maps, settings);
+        Lobby lobby = Lobby.load(this);
+        games = new GameService(this, maps, settings, lobby);
         var shop = new ShopMenu(this, games);
+        var lobbyMenu = new LobbyMenu(this, games, maps);
+        getServer().getPluginManager().registerEvents(lobbyMenu, this);
+        if (lobby != null) {
+            getServer().getPluginManager().registerEvents(new LobbyListener(lobby, games, lobbyMenu), this);
+            for (var player : Bukkit.getOnlinePlayers()) lobby.send(player);
+        }
         getServer().getPluginManager().registerEvents(shop, this);
         getServer().getPluginManager().registerEvents(new GameListener(games, maps, shop), this);
         for (var world : Bukkit.getWorlds()) for (Entity entity : world.getEntities()) if (games.entities.managed(entity)) entity.remove();
-        var command = new MomaCommand(maps, games, settings);
+        var command = new MomaCommand(maps, games, settings, lobbyMenu);
         Objects.requireNonNull(getCommand("mud")).setExecutor(command);
         Objects.requireNonNull(getCommand("mud")).setTabCompleter(command);
         getServer().getScheduler().runTaskTimer(this, games::tick, 1, 1);

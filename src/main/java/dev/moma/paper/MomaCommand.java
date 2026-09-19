@@ -13,17 +13,20 @@ final class MomaCommand implements TabExecutor {
     private final ArenaMaps maps;
     private final GameService games;
     private final CampaignRules settings;
-    MomaCommand(ArenaMaps maps, GameService games, CampaignRules settings) { this.maps = maps; this.games = games; this.settings = settings; }
+    private final LobbyMenu menu;
+    MomaCommand(ArenaMaps maps, GameService games, CampaignRules settings) { this(maps, games, settings, null); }
+    MomaCommand(ArenaMaps maps, GameService games, CampaignRules settings, LobbyMenu menu) { this.maps = maps; this.games = games; this.settings = settings; this.menu = menu; }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(Component.text("/mud list | join <전장> | leave"));
+            if (sender instanceof Player player && menu != null && !games.playing(player)) { menu.open(player); return true; }
+            sender.sendMessage(Component.text("/mud start | list | join [전장] | lobby | leave"));
             if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud create <전장> | spawn <종> [수] [boss] | coins <금액>"));
             return true;
         }
         try {
             String action = args[0].toLowerCase(Locale.ROOT);
             if (Set.of("create", "spawn", "coins").contains(action) && !sender.hasPermission("moma.admin")) throw new IllegalArgumentException("관리자 권한이 필요합니다.");
-            if (!sender.hasPermission("moma.play") && !action.equals("leave")) throw new IllegalArgumentException("참가 권한이 없습니다.");
+            if (!sender.hasPermission("moma.play") && !Set.of("leave", "lobby").contains(action)) throw new IllegalArgumentException("참가 권한이 없습니다.");
             switch (action) {
                 case "list" -> sender.sendMessage(Component.text("전장: " + String.join(", ", maps.all().stream().map(ArenaMap::id).toList())));
                 case "create" -> {
@@ -31,8 +34,9 @@ final class MomaCommand implements TabExecutor {
                     maps.create(args[1], settings.gridSize());
                     sender.sendMessage(Component.text("100라운드 전장 생성 완료: " + args[1] + " · /mud join " + args[1], NamedTextColor.GREEN));
                 }
-                case "join" -> { require(args, 2, "/mud join <전장>"); games.join(player(sender), args[1]); }
-                case "leave" -> games.leave(player(sender));
+                case "start" -> games.start(player(sender));
+                case "join" -> { if (args.length == 1) games.start(player(sender)); else games.join(player(sender), args[1]); }
+                case "leave", "lobby" -> games.leave(player(sender));
                 case "spawn" -> {
                     require(args, 2, "/mud spawn <ZOMBIE|HUSK|DROWNED|SPIDER|SLIME|MAGMA_CUBE> [1~100] [boss]");
                     EnemyType type;
@@ -71,7 +75,7 @@ final class MomaCommand implements TabExecutor {
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> candidates = List.of();
-        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("join", "leave", "list", "create", "spawn", "coins") : List.of("join", "leave", "list");
+        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "lobby", "leave", "list", "create", "spawn", "coins") : List.of("start", "join", "lobby", "leave", "list");
         if (args.length == 2 && args[0].equalsIgnoreCase("join")) candidates = maps.all().stream().map(ArenaMap::id).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("spawn") && sender.hasPermission("moma.admin")) candidates = Arrays.stream(EnemyType.values()).map(Enum::name).toList();
         String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);

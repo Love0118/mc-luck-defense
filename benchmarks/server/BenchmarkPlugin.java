@@ -55,6 +55,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
             throw new IllegalStateException("Fixture changed: " + arena.id() + " " + arena.outcome() + " " + arena.enemyCount());
         if (Bukkit.getOnlinePlayers().size() != sessions) throw new IllegalStateException("Lost load client");
         if (tick % 320 == 0) for (int i = 0; i < arenas.size(); i++) {
+            if (arenas.get(i).ended()) continue; // Finished sessions now remove their presentation entities.
             Object map = field(gameSessions.get(i), "map");
             for (Enemy enemy : arenas.get(i).activeEnemies()) {
                 org.bukkit.entity.Entity entity = Bukkit.getEntity(enemy.entityId());

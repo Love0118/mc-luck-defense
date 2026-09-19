@@ -98,7 +98,7 @@ final class GameListener implements Listener {
     @EventHandler public void load(EntitiesLoadEvent event) {
         for (Entity entity : event.getEntities()) if (games.entities.managed(entity) && !games.tracks(entity.getUniqueId())) entity.remove();
     }
-    @EventHandler public void quit(PlayerQuitEvent event) { clicks.remove(event.getPlayer().getUniqueId()); games.leave(event.getPlayer()); }
+    @EventHandler public void quit(PlayerQuitEvent event) { clicks.remove(event.getPlayer().getUniqueId()); games.disconnect(event.getPlayer()); }
     @EventHandler public void teleport(PlayerTeleportEvent event) {
         GameSession session = games.session(event.getPlayer());
         if (session != null && event.getTo() != null && !session.map.contains(event.getTo())) event.setCancelled(true);

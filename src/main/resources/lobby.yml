@@ -1,0 +1,10 @@
+# Import the lobby world while the server is stopped before enabling.
+enabled: false
+world: mud_lobby
+half-size: 256
+spawn:
+  x: -5.5
+  y: 54.0
+  z: 4.5
+  yaw: 180.0
+  pitch: 0.0
