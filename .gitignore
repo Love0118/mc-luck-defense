@@ -7,3 +7,4 @@ target/
 docs/simulation/**/trace-*.jsonl
 docs/simulation/validation/replay.html
 docs/simulation/auto-placement/replay.html
+docs/simulation/one-primordial-stress/replay.html

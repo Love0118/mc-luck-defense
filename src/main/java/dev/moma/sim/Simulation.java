@@ -13,12 +13,15 @@ public final class Simulation {
                          long earned, long coins, int primordial, int mythic, double[] damage, long[] deployedTicks) {}
     private Simulation() {}
     public static Result run(long seed, CampaignRules rules, AutoPlayer.Strategy strategy, Consumer<Snapshot> trace) {
+        return run(seed, rules, strategy, trace, Integer.MAX_VALUE);
+    }
+    public static Result run(long seed, CampaignRules rules, AutoPlayer.Strategy strategy, Consumer<Snapshot> trace, int primordialCap) {
         UUID owner = new UUID(0, 1);
         long[] sequence = {1};
         var ids = (java.util.function.Supplier<UUID>) () -> new UUID(seed, ++sequence[0]);
         Arena arena = new Arena("simulation", owner, new Grid(rules.gridSize()), rules.startingCoins(), rules.enemyLimit());
         Campaign campaign = new Campaign(rules);
-        AutoPlayer bot = new AutoPlayer(seed, strategy, arena.grid(), ids);
+        AutoPlayer bot = new AutoPlayer(seed, strategy, arena.grid(), ids, primordialCap);
         CombatEngine combat = new CombatEngine();
         double[] damage = new double[6]; long[] exposure = new long[6];
         CombatEngine.HitSink sink = (d, e, amount) -> damage[d.type().role().ordinal()] += amount;

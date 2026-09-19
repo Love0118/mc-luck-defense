@@ -13,8 +13,14 @@ public final class AutoPlayer {
     private final double[][] coverage;
     private final int[] rarities = new int[Rarity.values().length];
     private int summons, sales, moves;
+    private final int primordialCap;
 
     public AutoPlayer(long seed, Strategy strategy, Grid grid, Supplier<UUID> ids) {
+        this(seed, strategy, grid, ids, Integer.MAX_VALUE);
+    }
+    public AutoPlayer(long seed, Strategy strategy, Grid grid, Supplier<UUID> ids, int primordialCap) {
+        if (primordialCap < 0) throw new IllegalArgumentException("Negative primordial cap");
+        this.primordialCap = primordialCap;
         random = new Random(seed); this.strategy = strategy; this.ids = ids;
         coverage = new double[UnitType.values().length * Rarity.values().length][grid.size() * grid.size()];
         for (UnitType type : UnitType.values()) for (Rarity rarity : Rarity.values()) {
@@ -55,6 +61,9 @@ public final class AutoPlayer {
         if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;
         if (arena.coins() >= Arena.SUMMON_COST && units.size() < arena.grid().size() * arena.grid().size()) {
             SummonRoll roll = SummonRoll.draw(random);
+            // Stress-test intervention only: spend the same draw but downgrade excess Primordials.
+            if (roll.rarity() == Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()] >= primordialCap)
+                roll = new SummonRoll(roll.type(), Rarity.MYTHIC);
             if (arena.summon(arena.owner(), roll, (type, rarity, cell) -> ids.get()) == Arena.Result.OK) {
                 summons++; rarities[roll.rarity().ordinal()]++;
             }

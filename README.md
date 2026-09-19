@@ -10,7 +10,7 @@ Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/moma-defense-0.2.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/moma-defense-0.3.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 [Paper build 19 메타데이터](https://fill.papermc.io/v3/projects/paper/versions/26.3/builds/19) · 서버 파일 paper-26.3-19.jar · SHA-256 f623c073913db7f21c6338eef22a00b19a8d87c1ef3115c2060d2382b90f4650
 
@@ -59,7 +59,7 @@ mvn -B -ntp clean verify
 
 - 5라운드 주기: 보병 → 돌격 → 군집 → 중장갑 → 혼성. 중장갑은 체력이 높은 편성이며 별도의 방어력 스탯은 없습니다.
 - 기본 적 수: 12 + 2 × floor((라운드−1)/10). 군집은 +8, 중장갑은 −3. 보스는 별도 1마리.
-- 기본 체력: 24 × 1.055^(라운드−1) × 3.05. 보스 체력은 기본 체력 × (15 + 라운드/5), 속도 1.2.
+- 기본 체력: 24 × 1.055^(라운드−1) × 3.05 × 후반 배율. 후반 배율은 1 + 19 × max(0, (라운드−60)/40)²이며 1~60라운드는 1배, 100라운드는 20배입니다. 보스 체력은 기본 체력 × (15 + 라운드/5), 속도 1.2.
 - 실제 100개 라운드별 편성·체력은 [waves.json](docs/simulation/waves.json)에 있습니다.
 - 공유 규칙은 src/main/resources/campaign.properties, 편성 공식은 WaveSchedule입니다. 수정 후 다시 빌드하고 시뮬레이션을 재실행해야 검증 결과를 적용할 수 있습니다.
 
@@ -96,18 +96,28 @@ mvn -B -ntp clean verify
 
 ## 시뮬레이션과 밸런스
 
-[검증 보고서](docs/simulation/REPORT.md) · [태초 2개 + 신화 6개 클리어 리플레이](docs/simulation/example-clear/replay.html)
+[검증 보고서](docs/simulation/REPORT.md) · [태초 2개 + 신화 7개 클리어 리플레이](docs/simulation/example-clear/replay.html)
 
-최종 별도 시드 **10,000회 중 111회, 1.11%**가 클리어했습니다. 95% 신뢰구간은 **0.92–1.33%**입니다. 자동 배치만 사용한 비교 정책은 5,000회 중 29회, **0.58%**였습니다. 태초 2개 + 신화 4개 이상 조합에서는 113회 중 27회 클리어했습니다.
+최종 별도 시드 **20,000회 중 167회, 0.835%**가 클리어했습니다. 95% 신뢰구간은 **0.718–0.971%**입니다. **모든 클리어가 태초 2개 이상**이었고, 별도의 **태초 1개 제한 실험 10,000회는 클리어 0회**였습니다. 태초 2개 + 신화 4개 이상 조합에서는 203회 중 7회 클리어했습니다. 자동 배치 비교와 전체 편성별 결과는 검증 보고서에 있습니다.
 
-이는 정해진 자동 플레이 정책의 시도당 성공률입니다. 실제 사람의 상위 1%를 보장하거나 정확히 1%에서 자르는 규칙은 아닙니다. 승패는 전투 결과로 판정하며 태초 개수 강제 조건은 없습니다. 배치와 타입 조합에 따라 드문 예외 편성도 승리할 수 있습니다.
+기존의 태초 1개 클리어 문제를 상위 등급 격차와 후반 적 체력으로 조정했습니다. 승패 코드에 태초 개수 검사는 없고 전투력으로 결과가 결정됩니다. 실제 사람의 모든 전략에 대한 불가능성 증명은 아니지만, 최종 검증에서 태초 2개 미만 클리어는 관측되지 않았습니다. 태초 1개 제한은 시뮬레이터에서 추가 태초를 같은 종의 신화로 낮추는 실험으로 실제 서버의 뽑기 규칙은 그대로입니다.
+
+| 등급 | 이전 피해 배율 | 현재 피해 배율 | 바로 아래 등급 대비 |
+|---|---:|---:|---:|
+| 전설 | 6 | 8 | 서사의 2배 |
+| 에픽 | 9 | 24 | 전설의 3배 |
+| 신화 | 40 | 120 | 에픽의 5배 |
+| 태초 | 80 | 2400 | 신화의 20배 |
+
+확률·판매가·사거리·공격속도·타입은 유지했습니다. 근거리 단일의 연속 타격 계수는 0.12에서 0.06으로 조정해 기본 근접 보정과 중첩된 태초 단독 캐리 성능을 줄였습니다. 같은 시드 100124에서 태초 2개·신화 7개는 승리, 두 번째 태초를 신화로 낮춘 태초 1개·신화 8개는 패배합니다.
 
 근거리 단일·다중 공격을 보정하고 종별 약점도 검사했습니다. 라마·눈골렘·위더 스켈레톤·보그드·알레이에 보정을 적용했습니다. 여전히 레어 블레이즈와 신화 라마는 두 가지 고정 벤치마크에서 타입 중앙값 대비 낮아 후속 관찰 대상으로 보고서에 남겼습니다.
 
 ~~~powershell
 mvn -B -ntp compile
-java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 10000 1300000 3.05 target/validation
-java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 1 1300063 3.05 target/example
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 20000 3100000 3.05 target/validation BALANCED 20
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 10000 3500000 3.05 target/stress BALANCED 20 1
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 1 100124 3.05 target/example BALANCED 20
 java -cp target/classes dev.moma.sim.RoleBenchmarkMain target/roles.jsonl
 java -cp target/classes dev.moma.sim.WaveExportMain target/waves.json
 ~~~

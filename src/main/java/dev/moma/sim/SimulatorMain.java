@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** java -cp target/classes dev.moma.sim.SimulatorMain [runs] [seed] [health-scale] [output] [strategy] */
+/** CLI: runs seed health-scale output strategy late-health-scale primordial-cap. */
 public final class SimulatorMain {
     private SimulatorMain() {}
     public static void main(String[] args) throws Exception {
@@ -17,7 +17,10 @@ public final class SimulatorMain {
         if (args.length > 2) rules = rules.withHealthScale(Double.parseDouble(args[2]));
         Path output = Path.of(args.length > 3 ? args[3] : "target/simulation");
         AutoPlayer.Strategy strategy = args.length > 4 ? AutoPlayer.Strategy.valueOf(args[4]) : AutoPlayer.Strategy.BALANCED;
+        if (args.length > 5) rules = rules.withLateHealthScale(Double.parseDouble(args[5]));
+        int primordialCap = args.length > 6 ? Integer.parseInt(args[6]) : Integer.MAX_VALUE;
         if (runs < 1 || runs > 100_000) throw new IllegalArgumentException("runs must be 1..100000");
+        if (primordialCap < 0) throw new IllegalArgumentException("primordial-cap must not be negative");
         Files.createDirectories(output);
         final CampaignRules config = rules;
         int threads = Math.min(6, Runtime.getRuntime().availableProcessors());
@@ -29,19 +32,22 @@ public final class SimulatorMain {
             for (int worker = 0; worker < threads; worker++) futures.add(executor.submit(() -> {
                 int i;
                 while ((i = next.getAndIncrement()) < runs) {
-                    results[i] = Simulation.run(seed + i, config, strategy, null);
+                    results[i] = Simulation.run(seed + i, config, strategy, null, primordialCap);
                     if ((i + 1) % 1000 == 0) System.out.printf(Locale.ROOT, "completed %d/%d%n", i + 1, runs);
                 }
             }));
             for (Future<?> future : futures) future.get();
         }
         int wins = (int) Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY).count();
+        int lowPrimordialWins = (int) Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY && r.primordial() < 2).count();
+        int targetRuns = (int) Arrays.stream(results).filter(r -> r.primordial() == 2 && r.mythic() >= 4).count();
+        int targetWins = (int) Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY && r.primordial() == 2 && r.mythic() >= 4).count();
         double[] ci = wilson(wins, runs);
         double meanRounds = Arrays.stream(results).mapToInt(Simulation.Result::round).average().orElse(0);
         double meanSummons = Arrays.stream(results).mapToInt(Simulation.Result::summons).average().orElse(0);
         String summary = String.format(Locale.ROOT,
-                "{\"runs\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"strategy\":\"%s\",\"wins\":%d,\"clearRate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f,\"meanRound\":%.3f,\"meanSummons\":%.3f,\"seconds\":%.2f}",
-                runs, seed, rules.healthScale(), strategy, wins, wins / (double) runs, ci[0], ci[1], meanRounds, meanSummons, (System.nanoTime() - start) / 1e9);
+                "{\"runs\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"lateHealthScale\":%.8f,\"primordialCap\":%d,\"strategy\":\"%s\",\"wins\":%d,\"winsBelowTwoPrimordials\":%d,\"twoPrimordialManyMythicRuns\":%d,\"twoPrimordialManyMythicWins\":%d,\"clearRate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f,\"meanRound\":%.3f,\"meanSummons\":%.3f,\"seconds\":%.2f}",
+                runs, seed, rules.healthScale(), rules.lateHealthScale(), primordialCap, strategy, wins, lowPrimordialWins, targetRuns, targetWins, wins / (double) runs, ci[0], ci[1], meanRounds, meanSummons, (System.nanoTime() - start) / 1e9);
         Files.writeString(output.resolve("summary.json"), summary + "\n", StandardCharsets.UTF_8);
         var lines = new ArrayList<String>();
         for (Simulation.Result r : results) lines.add(String.format(Locale.ROOT,
@@ -51,7 +57,7 @@ public final class SimulatorMain {
         long replaySeed = Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY && r.primordial() == 2 && r.mythic() >= 4)
                 .mapToLong(Simulation.Result::seed).findFirst().orElseGet(() -> Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY).mapToLong(Simulation.Result::seed).findFirst().orElse(seed));
         var trace = new ArrayList<String>();
-        Simulation.run(replaySeed, rules, strategy, s -> trace.add(frameJson(s)));
+        Simulation.run(replaySeed, rules, strategy, s -> trace.add(frameJson(s)), primordialCap);
         Files.write(output.resolve("trace-" + replaySeed + ".jsonl"), trace, StandardCharsets.UTF_8);
         try (var stream = SimulatorMain.class.getResourceAsStream("/replay-template.html")) {
             if (stream == null) throw new IllegalStateException("Missing replay template");

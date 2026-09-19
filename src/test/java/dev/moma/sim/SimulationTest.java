@@ -28,11 +28,27 @@ class SimulationTest {
         assertTrue(interval[0] < 0.01 && interval[1] > 0.01);
         assertTrue(SimulatorMain.wilson(0, 100)[1] > 0);
     }
-    @Test void referenceTwoPrimordialSixMythicRosterCanClearWithoutCountGate() {
-        var result = Simulation.run(1_300_063, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
+    @Test void twoPrimordialSevenMythicRosterClearsButAnotherMythicCannotReplaceTheSecondPrimordial() {
+        var result = Simulation.run(100_124, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
         assertEquals(Arena.Outcome.VICTORY, result.outcome());
         assertEquals(100, result.round());
-        assertEquals(2, result.primordial()); assertEquals(6, result.mythic());
-        assertEquals(2633, result.summons());
+        assertEquals(2, result.primordial()); assertEquals(7, result.mythic());
+        var replacement = Simulation.run(100_124, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null, 1);
+        assertNotEquals(Arena.Outcome.VICTORY, replacement.outcome());
+        assertEquals(1, replacement.primordial()); assertEquals(8, replacement.mythic());
+        assertEquals(result.summons(), replacement.summons());
+    }
+    @Test void unlimitedStressSettingMatchesOrdinaryPlay() {
+        var regular = Simulation.run(789, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
+        var unlimited = Simulation.run(789, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null, Integer.MAX_VALUE);
+        assertEquals(regular.outcome(), unlimited.outcome());
+        assertEquals(regular.summons(), unlimited.summons());
+        assertEquals(regular.primordial(), unlimited.primordial());
+        assertArrayEquals(regular.damage(), unlimited.damage());
+    }
+    @Test void previouslyObservedOnePrimordialSevenMythicExceptionNowFailsCombat() {
+        var result = Simulation.run(2_110_951, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
+        assertEquals(1, result.primordial()); assertEquals(7, result.mythic());
+        assertNotEquals(Arena.Outcome.VICTORY, result.outcome());
     }
 }

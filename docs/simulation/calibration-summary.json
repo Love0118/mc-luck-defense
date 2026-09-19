@@ -1,0 +1,1 @@
+{"runs":5000,"seedStart":100000,"healthScale":3.05000000,"lateHealthScale":20.00000000,"primordialCap":2147483647,"strategy":"BALANCED","wins":40,"winsBelowTwoPrimordials":0,"twoPrimordialManyMythicRuns":49,"twoPrimordialManyMythicWins":3,"clearRate":0.00800000,"ci95Low":0.00588065,"ci95High":0.01087480,"meanRound":90.300,"meanSummons":2266.990,"seconds":36.44}

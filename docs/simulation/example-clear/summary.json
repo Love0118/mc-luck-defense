@@ -1,1 +1,1 @@
-{"runs":1,"seedStart":1300063,"healthScale":3.05000000,"strategy":"BALANCED","wins":1,"clearRate":1.00000000,"ci95Low":0.20654329,"ci95High":1.00000000,"meanRound":100.000,"meanSummons":2633.000,"seconds":0.16}
+{"runs":1,"seedStart":100124,"healthScale":3.05000000,"lateHealthScale":20.00000000,"primordialCap":2147483647,"strategy":"BALANCED","wins":1,"winsBelowTwoPrimordials":0,"twoPrimordialManyMythicRuns":1,"twoPrimordialManyMythicWins":1,"clearRate":1.00000000,"ci95Low":0.20654329,"ci95High":1.00000000,"meanRound":100.000,"meanSummons":2217.000,"seconds":0.31}

@@ -14,7 +14,9 @@ public final class WaveSchedule {
         int count = 12 + (round - 1) / 10 * 2;
         if (pattern == 2) count += 8;
         if (pattern == 3) count -= 3;
-        double base = 24 * Math.pow(1.055, round - 1) * rules.healthScale();
+        double lateProgress = Math.max(0, (round - 60) / 40.0);
+        double lateScale = 1 + (rules.lateHealthScale() - 1) * lateProgress * lateProgress;
+        double base = 24 * Math.pow(1.055, round - 1) * rules.healthScale() * lateScale;
         var entries = new ArrayList<Wave.Entry>();
         for (int i = 0; i < count; i++) {
             EnemyType type = switch (pattern) {

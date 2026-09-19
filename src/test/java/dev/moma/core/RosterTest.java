@@ -65,4 +65,15 @@ class RosterTest {
             previous = current;
         }
     }
+    @ParameterizedTest @EnumSource(UnitType.class)
+    void upperTiersHaveMeaningfulDpsSeparationForEverySpecies(UnitType type) {
+        CombatProfile legend = type.profile().at(Rarity.LEGENDARY);
+        CombatProfile epic = type.profile().at(Rarity.EPIC);
+        CombatProfile mythic = type.profile().at(Rarity.MYTHIC);
+        CombatProfile primordial = type.profile().at(Rarity.PRIMORDIAL);
+        assertTrue(dps(epic) >= dps(legend) * 3);
+        assertTrue(dps(mythic) >= dps(epic) * 5);
+        assertTrue(dps(primordial) >= dps(mythic) * 20);
+    }
+    private double dps(CombatProfile profile) { return profile.damage() * 20 / profile.intervalTicks(); }
 }

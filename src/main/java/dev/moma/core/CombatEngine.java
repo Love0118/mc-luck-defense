@@ -35,7 +35,7 @@ public final class CombatEngine {
                 double damage = profile.damage();
                 if (level > 0) {
                     damage *= switch (defender.type().role()) {
-                        case MELEE_SINGLE -> 1 + 0.12 * level * (chain - 1);
+                        case MELEE_SINGLE -> 1 + 0.06 * level * (chain - 1);
                         case RANGED_SINGLE -> target.boss() ? 1 + 0.5 * level : 1;
                         case SMALL_AREA -> target == primary ? 1 + 0.3 * level : 1;
                         default -> 1;
