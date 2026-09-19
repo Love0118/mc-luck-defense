@@ -24,7 +24,7 @@ class InteractionTest {
     @BeforeEach void setup() {
         plugin = mock(MomaPlugin.class); when(plugin.getName()).thenReturn("MomaDefense"); when(plugin.namespace()).thenReturn("momadefense");
         maps = mock(ArenaMaps.class);
-        games = spy(new GameService(plugin, maps, new DevelopmentSettings(3, 100, 100, 80, 2, 2)));
+        games = spy(new GameService(plugin, maps, CampaignRules.standard()));
         shop = mock(ShopMenu.class);
         listener = new GameListener(games, maps, shop);
         player = mock(Player.class); when(player.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -83,7 +83,7 @@ class InteractionTest {
         ShopMenu actualShop = new ShopMenu(plugin, games);
         World world = mock(World.class);
         when(player.getLocation()).thenReturn(new Location(world, 0, 70, 0)); when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);
-        GameSession session = new GameSession(player, new ArenaMap("a", world, 0, 64, 0, new Grid(3)), new DevelopmentSettings(3, 100, 100, 80, 2, 2));
+        GameSession session = new GameSession(player, new ArenaMap("a", world, 0, 64, 0, new Grid(5)), CampaignRules.standard());
         doReturn(session).when(games).session(player);
         doNothing().when(games).summon(player);
         Inventory inventory = mock(Inventory.class); InventoryView view = mock(InventoryView.class);

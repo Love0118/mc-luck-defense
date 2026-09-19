@@ -15,7 +15,11 @@ public final class Arena {
     private final LinkedHashMap<UUID, Enemy> enemies = new LinkedHashMap<>();
     private long coins;
     private UUID selected;
-    private boolean ended;
+    public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
+    private Outcome outcome = Outcome.PLAYING;
+    private long earnedCoins;
+    private final Collection<Defender> defenderView = Collections.unmodifiableCollection(defenders.values());
+    private final Collection<Enemy> enemyView = Collections.unmodifiableCollection(enemies.values());
 
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit) {
         if (startingCoins < 0 || enemyLimit < 1) throw new IllegalArgumentException("Invalid arena settings");
@@ -27,13 +31,20 @@ public final class Arena {
     public Grid grid() { return grid; }
     public long coins() { return coins; }
     public int enemyLimit() { return enemyLimit; }
-    public boolean ended() { return ended; }
+    public boolean ended() { return outcome != Outcome.PLAYING; }
+    public Outcome outcome() { return outcome; }
+    public long earnedCoins() { return earnedCoins; }
+    public void finish(Outcome result) { if (!ended() && result != Outcome.PLAYING) outcome = result; }
+    public int enemyCount() { return enemies.size(); }
+    public int defenderCount() { return defenders.size(); }
+    Collection<Defender> defenderView() { return defenderView; }
+    Collection<Enemy> enemyView() { return enemyView; }
     public List<Defender> defenders() { return List.copyOf(defenders.values()); }
     public List<Enemy> enemies() { return List.copyOf(enemies.values()); }
     public Optional<Defender> selected() { return Optional.ofNullable(defenders.get(selected)); }
     public boolean hasEntity(UUID id) { return defenders.containsKey(id) || enemies.containsKey(id); }
     private Result access(UUID actor) {
-        return !owner.equals(actor) ? Result.NOT_OWNER : ended ? Result.ENDED : Result.OK;
+        return !owner.equals(actor) ? Result.NOT_OWNER : ended() ? Result.ENDED : Result.OK;
     }
     public Result summon(UUID actor, SummonRoll roll, Spawner spawner) {
         Result access = access(actor);
@@ -82,10 +93,10 @@ public final class Arena {
         coins = Math.addExact(coins, amount);
     }
     public void addEnemy(Enemy enemy) {
-        if (ended) throw new IllegalStateException("Arena ended");
+        if (ended()) throw new IllegalStateException("Arena ended");
         if (!enemy.arenaId().equals(id) || !enemy.alive() || hasEntity(enemy.entityId())) throw new IllegalArgumentException("Invalid enemy");
         enemies.put(enemy.entityId(), enemy);
-        if (enemies.size() >= enemyLimit) ended = true;
+        if (enemies.size() >= enemyLimit) outcome = Outcome.ENEMY_LIMIT;
     }
     public List<UUID> collectDeadEnemies() {
         var dead = new ArrayList<UUID>();
@@ -93,7 +104,9 @@ public final class Arena {
         while (iterator.hasNext()) {
             Enemy enemy = iterator.next();
             if (!enemy.alive()) {
-                credit(enemy.claimReward());
+                long reward = enemy.claimReward();
+                credit(reward);
+                earnedCoins += reward;
                 dead.add(enemy.entityId());
                 iterator.remove();
             }

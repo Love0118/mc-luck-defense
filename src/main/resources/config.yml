@@ -1,9 +1,0 @@
-# 개발용 기본값입니다. 웨이브·맵·경제 밸런스의 확정 수치가 아닙니다.
-development:
-  grid-size: 5
-  starting-coins: 100
-  enemy-limit: 100
-  enemy-health: 80.0
-  enemy-speed: 2.0
-  kill-reward: 2
-# 자동 웨이브는 없습니다. 관리자가 /moma spawn으로 적을 투입합니다.

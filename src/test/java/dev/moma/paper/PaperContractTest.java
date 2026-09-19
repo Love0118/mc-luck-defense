@@ -20,13 +20,12 @@ class PaperContractTest {
         var plugin = load("plugin.yml");
         assertEquals(MomaPlugin.class.getName(), plugin.getString("main"));
         assertEquals("26.3", plugin.getString("api-version"));
-        assertTrue(plugin.contains("commands.moma"));
+        assertTrue(plugin.contains("commands.mud"));
         assertFalse(plugin.getString("version").contains("$"));
-        var config = load("config.yml");
-        DevelopmentSettings settings = DevelopmentSettings.load(config);
+        CampaignRules settings = CampaignRules.standard();
         assertEquals(5, settings.gridSize()); assertEquals(100, settings.startingCoins());
-        config.set("development.enemy-speed", Double.NaN);
-        assertThrows(IllegalArgumentException.class, () -> DevelopmentSettings.load(config));
+        assertThrows(IllegalArgumentException.class, () -> settings.withHealthScale(Double.NaN));
+        assertFalse(plugin.contains("commands.moma"));
     }
     private YamlConfiguration load(String resource) throws Exception {
         try (var reader = new InputStreamReader(getClass().getClassLoader().getResourceAsStream(resource), StandardCharsets.UTF_8)) {

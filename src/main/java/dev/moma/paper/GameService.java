@@ -11,23 +11,24 @@ import java.util.random.RandomGenerator;
 final class GameService {
     private final MomaPlugin plugin;
     private final ArenaMaps maps;
-    private final DevelopmentSettings settings;
+    private final CampaignRules settings;
     final EntityAdapter entities;
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private final CombatEngine combat = new CombatEngine();
     private final RandomGenerator random = RandomGenerator.getDefault();
     private long tick;
 
-    GameService(MomaPlugin plugin, ArenaMaps maps, DevelopmentSettings settings) {
+    GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings) {
         this.plugin = plugin; this.maps = maps; this.settings = settings; entities = new EntityAdapter(plugin);
     }
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
     boolean tracks(UUID entity) { return sessions.values().stream().anyMatch(s -> s.arena.hasEntity(entity)); }
     void join(Player player, String id) {
-        if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /moma leave로 나갈 수 있습니다.");
+        if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
         ArenaMap map = maps.get(id);
-        if (map == null) throw new IllegalArgumentException("없는 전장입니다. /moma list로 확인하세요.");
+        if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
+        if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 5×5 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
         GameSession session = new GameSession(player, map, settings);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
@@ -39,7 +40,7 @@ final class GameService {
         sessions.put(player.getUniqueId(), session);
         if (!player.teleport(map.entrance())) { leave(player); throw new IllegalArgumentException("전장으로 이동할 수 없습니다."); }
         player.setGameMode(GameMode.ADVENTURE);
-        player.sendMessage(Component.text("전장 참가! F: 소환·판매 / 좌클릭: 포탑 선택·이동 / 파란 칸: 배치", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("100라운드 도전! 15초 후 적이 출현합니다. F: 소환·판매 / 좌클릭: 선택·이동", NamedTextColor.GREEN));
     }
     void leave(Player player) {
         GameSession session = sessions.remove(player.getUniqueId());
@@ -104,9 +105,10 @@ final class GameService {
     void spawnEnemies(Player player, EnemyType type, int count, boolean boss) {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) throw new IllegalArgumentException("진행 중인 전장에 먼저 참가하세요.");
+        session.assisted = true;
         for (int i = 0; i < count && !session.arena.ended(); i++) {
             UUID id = entities.spawnEnemy(session.map, player.getUniqueId(), type, boss);
-            session.arena.addEnemy(new dev.moma.core.Enemy(id, session.arena.id(), type, settings.enemyHealth(), settings.enemySpeed(), settings.reward(), boss));
+            session.arena.addEnemy(new dev.moma.core.Enemy(id, session.arena.id(), type, 80, 2, 0, boss));
         }
     }
     void tick() {
@@ -114,21 +116,39 @@ final class GameService {
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
             if (player == null) continue;
+            if (!session.map.contains(player.getLocation()) || player.getY() < session.map.floorY()) player.teleport(session.map.entrance());
             if (session.arena.ended()) {
-                if (!session.defeatShown) {
-                    session.defeatShown = true;
+                if (!session.resultShown) {
+                    session.resultShown = true;
                     player.closeInventory();
-                    player.sendMessage(Component.text("적 마릿수 한도에 도달했습니다. 패배! /moma leave로 나가세요.", NamedTextColor.RED));
+                    String result = switch (session.arena.outcome()) {
+                        case VICTORY -> "100라운드 클리어!";
+                        case ENEMY_LIMIT -> "적 마릿수 한도에 도달했습니다. 패배!";
+                        case TIME_LIMIT -> "최종 정리 시간이 끝났습니다. 패배!";
+                        case PLAYING -> throw new IllegalStateException();
+                    };
+                    player.sendMessage(Component.text((session.assisted ? "[관리자 개입] " : "") + result + " /mud leave로 나가세요.", NamedTextColor.GOLD));
                 }
                 continue;
             }
-            if (!session.map.contains(player.getLocation()) || player.getY() < session.map.floorY()) player.teleport(session.map.entrance());
+            try {
+                session.campaign.beforeCombat(session.arena, spec -> entities.spawnEnemy(session.map, player.getUniqueId(), spec.type(), spec.boss()));
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(java.util.logging.Level.SEVERE, "Wave spawn failed in " + session.arena.id(), exception);
+                player.sendMessage(Component.text("적 생성에 실패하여 전장을 종료합니다.", NamedTextColor.RED));
+                leave(player); continue;
+            }
+            if (session.campaign.round() != session.announcedRound) {
+                session.announcedRound = session.campaign.round();
+                player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
+            }
             List<CombatEngine.Hit> hits = combat.tick(session.arena, tick);
             for (CombatEngine.Hit hit : hits) {
                 Entity target = Bukkit.getEntity(hit.enemy());
                 if (target != null) player.spawnParticle(Particle.CRIT, target.getLocation().add(0, 0.7, 0), 2, 0.1, 0.1, 0.1, 0);
             }
             session.arena.collectDeadEnemies().forEach(entities::remove);
+            session.campaign.afterCombat(session.arena);
             boolean intact = true;
             for (dev.moma.core.Enemy enemy : session.arena.enemies())
                 intact &= entities.move(enemy.entityId(), session.map.location(enemy.position(session.map.grid().route())));
@@ -141,7 +161,7 @@ final class GameService {
             }
             if (tick % 10 == 0) {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
-                player.sendActionBar(Component.text("재화 " + session.arena.coins() + "원 · 적 " + session.arena.enemies().size() + "/" + session.arena.enemyLimit() + " · F 소환/판매", NamedTextColor.GOLD));
+                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + session.arena.coins() + "원 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
     }

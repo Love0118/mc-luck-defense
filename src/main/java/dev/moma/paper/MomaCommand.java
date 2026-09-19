@@ -1,6 +1,7 @@
 package dev.moma.paper;
 
 import dev.moma.core.EnemyType;
+import dev.moma.core.CampaignRules;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.*;
@@ -11,12 +12,12 @@ import java.util.*;
 final class MomaCommand implements TabExecutor {
     private final ArenaMaps maps;
     private final GameService games;
-    private final DevelopmentSettings settings;
-    MomaCommand(ArenaMaps maps, GameService games, DevelopmentSettings settings) { this.maps = maps; this.games = games; this.settings = settings; }
+    private final CampaignRules settings;
+    MomaCommand(ArenaMaps maps, GameService games, CampaignRules settings) { this.maps = maps; this.games = games; this.settings = settings; }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(Component.text("/moma list | join <전장> | leave"));
-            if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /moma create <전장> | spawn <종> [수] [boss] | coins <금액>"));
+            sender.sendMessage(Component.text("/mud list | join <전장> | leave"));
+            if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud create <전장> | spawn <종> [수] [boss] | coins <금액>"));
             return true;
         }
         try {
@@ -26,14 +27,14 @@ final class MomaCommand implements TabExecutor {
             switch (action) {
                 case "list" -> sender.sendMessage(Component.text("전장: " + String.join(", ", maps.all().stream().map(ArenaMap::id).toList())));
                 case "create" -> {
-                    require(args, 2, "/moma create <전장>");
+                    require(args, 2, "/mud create <전장>");
                     maps.create(args[1], settings.gridSize());
-                    sender.sendMessage(Component.text("개발용 전장 생성 완료: " + args[1] + " · /moma join " + args[1], NamedTextColor.GREEN));
+                    sender.sendMessage(Component.text("100라운드 전장 생성 완료: " + args[1] + " · /mud join " + args[1], NamedTextColor.GREEN));
                 }
-                case "join" -> { require(args, 2, "/moma join <전장>"); games.join(player(sender), args[1]); }
+                case "join" -> { require(args, 2, "/mud join <전장>"); games.join(player(sender), args[1]); }
                 case "leave" -> games.leave(player(sender));
                 case "spawn" -> {
-                    require(args, 2, "/moma spawn <ZOMBIE|HUSK|DROWNED|SPIDER|SLIME|MAGMA_CUBE> [1~100] [boss]");
+                    require(args, 2, "/mud spawn <ZOMBIE|HUSK|DROWNED|SPIDER|SLIME|MAGMA_CUBE> [1~100] [boss]");
                     EnemyType type;
                     try { type = EnemyType.valueOf(args[1].toUpperCase(Locale.ROOT)); }
                     catch (IllegalArgumentException exception) { throw new IllegalArgumentException("지원하지 않는 적 종류입니다."); }
@@ -43,15 +44,16 @@ final class MomaCommand implements TabExecutor {
                     games.spawnEnemies(player(sender), type, count, args.length >= 4);
                 }
                 case "coins" -> {
-                    require(args, 2, "/moma coins <1~1000000>");
+                    require(args, 2, "/mud coins <1~1000000>");
                     long amount = Long.parseLong(args[1]);
                     if (amount < 1 || amount > 1_000_000) throw new IllegalArgumentException("금액은 1~1000000입니다.");
                     GameSession session = games.session(player(sender));
                     if (session == null || session.arena.ended()) throw new IllegalArgumentException("진행 중인 전장에 먼저 참가하세요.");
                     session.arena.credit(amount);
+                    session.assisted = true;
                     sender.sendMessage(Component.text("개발용 재화 지급: " + amount + "원"));
                 }
-                default -> throw new IllegalArgumentException("알 수 없는 명령입니다. /moma로 도움말을 확인하세요.");
+                default -> throw new IllegalArgumentException("알 수 없는 명령입니다. /mud로 도움말을 확인하세요.");
             }
         } catch (NumberFormatException exception) {
             sender.sendMessage(Component.text("올바른 정수를 입력하세요.", NamedTextColor.RED));

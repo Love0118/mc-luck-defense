@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MUD · 100라운드 시뮬레이션</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#10141d;color:#e5eaf2}body{max-width:1140px;margin:32px auto;padding:0 24px}h1{font-size:28px;margin-bottom:8px}p{color:#abb8ca;line-height:1.7}.panel{background:#1a2230;border:1px solid #344056;border-radius:14px;padding:22px;margin-top:20px}.layout{display:grid;grid-template-columns:minmax(320px,1fr) 1fr;gap:22px}canvas{width:100%;background:#121a25;border-radius:10px}button,select{padding:10px 18px;background:#334661;color:inherit;border:0;border-radius:8px;cursor:pointer}input{width:100%;margin:18px 0}#stats{font-size:19px;line-height:1.9}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:7px;border-bottom:1px solid #344056}#roster{max-height:440px;overflow:auto}.badge{color:#71dfbd}small{color:#abb8ca}@media(max-width:760px){.layout{grid-template-columns:1fr}}
+</style>
+<h1>운빨 디펜스 <span class="badge">100라운드 리플레이</span></h1>
+<p>서버와 같은 Java 전투·경제·웨이브 엔진으로 실행한 기록입니다. 1초 간격의 상태를 재생하며 실제 Minecraft 화면이나 사람의 플레이 결과는 아닙니다.</p>
+<div class="panel"><div id="summary"></div><p>재현 시드 <strong>__SEED__</strong> · 파란 칸: 포탑 / 붉은 점: 적 / 큰 붉은 점: 보스</p>
+<button id="play">재생</button> <select id="speed" aria-label="재생 속도"><option value="1">1배</option><option value="10">10배</option><option value="30" selected>30배</option><option value="100">100배</option></select>
+<input id="time" aria-label="재생 위치" type="range" min="0" value="0"><div id="stats"></div></div>
+<div class="layout"><div class="panel"><canvas id="board" width="640" height="640" aria-label="포탑 배치와 적 경로"></canvas></div><div class="panel"><h2>현재 포탑</h2><div id="roster"></div></div></div>
+<div class="panel"><h2>누적 소환과 처치 수익</h2><canvas id="chart" width="1050" height="230" aria-label="시간에 따른 소환과 수익"></canvas><small>청록: 소환 횟수 / 금색: 처치 수익 ÷ 10 · 각 수치는 상단에 표시됩니다.</small></div>
+<script>
+const frames=__FRAMES__,summary=__SUMMARY__;
+const labels={COMMON:'일반',RARE:'레어',ANCIENT:'고대',RELIC:'유물',NARRATIVE:'서사',LEGENDARY:'전설',EPIC:'에픽',MYTHIC:'신화',PRIMORDIAL:'태초',MELEE_SINGLE:'근접 단일',MELEE_CLEAVE:'근접 광역',RANGED_SINGLE:'원거리 단일',SMALL_AREA:'준광역',LARGE_AREA:'대광역',MULTI_TARGET:'다중'};
+const colors={COMMON:'#a8b4c5',RARE:'#71cf90',ANCIENT:'#79cfed',RELIC:'#6f92ff',NARRATIVE:'#d69ce8',LEGENDARY:'#f1a45e',EPIC:'#bd70fa',MYTHIC:'#ff6482',PRIMORDIAL:'#ffe17d'};
+const time=document.querySelector('#time'),board=document.querySelector('#board'),ctx=board.getContext('2d'),chart=document.querySelector('#chart'),cx=chart.getContext('2d');
+time.max=frames.length-1;let playing=false,acc=0,last=0;
+document.querySelector('#summary').textContent=summary.runs===1?'단일 시드 재현 · '+(summary.wins===1?'100라운드 클리어':'패배')+' · 모집단 클리어 확률은 검증 보고서 참조':summary.runs.toLocaleString()+'회 · 클리어 '+(summary.clearRate*100).toFixed(2)+'% · 95% 신뢰구간 '+(summary.ci95Low*100).toFixed(2)+'–'+(summary.ci95High*100).toFixed(2)+'%';
+function point(x){return 64+(x+3)*28}
+function render(){const i=+time.value,f=frames[i];document.querySelector('#stats').textContent='R'+f.round+'/100 · '+Math.floor(f.tick/1200)+'분 '+Math.floor(f.tick/20)%60+'초 · 재화 '+f.coins+'원 · 적 '+f.enemies+'/100 · 소환 '+f.summons+' · 판매 '+f.sales+' · 이동 '+f.moves+' · 처치 수익 '+f.earned+'원';
+ctx.clearRect(0,0,640,640);ctx.strokeStyle='#b45466';ctx.lineWidth=4;ctx.strokeRect(point(-3),point(-3),504,504);
+for(let row=0;row<5;row++)for(let col=0;col<5;col++){ctx.fillStyle='#233e57';ctx.fillRect(point(col*3)-22,point(row*3)-22,44,44)}
+for(const e of f.mobs){ctx.fillStyle=e.boss?'#ff9b75':'#ef596d';ctx.beginPath();ctx.arc(point(e.x),point(e.z),e.boss?8:3,0,Math.PI*2);ctx.fill()}
+for(const u of f.units){ctx.fillStyle=colors[u.rarity];ctx.beginPath();ctx.arc(point(u.column*3),point(u.row*3),17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#10141d';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(labels[u.rarity],point(u.column*3),point(u.row*3)+4)}
+document.querySelector('#roster').innerHTML='<table><tr><th>종</th><th>등급</th><th>역할</th></tr>'+f.units.map(u=>'<tr><td>'+u.type+'</td><td style="color:'+colors[u.rarity]+'">'+labels[u.rarity]+'</td><td>'+labels[u.role]+'</td></tr>').join('')+'</table>';
+cx.clearRect(0,0,1050,230);const max=Math.max(1,...frames.map(f=>Math.max(f.summons,f.earned/10)));for(const [key,color,scale] of [['summons','#71dfbd',1],['earned','#ffe17d',.1]]){cx.strokeStyle=color;cx.lineWidth=2;cx.beginPath();frames.forEach((f,n)=>{const x=20+n/(frames.length-1)*1010,y=210-f[key]*scale/max*190;n?cx.lineTo(x,y):cx.moveTo(x,y)});cx.stroke()}cx.strokeStyle='#fff';cx.beginPath();cx.moveTo(20+i/(frames.length-1)*1010,10);cx.lineTo(20+i/(frames.length-1)*1010,220);cx.stroke()}
+time.addEventListener('input',render);document.querySelector('#play').onclick=()=>{playing=!playing;document.querySelector('#play').textContent=playing?'일시정지':'재생'};
+function animate(now){if(playing){acc+=(now-last)/1000*+document.querySelector('#speed').value;if(acc>=1){time.value=Math.min(frames.length-1,+time.value+Math.floor(acc));acc%=1;render();if(+time.value===frames.length-1){playing=false;document.querySelector('#play').textContent='재생'}}}last=now;requestAnimationFrame(animate)}render();requestAnimationFrame(animate);
+</script></html>

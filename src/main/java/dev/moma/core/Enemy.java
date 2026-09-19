@@ -13,6 +13,9 @@ public final class Enemy {
     private final long reward;
     private final ArrayList<Slow> slows = new ArrayList<>();
     private double health, progress;
+    private double positionProgress = Double.NaN;
+    private Route positionRoute;
+    private Point position;
     private boolean rewarded;
 
     public Enemy(UUID entityId, String arenaId, EnemyType type, double health, double speed, long reward, boolean boss) {
@@ -28,7 +31,12 @@ public final class Enemy {
     public boolean boss() { return boss; }
     public double health() { return health; }
     public double progress() { return progress; }
-    public Point position(Route route) { return route.at(progress); }
+    public Point position(Route route) {
+        if (positionProgress != progress || !route.equals(positionRoute)) {
+            position = route.at(progress); positionProgress = progress; positionRoute = route;
+        }
+        return position;
+    }
     public boolean alive() { return health > 0; }
     public void damage(double amount) {
         if (!Double.isFinite(amount) || amount < 0) throw new IllegalArgumentException("Invalid damage");
@@ -42,8 +50,11 @@ public final class Enemy {
             slows.add(new Slow(fraction, expiresAt));
     }
     public double slowAt(long tick) {
+        if (slows.isEmpty()) return 0;
         slows.removeIf(s -> s.expiresAt <= tick);
-        return slows.stream().mapToDouble(Slow::fraction).max().orElse(0);
+        double strongest = 0;
+        for (Slow slow : slows) strongest = Math.max(strongest, slow.fraction);
+        return strongest;
     }
     void advance(long tick) { if (alive()) progress += speed / 20.0 * (1 - slowAt(tick)); }
     long claimReward() {

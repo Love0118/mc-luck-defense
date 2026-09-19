@@ -10,8 +10,8 @@ public enum Rarity {
     NARRATIVE("서사", 800, 30, 4.0, 1.15, 1.25, 0),
     LEGENDARY("전설", 500, -1, 6.0, 1.2, 1.4, 1),
     EPIC("에픽", 200, -1, 9.0, 1.25, 1.6, 2),
-    MYTHIC("신화", 80, -1, 15.0, 1.3, 1.9, 3),
-    PRIMORDIAL("태초", 19, -1, 25.0, 1.4, 2.3, 4);
+    MYTHIC("신화", 80, -1, 40.0, 1.3, 1.9, 3),
+    PRIMORDIAL("태초", 19, -1, 80.0, 1.4, 2.3, 4);
 
     public static final int TOTAL_WEIGHT = 100_000;
     private final String label;

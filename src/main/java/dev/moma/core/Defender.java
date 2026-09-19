@@ -7,6 +7,7 @@ public final class Defender {
     private final String arenaId;
     private final UnitType type;
     private final Rarity rarity;
+    private final CombatProfile profile;
     private Cell cell;
     private long nextAttackTick;
     private UUID lastTarget;
@@ -14,7 +15,7 @@ public final class Defender {
 
     public Defender(UUID entityId, UUID ownerId, String arenaId, UnitType type, Rarity rarity, Cell cell) {
         this.entityId = entityId; this.ownerId = ownerId; this.arenaId = arenaId;
-        this.type = type; this.rarity = rarity; this.cell = cell;
+        this.type = type; this.rarity = rarity; this.cell = cell; this.profile = type.profile().at(rarity);
     }
     public UUID entityId() { return entityId; }
     public UUID ownerId() { return ownerId; }
@@ -22,6 +23,7 @@ public final class Defender {
     public Faction faction() { return Faction.DEFENDER; }
     public UnitType type() { return type; }
     public Rarity rarity() { return rarity; }
+    public CombatProfile profile() { return profile; }
     public Cell cell() { return cell; }
     public Point position() { return cell.point(); }
     public long nextAttackTick() { return nextAttackTick; }

@@ -4,4 +4,6 @@ target/
 *.iml
 .vscode/
 .runtime/
-
+docs/simulation/**/trace-*.jsonl
+docs/simulation/validation/replay.html
+docs/simulation/auto-placement/replay.html
