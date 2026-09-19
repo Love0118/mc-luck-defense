@@ -8,7 +8,7 @@
   "sessionIsolation": true,
   "freshSessionResets": true,
   "pluginVersion": "0.9.1",
-  "pluginSha256": "3c82d271aacc85b3c63d69e482a57bb825901a8dc8348e7628a304fa86883e45",
-  "testsPassed": 166,
-  "scope": "자동판매·일괄구매·자동배치 통합 전 기능 검증. Minecraft 화면 수동 검증은 포함하지 않음."
+  "pluginSha256": "96ba5c68df0eaab481ce77bb49a6bbb6c6195766cbf6eff4f268e36317fe2591",
+  "testsPassed": 169,
+  "scope": "바이옴 경로 통합 후 자동판매·일괄구매·자동배치 실제 Paper 서버 기능 검증. Minecraft 화면 수동 검증은 포함하지 않음."
 }
