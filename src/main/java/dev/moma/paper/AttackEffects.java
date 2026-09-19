@@ -5,16 +5,23 @@ import java.util.*;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 
-/** One shape per actual attack, delivered only to its owner and current spectators. */
+/** Latest actual attack per defender per server tick, delivered only to its owner and spectators. */
 final class AttackEffects {
     private final Map<Defender, List<Point>> attacks = new LinkedHashMap<>();
+    private final Set<Defender> currentStep = new HashSet<>();
     private static final Particle.DustOptions[] COLORS = Arrays.stream(Rarity.values())
             .map(r -> new Particle.DustOptions(Color.fromRGB(EntityAdapter.rarityColor(r).value()), 0.8f))
             .toArray(Particle.DustOptions[]::new);
-    void clear() { attacks.clear(); }
+    void clear() { attacks.clear(); currentStep.clear(); }
+    void beginStep() { currentStep.clear(); }
     boolean hit(Defender defender, Point target) {
         List<Point> targets = attacks.computeIfAbsent(defender, key -> new ArrayList<>());
-        boolean primary = targets.isEmpty(); targets.add(target); return primary;
+        boolean primary = currentStep.add(defender);
+        if (primary) targets.clear();
+        targets.add(target); return primary;
+    }
+    void forEachPrimary(java.util.function.BiConsumer<Defender, Point> action) {
+        attacks.forEach((defender, targets) -> action.accept(defender, targets.getFirst()));
     }
     void render(ArenaMap map, List<Player> viewers) {
         for (var attack : attacks.entrySet()) {

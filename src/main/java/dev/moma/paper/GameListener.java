@@ -30,7 +30,7 @@ final class GameListener implements Listener {
         return true;
     }
     private void leftClick(Player player) {
-        if (!beginClick(player)) return;
+        if (!games.usingMoveTool(player) || !beginClick(player)) return;
         // A shared ray makes left-click air work beyond vanilla melee reach; blocks occlude entities.
         RayTraceResult hit = player.getWorld().rayTrace(player.getEyeLocation(), player.getEyeLocation().getDirection(),
                 24, FluidCollisionMode.NEVER, true, 0.15, e -> games.entities.managed(e));
@@ -44,20 +44,33 @@ final class GameListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST) public void attack(PrePlayerAttackEntityEvent event) {
         if (games.entities.managed(event.getAttacked()) || games.playing(event.getPlayer())) {
             event.setCancelled(true);
-            if (games.entities.managed(event.getAttacked()) && beginClick(event.getPlayer())) games.select(event.getPlayer(), event.getAttacked().getUniqueId());
+            if (games.entities.managed(event.getAttacked()) && games.usingMoveTool(event.getPlayer()) && beginClick(event.getPlayer())) games.select(event.getPlayer(), event.getAttacked().getUniqueId());
         }
     }
     @EventHandler public void interact(PlayerInteractEvent event) {
         if (!games.playing(event.getPlayer())) return;
         event.setCancelled(true);
         if (event.getHand() == EquipmentSlot.HAND && (event.getAction() == Action.LEFT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_AIR)) leftClick(event.getPlayer());
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) sellTool(event.getPlayer(),event.getHand());
     }
     @EventHandler public void entityInteract(PlayerInteractEntityEvent event) {
         if (games.entities.managed(event.getRightClicked()) || games.playing(event.getPlayer())) event.setCancelled(true);
+        sellTool(event.getPlayer(),event.getHand());
     }
     @EventHandler public void entityInteractAt(PlayerInteractAtEntityEvent event) {
         if (games.entities.managed(event.getRightClicked()) || games.playing(event.getPlayer())) event.setCancelled(true);
+        sellTool(event.getPlayer(),event.getHand());
     }
+    private void sellTool(Player player,EquipmentSlot hand) {
+        if (hand==EquipmentSlot.HAND && games.usingSellTool(player) && beginClick(player)) games.sell(player);
+    }
+    @EventHandler public void inventory(org.bukkit.event.inventory.InventoryClickEvent event) {
+        if(event.getWhoClicked() instanceof Player player && games.playing(player))event.setCancelled(true);
+    }
+    @EventHandler public void inventoryDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
+        if(event.getWhoClicked() instanceof Player player && games.playing(player))event.setCancelled(true);
+    }
+    @EventHandler public void join(PlayerJoinEvent event) { games.tools.restore(event.getPlayer()); }
     @EventHandler(priority = EventPriority.HIGHEST) public void damage(EntityDamageEvent event) {
         if (games.entities.managed(event.getEntity()) || event.getEntity() instanceof Player p && games.playing(p)) event.setCancelled(true);
     }
@@ -76,6 +89,7 @@ final class GameListener implements Listener {
     }
     @EventHandler public void death(EntityDeathEvent event) {
         if (games.entities.managed(event.getEntity())) { event.getDrops().clear(); event.setDroppedExp(0); }
+        else if(event.getEntity() instanceof Player player && games.playing(player))event.getDrops().removeIf(games.tools::isTool);
     }
     @EventHandler public void breakBlock(BlockBreakEvent event) {
         if (games.playing(event.getPlayer()) || maps.contains(event.getBlock().getLocation())) event.setCancelled(true);

@@ -16,6 +16,8 @@ public final class BenchmarkPlugin extends JavaPlugin {
     private final int warmup = Integer.getInteger("mudbench.warmup", 6400);
     private final int measure = Integer.getInteger("mudbench.measure", 19200);
     private final boolean campaignMode = Boolean.getBoolean("mudbench.campaign");
+    private final int targetTps = Integer.getInteger("mudbench.targetTps", 320);
+    private final int sessionSpeed = Integer.getInteger("mudbench.sessionSpeed", 1);
     private final List<Object> gameSessions = new ArrayList<>();
     private final List<AutoPlayer> bots = new ArrayList<>();
     private int peakEnemies, peakDefenders;
@@ -46,7 +48,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
                 getTimes = minecraftServer.getClass().getMethod("getTickTimesNanos");
             }
             if (setupIndex < sessions) { prepare(setupIndex++); return; }
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tick rate 320");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tick rate " + targetTps);
             tick = 0;
             getLogger().info("BENCH_WARMUP sessions=" + sessions + " mode=" + (campaignMode ? "campaign" : "dense"));
             return;
@@ -94,6 +96,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
         Object map = call(maps, "get", id);
         if (map == null) map = call(maps, "create", id, 6);
         call(games, "join", player, id);
+        call(games, "speed", player, sessionSpeed);
         Object session = call(games, "session", player);
         gameSessions.add(session);
         Arena arena = (Arena) field(session, "arena"); arenas.add(arena);
@@ -136,12 +139,13 @@ public final class BenchmarkPlugin extends JavaPlugin {
         double seconds = (System.nanoTime() - started) / 1e9;
         recording.stop(); recording.dump(getDataFolder().toPath().resolve("profile.jfr")); recording.close();
         double[] values = mspt.stream().mapToDouble(x -> x).sorted().toArray();
-        long missed = mspt.stream().filter(x -> x > 3.125).count();
+        long missed = mspt.stream().filter(x -> x > 1000.0/targetTps).count();
         String json = String.format(Locale.ROOT,
             "{\"sessions\":%d,\"viewers\":%d,\"defenders\":%d,\"enemies\":%d,\"targetTps\":320,\"warmupTicks\":%d,\"measuredTicks\":%d,\"seconds\":%.6f,\"actualTps\":%.4f,\"meanMspt\":%.6f,\"p50Mspt\":%.6f,\"p95Mspt\":%.6f,\"p99Mspt\":%.6f,\"maxMspt\":%.6f,\"ticksOverBudget\":%d,\"gcMillis\":%d,\"heapDelta\":%d,\"tpsWindows\":%s,\"mspt\":%s}\n",
             sessions, Bukkit.getOnlinePlayers().size(), peakDefenders, peakEnemies, warmup, measure, seconds, measure/seconds,
             Arrays.stream(values).average().orElse(0), percentile(values,.5), percentile(values,.95), percentile(values,.99), values[values.length-1],
             missed, gcMillis()-gcBefore, usedHeap()-heapBefore, windows, mspt);
+        json = json.replace("\"targetTps\":320", "\"targetTps\":" + targetTps + ",\"sessionSpeed\":" + sessionSpeed);
         Files.writeString(getDataFolder().toPath().resolve("result.json"), json);
         if (Boolean.getBoolean("mud.native.entityBatch")) {
             Class<?> bridge = Class.forName("io.papermc.paper.optimization.mud.MudNativeEntities");

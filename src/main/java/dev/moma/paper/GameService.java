@@ -13,8 +13,9 @@ final class GameService {
     private final CampaignRules settings;
     private final Lobby lobby;
     final EntityAdapter entities;
+    final SessionTools tools;
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
-    private record Watch(GameSession target, Location returnLocation, GameMode returnMode) {}
+    private record Watch(GameSession target, Location returnLocation, GameMode returnMode, boolean returnAllowFlight, boolean returnFlying) {}
     private final Map<UUID, Watch> spectators = new LinkedHashMap<>();
     record SessionInfo(UUID sessionId, UUID owner, String playerName, String arena, int round, int enemies) {}
     private final CombatEngine combat = new CombatEngine();
@@ -24,11 +25,19 @@ final class GameService {
         this(plugin, maps, settings, null);
     }
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings, Lobby lobby) {
-        this.plugin = plugin; this.maps = maps; this.settings = settings; this.lobby = lobby; entities = new EntityAdapter(plugin);
+        this.plugin = plugin; this.maps = maps; this.settings = settings; this.lobby = lobby; entities = new EntityAdapter(plugin); tools = new SessionTools(plugin);
     }
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
     boolean watching(Player player) { return spectators.containsKey(player.getUniqueId()); }
+    boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
+    boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
+    void speed(Player player, int value) {
+        GameSession session = session(player);
+        if (session == null || session.arena.ended()) throw new IllegalArgumentException("자신의 진행 중인 게임에서만 배속을 변경할 수 있습니다.");
+        session.speed(value);
+        player.sendMessage(Ui.text("&a게임 배속: &e" + value + "배 &7· 자신의 세션에만 적용됩니다."));
+    }
     List<SessionInfo> activeSessions() {
         return sessions.values().stream().filter(s -> !s.arena.ended()).map(s -> {
             Player owner = Bukkit.getPlayer(s.arena.owner());
@@ -42,11 +51,14 @@ final class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("이미 종료된 세션입니다. 관전 목록을 다시 열어주세요."));
         Watch previous = spectators.get(player.getUniqueId());
         Watch watch = new Watch(target, previous == null ? player.getLocation().clone() : previous.returnLocation,
-                previous == null ? player.getGameMode() : previous.returnMode);
+                previous == null ? player.getGameMode() : previous.returnMode,
+                previous == null ? player.getAllowFlight() : previous.returnAllowFlight,
+                previous == null ? player.isFlying() : previous.returnFlying);
         if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
         player.closeInventory(); player.setGameMode(GameMode.SPECTATOR);
         spectators.put(player.getUniqueId(), watch);
         if (!player.teleport(viewpoint(target))) { stopWatching(player, true); throw new IllegalArgumentException("관전 위치로 이동하지 못했습니다."); }
+        player.setAllowFlight(true); player.setFlying(true);
         player.sendMessage(Ui.text("&b관전 시작 &7· /mud: 관전 메뉴 /mud lobby: 로비 복귀"));
     }
     void spectate(Player player, String playerName) {
@@ -64,9 +76,11 @@ final class GameService {
         Watch watch = spectators.remove(player.getUniqueId());
         if (watch == null) return;
         if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
-        if (returnToLobby) {
-            if (lobby != null) lobby.send(player);
-            else { player.setGameMode(watch.returnMode); player.teleport(watch.returnLocation); }
+        if (returnToLobby && lobby != null) lobby.send(player);
+        else {
+            player.setGameMode(watch.returnMode);
+            player.setAllowFlight(watch.returnAllowFlight); player.setFlying(watch.returnFlying);
+            if (returnToLobby) player.teleport(watch.returnLocation);
         }
     }
     private List<Player> viewers(Player owner, GameSession session) {
@@ -107,7 +121,9 @@ final class GameService {
         sessions.put(player.getUniqueId(), session);
         if (!player.teleport(map.entrance())) { leave(player); throw new IllegalArgumentException("전장으로 이동할 수 없습니다."); }
         player.setGameMode(GameMode.ADVENTURE);
-        player.sendMessage(Component.text("100라운드 도전! 15초 후 적이 출현합니다. F: 소환·판매 / 좌클릭: 선택·이동", NamedTextColor.GREEN));
+        player.setAllowFlight(true); player.setFlying(true);
+        tools.give(player);
+        player.sendMessage(Component.text("100라운드 도전! 15게임초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
     }
     void leave(Player player) {
         entities.selectGlow(player, null);
@@ -115,15 +131,25 @@ final class GameService {
         GameSession session = sessions.remove(player.getUniqueId());
         if (session == null) { if (lobby != null) lobby.send(player); return; }
         player.closeInventory();
+        tools.restore(player);
         release(session);
         if (lobby != null) lobby.send(player);
-        else { player.setGameMode(session.returnMode); player.teleport(session.returnLocation); }
+        else {
+            player.setGameMode(session.returnMode);
+            player.setAllowFlight(session.returnAllowFlight); player.setFlying(session.returnFlying);
+            player.teleport(session.returnLocation);
+        }
     }
     void disconnect(Player player) {
         entities.selectGlow(player, null);
+        tools.restore(player);
         stopWatching(player, false);
         GameSession session = sessions.remove(player.getUniqueId());
-        if (session != null) release(session);
+        if (session != null) {
+            release(session);
+            player.setGameMode(session.returnMode);
+            player.setAllowFlight(session.returnAllowFlight); player.setFlying(session.returnFlying);
+        }
     }
     private void release(GameSession session) {
         for (UUID id : List.copyOf(spectators.keySet())) {
@@ -221,7 +247,7 @@ final class GameService {
             GameSession target = entry.getValue().target;
             if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
             if (!spectatorDestination(viewer, viewer.getLocation())) viewer.teleport(viewpoint(target));
-            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &f" + target.arena.id() + " &7· &eR" + target.campaign.round() + " &7· /mud: 메뉴"));
+            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &f" + target.arena.id() + " &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· /mud: 메뉴"));
         }
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
@@ -231,26 +257,11 @@ final class GameService {
                 finish(player, session);
                 continue;
             }
-            try {
-                session.campaign.beforeCombat(session.arena, spec -> entities.spawnEnemy(session.map, player.getUniqueId(), spec.type(), spec.boss()));
-            } catch (RuntimeException exception) {
-                plugin.getLogger().log(java.util.logging.Level.SEVERE, "Wave spawn failed in " + session.arena.id(), exception);
-                player.sendMessage(Component.text("적 생성에 실패하여 전장을 종료합니다.", NamedTextColor.RED));
-                leave(player); continue;
-            }
-            if (session.arena.ended()) { finish(player, session); continue; }
-            if (session.campaign.round() != session.announcedRound) {
-                session.announcedRound = session.campaign.round();
-                player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
-            }
             session.attackEffects.clear();
-            combat.tick(session.arena, tick, (defender, enemy, damage) -> {
-                Point target = enemy.position(session.map.grid().route());
-                if (session.attackEffects.hit(defender, target)) entities.face(defender, target);
-            });
+            for (int step = 0; step < session.speed(); step++) if (!step(player, session)) break;
+            if (session(player) != session) continue;
+            session.attackEffects.forEachPrimary(entities::face);
             session.attackEffects.render(session.map, viewers(player, session));
-            session.arena.collectDeadEnemies().forEach(entities::remove);
-            session.campaign.afterCombat(session.arena);
             if (session.arena.ended()) { finish(player, session); continue; }
             boolean intact = entities.advanceAll(session.arena, session.map);
             // Anchor unusual vanilla bodies such as shulkers as well as ordinary mobs.
@@ -262,9 +273,30 @@ final class GameService {
             }
             if (tick % 10 == 0) {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
-                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + session.arena.coins() + "원 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
+                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + session.speed() + "배 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "게임초 · " + session.arena.coins() + "원 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
+    }
+    private boolean step(Player player, GameSession session) {
+        session.simulationTick++;
+        try {
+            session.campaign.beforeCombat(session.arena, spec -> entities.spawnEnemy(session.map, player.getUniqueId(), spec.type(), spec.boss()));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "Wave spawn failed in " + session.arena.id(), exception);
+            player.sendMessage(Component.text("적 생성에 실패하여 전장을 종료합니다.", NamedTextColor.RED));
+            leave(player); return false;
+        }
+        if (session.arena.ended()) return false;
+        if (session.campaign.round() != session.announcedRound) {
+            session.announcedRound = session.campaign.round();
+            player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
+        }
+        session.attackEffects.beginStep();
+        combat.tick(session.arena, session.simulationTick, (defender, enemy, damage) ->
+                session.attackEffects.hit(defender, enemy.position(session.map.grid().route())));
+        session.arena.collectDeadEnemies().forEach(entities::remove);
+        session.campaign.afterCombat(session.arena);
+        return !session.arena.ended();
     }
     private void finish(Player player, GameSession session) {
         String result = switch (session.arena.outcome()) {

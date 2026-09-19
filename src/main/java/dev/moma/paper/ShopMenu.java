@@ -9,7 +9,7 @@ import org.bukkit.inventory.*;
 import java.util.*;
 
 final class ShopMenu implements Listener {
-    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, BULK_FIRST = 20;
+    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, BULK_FIRST = 20, SPEED = 8;
     private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
     private final GameService games;
@@ -18,16 +18,17 @@ final class ShopMenu implements Listener {
     private static final class Holder implements InventoryHolder {
         final UUID owner;
         final Arena arena;
+        final GameSession session;
         Inventory inventory;
         boolean consumed;
-        Holder(UUID owner, Arena arena) { this.owner = owner; this.arena = arena; }
+        Holder(UUID owner, GameSession session) { this.owner = owner; this.session = session; this.arena = session.arena; }
         @Override public Inventory getInventory() { return inventory; }
     }
     ShopMenu(MomaPlugin plugin, GameService games) { this.plugin = plugin; this.games = games; }
     void open(Player player) {
         GameSession session = games.session(player);
         if (session == null || session.arena.ended()) return;
-        var holder = new Holder(player.getUniqueId(), session.arena);
+        var holder = new Holder(player.getUniqueId(), session);
         holder.inventory = Bukkit.createInventory(holder, 27, Ui.text("&6운빨 디펜스 &8· &e소환과 판매"));
         render(holder);
         player.openInventory(holder.inventory);
@@ -35,6 +36,8 @@ final class ShopMenu implements Listener {
     private void render(Holder holder) {
         Arena arena = holder.arena;
         holder.inventory.clear();
+        holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
+                "좌클릭: 1 → 2 → 4 → 8 → 1배", "자신의 세션에만 적용", "웨이브·이동·공격·감속을 함께 가속"));
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 재화: &e" + arena.coins() + "원", "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a무작위 소환 &7· &610원", "24종 × 9개 등급 독립 추첨", "근접은 가장자리 · 원거리는 안쪽 우선", "우선 영역이 차면 남은 칸 사용", "좌클릭으로 1회 소환"));
         for (int i = 0; i < SELLABLE.length; i++) {
@@ -73,17 +76,18 @@ final class ShopMenu implements Listener {
         if (session == null || session.arena != holder.arena || session.arena.ended()) return;
         if (event.getClick() != ClickType.LEFT || holder.consumed || Bukkit.getCurrentTick() < nextClick.getOrDefault(holder.owner, 0)) return;
         int slot = event.getRawSlot();
-        if (slot != SUMMON && slot != SELL && (slot < BULK_FIRST || slot >= BULK_FIRST+SELLABLE.length)) return;
+        if (slot != SUMMON && slot != SELL && slot != SPEED && (slot < BULK_FIRST || slot >= BULK_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
-        nextClick.put(holder.owner, Bukkit.getCurrentTick() + 5);
+        nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
         if (slot == SUMMON) games.summon(player);
         else if (slot == SELL) games.sell(player);
+        else if (slot == SPEED) games.speed(player, session.speed() == 8 ? 1 : session.speed() * 2);
         else games.sellRarity(player, SELLABLE[slot-BULK_FIRST]);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (games.session(player) == session && player.getOpenInventory().getTopInventory() == holder.inventory) {
                 render(holder); holder.consumed = false;
             }
-        }, 5);
+        }, 1);
     }
     @EventHandler public void drag(InventoryDragEvent event) {
         if (event.getView().getTopInventory().getHolder() instanceof Holder) event.setCancelled(true);

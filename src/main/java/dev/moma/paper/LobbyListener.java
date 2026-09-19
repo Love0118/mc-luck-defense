@@ -17,6 +17,7 @@ final class LobbyListener implements Listener {
     }
     @EventHandler public void respawn(PlayerRespawnEvent event) {
         games.disconnect(event.getPlayer()); event.setRespawnLocation(lobby.spawn());
+        lobby.prepare(event.getPlayer());
     }
     @EventHandler public void swap(PlayerSwapHandItemsEvent event) {
         if (!games.playing(event.getPlayer()) && lobby.contains(event.getPlayer().getLocation())) { event.setCancelled(true); menu.open(event.getPlayer()); }

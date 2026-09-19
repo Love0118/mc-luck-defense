@@ -58,7 +58,10 @@ final class EntityAdapter {
             if (living instanceof Zombie zombie) { zombie.setBaby(false); zombie.setShouldBurnInDay(false); }
             if (living instanceof AbstractSkeleton skeleton) skeleton.setShouldBurnInDay(false);
             if (living instanceof Vex vex) vex.setLimitedLifetime(false);
-            if (living.getAttribute(Attribute.SCALE) != null) living.getAttribute(Attribute.SCALE).setBaseValue(2.0);
+            if (living.getAttribute(Attribute.SCALE) != null) living.getAttribute(Attribute.SCALE).setBaseValue(switch (type) {
+                case GHAST, WARDEN, IRON_GOLEM, RAVAGER, HOGLIN, POLAR_BEAR, PANDA -> 1.0;
+                default -> 2.0;
+            });
             living.getPersistentDataContainer().set(factionKey, PersistentDataType.STRING, faction.name());
             living.getPersistentDataContainer().set(arenaKey, PersistentDataType.STRING, map.id());
             living.getPersistentDataContainer().set(ownerKey, PersistentDataType.STRING, owner.toString());

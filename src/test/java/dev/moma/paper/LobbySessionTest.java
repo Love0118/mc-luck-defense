@@ -6,16 +6,25 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.*;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class LobbySessionTest {
+    private org.mockito.MockedConstruction<SessionTools> tools;
+    @BeforeEach void mockTools() { tools=mockConstruction(SessionTools.class); }
+    @AfterEach void closeTools() { tools.close(); }
     private Player player(World world) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getLocation()).thenReturn(new Location(world, 0, 65, 0));
-        when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
+        GameMode[] mode = {GameMode.ADVENTURE}; boolean[] flight = {false, false};
+        when(player.getGameMode()).thenAnswer(call -> mode[0]);
+        doAnswer(call -> { mode[0] = call.getArgument(0); return null; }).when(player).setGameMode(any());
+        when(player.getAllowFlight()).thenAnswer(call -> flight[0]);
+        when(player.isFlying()).thenAnswer(call -> flight[1]);
+        doAnswer(call -> { flight[0] = call.getArgument(0); return null; }).when(player).setAllowFlight(anyBoolean());
+        doAnswer(call -> { flight[1] = call.getArgument(0); assertFalse(flight[1] && !flight[0]); return null; }).when(player).setFlying(anyBoolean());
         when(player.teleport(any(Location.class))).thenReturn(true);
         return player;
     }
@@ -50,9 +59,10 @@ class LobbySessionTest {
     }
     @Test void everyTerminalOutcomeReleasesEntitiesTicketsAndReturnsOnce() {
         for (Arena.Outcome outcome : List.of(Arena.Outcome.ENEMY_LIMIT,Arena.Outcome.TIME_LIMIT,Arena.Outcome.VICTORY)) {
-            World world=mock(World.class); Lobby lobby=mock(Lobby.class);
+            World world=mock(World.class); Lobby lobby=spy(new Lobby(new Location(world,0,65,0),256));
             GameService games=new GameService(plugin(),maps(world),CampaignRules.standard(),lobby);
             Player player=player(world); games.start(player); GameSession session=games.session(player);
+            assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
             UUID defender=UUID.randomUUID(), enemy=UUID.randomUUID();
             session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->defender);
             session.arena.addEnemy(new Enemy(enemy,"a",EnemyType.ZOMBIE,100,1,1,false));
@@ -65,6 +75,7 @@ class LobbySessionTest {
                 games.tick(); games.tick();
             }
             assertFalse(games.playing(player)); assertTrue(games.available("a"));
+            assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
             verify(lobby,times(1)).send(player); verify(defenderEntity).remove(); verify(enemyEntity).remove();
             for (Chunk chunk:session.tickets) verify(chunk).removePluginChunkTicket(any());
             verify(player,times(2)).sendMessage(any(Component.class)); // Entry + result.
@@ -74,6 +85,7 @@ class LobbySessionTest {
         World world=mock(World.class); Lobby lobby=mock(Lobby.class);
         GameService games=new GameService(plugin(),maps(world),CampaignRules.standard(),lobby);
         Player player=player(world); games.start(player); games.disconnect(player); games.disconnect(player);
+        assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
         assertFalse(games.playing(player)); assertTrue(games.available("a")); verifyNoInteractions(lobby);
         when(player.teleport(any(Location.class))).thenReturn(false);
         assertThrows(IllegalArgumentException.class,()->games.start(player));
@@ -84,11 +96,14 @@ class LobbySessionTest {
         GameService games=mock(GameService.class); LobbyMenu menu=mock(LobbyMenu.class);
         LobbyListener listener=new LobbyListener(lobby,games,menu); Player player=player(world);
         PlayerJoinEvent join=mock(PlayerJoinEvent.class); when(join.getPlayer()).thenReturn(player); listener.join(join);
+        assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
         verify(player).teleport(lobby.spawn()); verify(games,never()).start(any());
         var move=mock(PlayerMoveEvent.class); when(move.getPlayer()).thenReturn(player); when(move.getTo()).thenReturn(new Location(world,0,-2,0));
         listener.move(move); verify(move).setTo(lobby.spawn());
         var respawn=mock(PlayerRespawnEvent.class); when(respawn.getPlayer()).thenReturn(player);
+        player.setAllowFlight(true); player.setFlying(true);
         listener.respawn(respawn); verify(games).disconnect(player); verify(respawn).setRespawnLocation(lobby.spawn());
+        assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
     }
     @Test void startMenuRejectsShiftBottomAndRepeatedClicksAndDefersEntry() {
         var plugin=plugin(); GameService games=mock(GameService.class); World world=mock(World.class);
@@ -132,7 +147,7 @@ class LobbySessionTest {
         verify(maps,times(3)).createNext(6);assertEquals(23,available.size());
     }
     @Test void spectatingDoesNotOwnArenaAndOldSessionCannotBeWatchedAfterReuse() {
-        World world=mock(World.class); Lobby lobby=mock(Lobby.class);
+        World world=mock(World.class); Lobby lobby=spy(new Lobby(new Location(world,0,65,0),256));
         GameService games=new GameService(plugin(),maps(world),CampaignRules.standard(),lobby);
         Player owner=player(world),viewer=player(world);games.start(owner);GameSession session=games.session(owner);
         try(var bukkit=mockStatic(Bukkit.class)) {
@@ -141,12 +156,25 @@ class LobbySessionTest {
             games.spectate(viewer,session.sessionId);
             assertTrue(games.watching(viewer)); assertFalse(games.playing(viewer));assertTrue(games.available("b"));
             verify(viewer).setGameMode(GameMode.SPECTATOR);
+            assertTrue(viewer.getAllowFlight()); assertTrue(viewer.isFlying());
             assertFalse(games.spectatorDestination(viewer,new Location(world,128,72,0)));
             assertTrue(games.spectatorDestination(viewer,new Location(world,4,72,4)));
             games.leave(owner);verify(lobby).send(viewer);assertFalse(games.watching(viewer));
+            assertFalse(viewer.getAllowFlight()); assertFalse(viewer.isFlying());
             games.start(owner);assertNotEquals(session.sessionId,games.session(owner).sessionId);
             assertThrows(IllegalArgumentException.class,()->games.spectate(viewer,session.sessionId));
         }
+    }
+    @Test void noLobbyRestoresPreviousFlightOnLeaveAndSpectatorDisconnect() {
+        World world=mock(World.class); GameService games=new GameService(plugin(),maps(world),CampaignRules.standard());
+        Player owner=player(world), viewer=player(world);
+        owner.setAllowFlight(true); // Preserve an existing flight permission without forcing it active after leaving.
+        games.start(owner); games.leave(owner);
+        assertTrue(owner.getAllowFlight()); assertFalse(owner.isFlying());
+        games.start(owner); games.spectate(viewer,games.session(owner).sessionId);
+        assertTrue(viewer.isFlying()); games.disconnect(viewer);
+        assertEquals(GameMode.ADVENTURE,viewer.getGameMode());
+        assertFalse(viewer.getAllowFlight()); assertFalse(viewer.isFlying());
     }
     @Test void spectatorMenuPaginatesBeyondFortyFiveAndKeepsExactSessionIdentity() {
         var plugin=plugin();GameService games=mock(GameService.class);var menu=new LobbyMenu(plugin,games);

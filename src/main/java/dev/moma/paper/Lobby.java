@@ -51,10 +51,14 @@ final class Lobby {
     boolean outside(Location location) {
         return location.getY() < 1 || Math.abs(location.getX()) >= halfSize || Math.abs(location.getZ()) >= halfSize;
     }
-    void send(Player player) {
+    void prepare(Player player) {
         player.closeInventory();
         player.setFallDistance(0); player.setFireTicks(0); player.setFoodLevel(20);
         player.setGameMode(GameMode.ADVENTURE);
+        player.setFlying(false); player.setAllowFlight(false);
+    }
+    void send(Player player) {
+        prepare(player);
         if (!player.teleport(spawn())) throw new IllegalStateException("Lobby teleport rejected for " + player.getUniqueId());
     }
 }

@@ -16,6 +16,7 @@ public final class MomaPlugin extends JavaPlugin {
         maps.load();
         Lobby lobby = Lobby.load(this);
         games = new GameService(this, maps, settings, lobby);
+        for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
         games.entities.enablePrivateGlow(this);
         getServer().getPluginManager().registerEvents(new UnsignedChat(this), this);
         var shop = new ShopMenu(this, games);

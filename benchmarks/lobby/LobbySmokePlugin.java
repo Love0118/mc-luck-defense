@@ -17,6 +17,8 @@ public final class LobbySmokePlugin extends JavaPlugin {
     private Object firstSession, secondSession;
     private int facedTypes, checkedAttackDirections;
     private int selectedEntityId, glowClearEntityId;
+    private long firstTick, secondTick;
+    private int expectedSpeed = 2, speedChecks;
     @Override public void onEnable() {
         if (!Bukkit.getIp().equals("127.0.0.1")) throw new IllegalStateException("Localhost only");
         try {
@@ -48,7 +50,12 @@ public final class LobbySmokePlugin extends JavaPlugin {
             if (first==null || second==null || viewer==null || !first.isOnline() || !second.isOnline() || !viewer.isOnline()) return;
             require(first.getWorld().equals(world)&&second.getWorld().equals(world),"Login must enter lobby");
             require(first.getLocation().distance(world.getSpawnLocation())<1,"Login must use configured spawn");
+            require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight(),"Lobby flight disabled");
+            first.getInventory().setItem(0,new org.bukkit.inventory.ItemStack(Material.DIAMOND,3));
+            first.getInventory().setItem(1,new org.bukkit.inventory.ItemStack(Material.GOLD_INGOT,4));
             call(games,"start",first); call(games,"start",second);
+            require(first.getAllowFlight() && first.isFlying() && second.getAllowFlight(),"Participants fly by default");
+            require(first.getInventory().getItem(0).getType()==Material.BLAZE_ROD && first.getInventory().getItem(1).getType()==Material.EMERALD,"Tools in slots one and two");
             firstSession=call(games,"session",first); secondSession=call(games,"session",second);
             require(firstSession!=secondSession,"Distinct session objects");
             require(!arena(firstSession).id().equals(arena(secondSession).id()),"Distinct arenas");
@@ -57,12 +64,14 @@ public final class LobbySmokePlugin extends JavaPlugin {
             call(games,"start",viewer);
             require(call(games,"session",viewer)!=null,"Dynamic arena allocation");
             call(games,"leave",viewer);
+            require(!viewer.getAllowFlight() && !viewer.isFlying(),"Manual return removes flight");
             // Existing two arenas were full; a third must have been persisted.
             require(((Collection<?>)call(maps,"all")).size()>=3,"Third arena created");
             call(games,"spectate",viewer,first.getName());
             require((boolean)call(games,"watching",viewer),"Spectator registered");
             require(call(games,"session",viewer)==null,"Spectator has no combat session");
             require(viewer.getGameMode()==GameMode.SPECTATOR,"Spectator mode");
+            require(viewer.getAllowFlight() && viewer.isFlying(),"Spectator flight enabled");
             Object adapter=field(games,"entities"),map=field(firstSession,"map");
             verifyAllBodies(adapter,map);
             arena(firstSession).credit(100);
@@ -79,6 +88,15 @@ public final class LobbySmokePlugin extends JavaPlugin {
             call(games,"sellRarity",first,Rarity.COMMON);
             require(arena(firstSession).coins()==coins+commonCount*3,"Bulk sale payout");
             for(UUID id:common) require(Bukkit.getEntity(id)==null,"Bulk sale entity removal");
+            arena(firstSession).summon(first.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->{
+                try{return (UUID)call(adapter,"spawnDefender",map,first.getUniqueId(),t,r,c);}
+                catch(Exception e){throw new RuntimeException(e);}
+            });
+            Defender sellable=arena(firstSession).defenders().getLast();call(games,"select",first,sellable.entityId());
+            long beforeSale=arena(firstSession).coins();first.getInventory().setHeldItemSlot(1);
+            sellClick();sellClick();
+            require(arena(firstSession).coins()==beforeSale+3 && Bukkit.getEntity(sellable.entityId())==null,"Right-click tool sells once");
+            first.getInventory().setHeldItemSlot(0);
             // All roles produce real combat effects while the spectator is present.
             for(UnitType type:List.of(UnitType.WOLF,UnitType.IRON_GOLEM,UnitType.SKELETON,UnitType.WITCH,UnitType.BLAZE,UnitType.EVOKER)) {
                 arena(firstSession).summon(first.getUniqueId(),new SummonRoll(type,Rarity.MYTHIC),(t,r,c)->{
@@ -91,9 +109,19 @@ public final class LobbySmokePlugin extends JavaPlugin {
             selectedEntityId=Bukkit.getEntity(selected.entityId()).getEntityId();
             call(games,"select",first,selected.entityId());
             require(!Bukkit.getEntity(selected.entityId()).isGlowing(),"Selection must never change shared glow state");
+            speedClick();
+            require((int)call(firstSession,"speed")==2,"F GUI sets own speed");
+            require((int)call(secondSession,"speed")==1,"Other session stays at one");
+            firstTick=(long)field(firstSession,"simulationTick"); secondTick=(long)field(secondSession,"simulationTick");
             stage=1;return;
         }
         if (stage==1) {
+            long nextFirst=(long)field(firstSession,"simulationTick"), nextSecond=(long)field(secondSession,"simulationTick");
+            require(nextFirst-firstTick==expectedSpeed && nextSecond-secondTick==1,"Independent session clocks");
+            firstTick=nextFirst;secondTick=nextSecond;speedChecks++;
+            if(waitTicks==16) { expectedSpeed=4; speedClick(); }
+            if(waitTicks==32) { expectedSpeed=8; speedClick(); }
+            if(waitTicks==48) { expectedSpeed=1; speedClick(); }
             verifyAttackFacing(firstSession);
             for(Enemy enemy:arena(firstSession).activeEnemies()) {
                 var entity=(org.bukkit.entity.LivingEntity)Bukkit.getEntity(enemy.entityId());
@@ -122,11 +150,15 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(call(games,"session",first)==null,"Defeat must release session");
             require(first.getWorld().equals(world),"Defeat must return to lobby");
             require(viewer.getWorld().equals(world) && !(boolean)call(games,"watching",viewer),"Spectator auto return");
+            require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight() && !viewer.isFlying(),"Defeat removes player and spectator flight");
+            require(first.getInventory().getItem(0).equals(new org.bukkit.inventory.ItemStack(Material.DIAMOND,3))
+                    && first.getInventory().getItem(1).equals(new org.bukkit.inventory.ItemStack(Material.GOLD_INGOT,4)),"Original hotbar restored");
             require(call(games,"session",second)==secondSession,"Other session must continue");
             for (Defender unit:arena(firstSession).activeDefenders()) require(Bukkit.getEntity(unit.entityId())==null,"Defender cleanup");
             for (Enemy enemy:arena(firstSession).activeEnemies()) require(Bukkit.getEntity(enemy.entityId())==null,"Enemy cleanup");
             call(games,"start",first); Object restarted=call(games,"session",first);
             require(restarted!=firstSession && arena(restarted).id().equals(arena(firstSession).id()),"Arena reuse with new state");
+            require((int)call(restarted,"speed")==1 && first.getAllowFlight(),"Rejoin resets speed and enables flight");
             require(arena(restarted).coins()==CampaignRules.standard().startingCoins(),"Fresh funds");
             arena(restarted).finish(Arena.Outcome.TIME_LIMIT); arena(secondSession).finish(Arena.Outcome.VICTORY);
             stage=3;return;
@@ -134,17 +166,34 @@ public final class LobbySmokePlugin extends JavaPlugin {
         if (stage==3) {
             require(call(games,"session",first)==null && call(games,"session",second)==null,"Terminal cleanup");
             require(first.getWorld().equals(world)&&second.getWorld().equals(world),"Both back to lobby");
+            require(!first.getAllowFlight() && !second.getAllowFlight(),"Timeout and victory remove flight");
             require(facedTypes==24 && checkedAttackDirections>0,"Actual entity facing must be exercised");
             Files.writeString(Path.of("lobby-smoke-passed.json"),"{\"blockStates\":"+samples.size()+",\"clients\":3,\"sessionIsolation\":true,\"defeatReturn\":true,\"slotReuse\":true,\"victoryReturn\":true,\"dynamicArena\":true,\"spectatorReturn\":true,\"bulkSale\":true,\"facedMobTypes\":"+facedTypes+",\"actualAttackDirections\":"+checkedAttackDirections+",\"selectedEntityId\":"+selectedEntityId+",\"secondSelectedEntityId\":"+glowClearEntityId+"}");
+            Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
         }
+    }
+    private void speedClick() {
+        var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());
+        Bukkit.getPluginManager().callEvent(swap);require(swap.isCancelled(),"F opens GUI");
+        require(first.getOpenInventory().getTopInventory().getItem(8).getType()==Material.CLOCK,"Speed clock in F GUI");
+        var click=new org.bukkit.event.inventory.InventoryClickEvent(first.getOpenInventory(),org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,8,
+                org.bukkit.event.inventory.ClickType.LEFT,org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(click);Bukkit.getPluginManager().callEvent(click);
+        require(click.isCancelled(),"GUI item cannot be taken");first.closeInventory();
+    }
+    private void sellClick() {
+        var event=new org.bukkit.event.player.PlayerInteractEvent(first,org.bukkit.event.block.Action.RIGHT_CLICK_AIR,
+                first.getInventory().getItemInMainHand(),null,org.bukkit.block.BlockFace.SELF,org.bukkit.inventory.EquipmentSlot.HAND);
+        Bukkit.getPluginManager().callEvent(event);
     }
     private void verifyAllBodies(Object adapter,Object map) throws Exception {
         for(UnitType type:UnitType.values()) {
             UUID id=(UUID)call(adapter,"spawnDefender",map,first.getUniqueId(),type,Rarity.COMMON,new Cell(0,0));
             Defender defender=new Defender(id,first.getUniqueId(),arena(firstSession).id(),type,Rarity.COMMON,new Cell(0,0));
             var entity=(org.bukkit.entity.LivingEntity)Bukkit.getEntity(id);
-            require(entity.getAttribute(org.bukkit.attribute.Attribute.SCALE).getValue()==2,"Defender scale "+type);
+            double scale=Set.of(UnitType.GHAST,UnitType.WARDEN,UnitType.IRON_GOLEM,UnitType.RAVAGER,UnitType.HOGLIN,UnitType.POLAR_BEAR,UnitType.PANDA).contains(type)?1:2;
+            require(entity.getAttribute(org.bukkit.attribute.Attribute.SCALE).getValue()==scale,"Defender scale "+type);
             call(adapter,"face",defender,new Point(3,0));
             require((boolean)call(adapter,"moveDefender",id,call(map,"location",defender.position())),"Anchor "+type);
             require(Math.abs(entity.getYaw()+90)<.001 && Math.abs(entity.getBodyYaw()+90)<.001,"Facing survives anchor "+type);

@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main(a):
+    if a.campaign and a.session_speed != 1:
+        raise SystemExit("The campaign auto-player currently supports only session speed 1")
     run = a.output.resolve()
     if run.exists():
         raise SystemExit("Choose a fresh output directory")
@@ -59,6 +61,7 @@ generator-settings={"layers":[{"block":"minecraft:bedrock","height":1}],"biome":
            f"-Dmudbench.warmup={a.warmup}", f"-Dmudbench.measure={a.ticks}", f"-Dmudbench.campaign={str(a.campaign).lower()}", "-jar", str(a.server.resolve()), "--nogui"]
     if a.native_combat:
         cmd[1:1] = ["--enable-native-access=ALL-UNNAMED", f"-Dmud.native.library={a.native_combat.resolve()}"]
+    cmd[1:1] = [f"-Dmudbench.targetTps={a.target_tps}", f"-Dmudbench.sessionSpeed={a.session_speed}"]
     if a.native_entities:
         cmd[1:1] = ["--enable-native-access=ALL-UNNAMED", "-Dmud.native.entityBatch=true", f"-Dmud.native.entities={a.native_entities.resolve()}"]
     if a.check_jni:
@@ -122,6 +125,8 @@ if __name__ == "__main__":
     p.add_argument("--mud-tick", action="store_true")
     p.add_argument("--framing", action="store_true")
     p.add_argument("--campaign", action="store_true")
+    p.add_argument("--target-tps", type=int, choices=[20, 320], default=320)
+    p.add_argument("--session-speed", type=int, choices=[1, 2, 4, 8], default=1)
     p.add_argument("--native-combat", type=Path)
     p.add_argument("--native-entities", type=Path)
     p.add_argument("--check-jni", action="store_true")

@@ -1,0 +1,1 @@
+["java", "-Dmud.native.entityBatch=true", "-Dmud.native.entities.javaControl=true", "-Dmudbench.targetTps=20", "-Dmudbench.sessionSpeed=8", "-Xms4g", "-Xmx4g", "-Dio.netty.leakDetection.level=simple", "-Dmudbench.warmup=200", "-Dmudbench.measure=600", "-Dmudbench.campaign=false", "-jar", "E:\\mc luck defense\\paper-26.3-mud.jar", "--nogui"]

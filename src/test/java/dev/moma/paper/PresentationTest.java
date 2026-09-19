@@ -109,4 +109,18 @@ class PresentationTest {
         effects.render(new ArenaMap("a",mock(World.class),0,64,0,new Grid(6)),List.of(viewer));
         verify(viewer,times(1)).playSound(any(Location.class),eq("minecraft:entity.evoker.cast_spell"),eq(SoundCategory.PLAYERS),eq(.35f),eq(1f));
     }
+    @Test void acceleratedStepsKeepOnlyTheLatestRealAttackWithoutJoiningSeparateTargetChains() {
+        var effects=new AttackEffects(); Defender defender=unit(UnitType.EVOKER);
+        effects.hit(defender,new Point(2,0)); effects.hit(defender,new Point(3,0));
+        effects.beginStep(); effects.hit(defender,new Point(-2,0)); effects.hit(defender,new Point(-3,0));
+        effects.beginStep(); // A quiet final step must not erase the last attack.
+        var primaries=new ArrayList<Point>(); effects.forEachPrimary((d,p)->primaries.add(p));
+        assertEquals(List.of(new Point(-2,0)),primaries);
+        Player viewer=mock(Player.class);
+        effects.render(new ArenaMap("a",mock(World.class),0,64,0,new Grid(6)),List.of(viewer));
+        verify(viewer,times(1)).playSound(any(Location.class),anyString(),eq(SoundCategory.PLAYERS),eq(.35f),eq(1f));
+        var x=org.mockito.ArgumentCaptor.forClass(Double.class);
+        verify(viewer,atLeastOnce()).spawnParticle(eq(Particle.DUST),x.capture(),anyDouble(),anyDouble(),eq(1),eq(0d),eq(0d),eq(0d),eq(0d),any(Particle.DustOptions.class));
+        assertTrue(x.getAllValues().stream().allMatch(value->value<=.5));
+    }
 }

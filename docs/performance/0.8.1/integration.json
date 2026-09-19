@@ -1,0 +1,18 @@
+{
+  "clients": 3,
+  "mixedSpeedFrames": 340,
+  "speeds": [
+    2,
+    4,
+    8,
+    1
+  ],
+  "fGuiSpeed": true,
+  "saleTool": true,
+  "hotbarRestored": true,
+  "flightTransitions": true,
+  "mobScaleTypes": 24,
+  "pluginSha256": "94d2447566a25ba715172d142c63a93d17b0ebdbe0d0429be68edc402c311ebe",
+  "tests": 154,
+  "unitTestFailures": 0
+}
