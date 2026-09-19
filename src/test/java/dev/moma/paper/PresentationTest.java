@@ -102,12 +102,20 @@ class PresentationTest {
             verify(player).sendPlayerListHeaderAndFooter(Ui.text("&6&lMC Luck Defense"),Ui.text("&7TPS (1분) &a312.5 &7/ 320  &8| &7MSPT &f2.40"));
         }
     }
-    @Test void attackSoundsAreDistinctAndPlayOncePerAttackPerViewer() {
-        assertEquals(6,Arrays.stream(AttackRole.values()).map(AttackEffects::attackSound).distinct().count());
+    @Test void attackSoundsFollowTheActualUnitAndPlayOncePerAttackPerViewer() {
+        for (UnitType type : UnitType.values()) {
+            String key = AttackEffects.attackSound(type).key();
+            assertDoesNotThrow(() -> Sound.class.getDeclaredField(key.substring("minecraft:".length()).replace('.', '_').toUpperCase(Locale.ROOT)), key);
+            if (type != UnitType.WOLF) assertFalse(key.contains("wolf"), type.name());
+        }
+        assertEquals("minecraft:entity.wolf.growl", AttackEffects.attackSound(UnitType.WOLF).key());
+        assertTrue(AttackEffects.attackSound(UnitType.WOLF).volume() < AttackEffects.attackSound(UnitType.IRON_GOLEM).volume());
+        assertNotEquals(AttackEffects.attackSound(UnitType.WOLF).key(), AttackEffects.attackSound(UnitType.RABBIT).key());
         var effects=new AttackEffects();Defender defender=unit(UnitType.EVOKER);Player viewer=mock(Player.class);
+        when(viewer.getLocation()).thenReturn(new Location(mock(World.class), 0, 65, 0));
         effects.hit(defender,new Point(2,0));effects.hit(defender,new Point(3,0));effects.hit(defender,new Point(4,0));
         effects.render(new ArenaMap("a",mock(World.class),0,64,0,new Grid(6)),List.of(viewer));
-        verify(viewer,times(1)).playSound(any(Location.class),eq("minecraft:entity.evoker.cast_spell"),eq(SoundCategory.PLAYERS),eq(.35f),eq(1f));
+        verify(viewer,times(1)).playSound(any(Location.class),eq("minecraft:entity.evoker.cast_spell"),eq(SoundCategory.PLAYERS),eq(.22f),eq(1f));
     }
     @Test void acceleratedStepsKeepOnlyTheLatestRealAttackWithoutJoiningSeparateTargetChains() {
         var effects=new AttackEffects(); Defender defender=unit(UnitType.EVOKER);
@@ -117,10 +125,25 @@ class PresentationTest {
         var primaries=new ArrayList<Point>(); effects.forEachPrimary((d,p)->primaries.add(p));
         assertEquals(List.of(new Point(-2,0)),primaries);
         Player viewer=mock(Player.class);
+        when(viewer.getLocation()).thenReturn(new Location(mock(World.class), 0, 65, 0));
         effects.render(new ArenaMap("a",mock(World.class),0,64,0,new Grid(6)),List.of(viewer));
-        verify(viewer,times(1)).playSound(any(Location.class),anyString(),eq(SoundCategory.PLAYERS),eq(.35f),eq(1f));
+        verify(viewer,times(1)).playSound(any(Location.class),anyString(),eq(SoundCategory.PLAYERS),anyFloat(),eq(1f));
         var x=org.mockito.ArgumentCaptor.forClass(Double.class);
         verify(viewer,atLeastOnce()).spawnParticle(eq(Particle.DUST),x.capture(),anyDouble(),anyDouble(),eq(1),eq(0d),eq(0d),eq(0d),eq(0d),any(Particle.DustOptions.class));
         assertTrue(x.getAllValues().stream().allMatch(value->value<=.5));
+    }
+    @Test void flyingOwnerAndSpectatorHearQuietWolfAudioAtTheirOwnLocations() {
+        World world = mock(World.class);
+        Player owner = mock(Player.class), spectator = mock(Player.class), other = mock(Player.class);
+        Location ownerLocation = new Location(world, 20, 104, 20);
+        Location spectatorLocation = new Location(world, -5, 94, 10);
+        when(owner.getLocation()).thenReturn(ownerLocation);
+        when(spectator.getLocation()).thenReturn(spectatorLocation);
+        var effects = new AttackEffects();
+        effects.hit(unit(UnitType.WOLF), new Point(3, 0));
+        effects.render(new ArenaMap("a", world, 0, 64, 0, new Grid(6)), List.of(owner, spectator));
+        verify(owner).playSound(eq(ownerLocation), eq("minecraft:entity.wolf.growl"), eq(SoundCategory.PLAYERS), eq(.12f), eq(1f));
+        verify(spectator).playSound(eq(spectatorLocation), eq("minecraft:entity.wolf.growl"), eq(SoundCategory.PLAYERS), eq(.12f), eq(1f));
+        verifyNoInteractions(other);
     }
 }

@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 /** Latest actual attack per defender per server tick, delivered only to its owner and spectators. */
 final class AttackEffects {
+    record SoundProfile(String key, float volume) {}
     private final Map<Defender, List<Point>> attacks = new LinkedHashMap<>();
     private final Set<Defender> currentStep = new HashSet<>();
     private static final Particle.DustOptions[] COLORS = Arrays.stream(Rarity.values())
@@ -26,21 +27,39 @@ final class AttackEffects {
     void render(ArenaMap map, List<Player> viewers) {
         for (var attack : attacks.entrySet()) {
             Defender defender = attack.getKey();
-            Location source = map.location(defender.position()).add(0, .8, 0);
-            for (Player viewer : viewers) viewer.playSound(source, attackSound(defender.type().role()), SoundCategory.PLAYERS, .35f, 1f);
+            SoundProfile sound = attackSound(defender.type());
+            // Anchor audio at each listener so flying owners and spectators hear attacks across the arena.
+            for (Player viewer : viewers) viewer.playSound(viewer.getLocation(), sound.key(), SoundCategory.PLAYERS, sound.volume(), 1f);
             Particle.DustOptions dust = COLORS[defender.rarity().ordinal()];
             emit(map, viewers, trace(defender, attack.getValue()), 1.65, dust);
             emit(map, viewers, footprint(defender, attack.getValue().getFirst()), 1.06, dust);
         }
     }
-    static String attackSound(AttackRole role) {
-        return switch (role) {
-            case MELEE_SINGLE -> "minecraft:entity.wolf.growl";
-            case MELEE_CLEAVE -> "minecraft:entity.iron_golem.attack";
-            case RANGED_SINGLE -> "minecraft:entity.skeleton.shoot";
-            case SMALL_AREA -> "minecraft:entity.witch.throw";
-            case LARGE_AREA -> "minecraft:entity.blaze.shoot";
-            case MULTI_TARGET -> "minecraft:entity.evoker.cast_spell";
+    static SoundProfile attackSound(UnitType type) {
+        return switch (type) {
+            case WOLF -> new SoundProfile("minecraft:entity.wolf.growl", .12f);
+            case POLAR_BEAR -> new SoundProfile("minecraft:entity.polar_bear.warning", .24f);
+            case PANDA -> new SoundProfile("minecraft:entity.panda.bite", .22f);
+            case RABBIT -> new SoundProfile("minecraft:entity.rabbit.attack", .18f);
+            case IRON_GOLEM -> new SoundProfile("minecraft:entity.iron_golem.attack", .28f);
+            case HOGLIN -> new SoundProfile("minecraft:entity.hoglin.attack", .28f);
+            case GOAT -> new SoundProfile("minecraft:entity.goat.ram_impact", .26f);
+            case RAVAGER -> new SoundProfile("minecraft:entity.ravager.attack", .3f);
+            case SKELETON -> new SoundProfile("minecraft:entity.skeleton.shoot", .2f);
+            case STRAY, BOGGED -> new SoundProfile("minecraft:entity.skeleton.shoot", .2f);
+            case PIGLIN -> new SoundProfile("minecraft:entity.piglin.angry", .2f);
+            case WITCH -> new SoundProfile("minecraft:entity.witch.throw", .22f);
+            case LLAMA -> new SoundProfile("minecraft:entity.llama.spit", .22f);
+            case SNOW_GOLEM -> new SoundProfile("minecraft:entity.snow_golem.shoot", .18f);
+            case GUARDIAN -> new SoundProfile("minecraft:entity.guardian.attack", .24f);
+            case BLAZE -> new SoundProfile("minecraft:entity.blaze.shoot", .22f);
+            case GHAST -> new SoundProfile("minecraft:entity.ghast.shoot", .2f);
+            case WITHER_SKELETON -> new SoundProfile("minecraft:entity.wither_skeleton.ambient", .2f);
+            case WARDEN -> new SoundProfile("minecraft:entity.warden.sonic_boom", .18f);
+            case EVOKER -> new SoundProfile("minecraft:entity.evoker.cast_spell", .22f);
+            case SHULKER -> new SoundProfile("minecraft:entity.shulker.shoot", .22f);
+            case ALLAY -> new SoundProfile("minecraft:entity.allay.item_thrown", .18f);
+            case VEX -> new SoundProfile("minecraft:entity.vex.charge", .2f);
         };
     }
     private void emit(ArenaMap map, List<Player> viewers, List<Point> points, double height, Particle.DustOptions dust) {
