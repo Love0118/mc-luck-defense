@@ -22,7 +22,7 @@ public final class RoleBenchmarkMain {
     }
     private static double trial(UnitType type, Rarity rarity, boolean crowd) {
         UUID owner = new UUID(0, 0);
-        Arena arena = new Arena("benchmark", owner, new Grid(5), 10, 1000);
+        Arena arena = new Arena("benchmark", owner, new Grid(CampaignRules.standard().gridSize()), 10, 1000);
         arena.summon(owner, new SummonRoll(type, rarity), (t, r, c) -> new UUID(0, 1));
         Defender defender = arena.defenders().getFirst();
         Cell best = defender.cell(); int max = -1;

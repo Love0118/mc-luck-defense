@@ -14,9 +14,7 @@ public final class WaveSchedule {
         int count = 12 + (round - 1) / 10 * 2;
         if (pattern == 2) count += 8;
         if (pattern == 3) count -= 3;
-        double lateProgress = Math.max(0, (round - 60) / 40.0);
-        double lateScale = 1 + (rules.lateHealthScale() - 1) * lateProgress * lateProgress;
-        double base = 24 * Math.pow(1.055, round - 1) * rules.healthScale() * lateScale;
+        double base = rules.healthCurve().at(round) * rules.healthScale();
         var entries = new ArrayList<Wave.Entry>();
         for (int i = 0; i < count; i++) {
             EnemyType type = switch (pattern) {
@@ -46,7 +44,7 @@ public final class WaveSchedule {
             entries.add(new Wave.Entry(i * spawnWindow / count, new EnemySpawn(type, health, speed, 6, false)));
         }
         if (round % 10 == 0) entries.add(new Wave.Entry(rules.roundTicks() / 2,
-                new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK, base * (15 + round / 5.0), 1.2, 30, true)));
+                new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK, base * (15 + round / 5.0) * rules.bossHealthScale(), 1.2, 30, true)));
         entries.sort(Comparator.comparingInt(Wave.Entry::offsetTick));
         String name = switch (pattern) { case 0 -> "보병"; case 1 -> "돌격"; case 2 -> "군집"; case 3 -> "중장갑"; default -> "혼성"; };
         return new Wave(round, round % 10 == 0 ? name + " + 보스" : name, entries);

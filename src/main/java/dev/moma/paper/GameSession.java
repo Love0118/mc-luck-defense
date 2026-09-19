@@ -12,6 +12,7 @@ final class GameSession {
     final GameMode returnMode;
     final List<Chunk> tickets = new ArrayList<>();
     final Campaign campaign;
+    final HashRandom random = HashRandom.secure();
     boolean resultShown;
     boolean assisted;
     int announcedRound;

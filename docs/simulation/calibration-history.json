@@ -1,0 +1,622 @@
+[
+  {
+    "stage": "probe-1",
+    "runs": 3000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 6,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 17,
+    "twoPrimordialManyMythicWins": 0,
+    "clearRate": 0.002,
+    "ci95Low": 0.00091692,
+    "ci95High": 0.00435686,
+    "meanRound": 43.118,
+    "meanSummons": 772.796,
+    "seconds": 40.69,
+    "healthCurve": "1:73.2,10:1000.0,20:9500.0,30:17000.0,50:35000.0,70:120000.0,90:290000.0,100:300000.0",
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 1835,
+        "rate": 0.61166667,
+        "ci95Low": 0.59409408,
+        "ci95High": 0.62895364
+      },
+      {
+        "round": 50,
+        "survivors": 803,
+        "rate": 0.26766667,
+        "ci95Low": 0.25212779,
+        "ci95High": 0.2837998
+      },
+      {
+        "round": 70,
+        "survivors": 328,
+        "rate": 0.10933333,
+        "ci95Low": 0.0986621,
+        "ci95High": 0.12100381
+      },
+      {
+        "round": 90,
+        "survivors": 242,
+        "rate": 0.08066667,
+        "ci95Low": 0.07144949,
+        "ci95High": 0.09095641
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-2",
+    "runs": 2000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 8,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 6,
+    "twoPrimordialManyMythicWins": 0,
+    "clearRate": 0.004,
+    "ci95Low": 0.00202822,
+    "ci95High": 0.00787356,
+    "meanRound": 42.521,
+    "meanSummons": 763.327,
+    "seconds": 21.78,
+    "healthCurve": "1:73.2,10:1000.0,20:11000.0,30:17000.0,50:28000.0,70:125000.0,80:220000.0,90:230000.0,100:240000.0",
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 1035,
+        "rate": 0.5175,
+        "ci95Low": 0.49558739,
+        "ci95High": 0.53934551
+      },
+      {
+        "round": 50,
+        "survivors": 551,
+        "rate": 0.2755,
+        "ci95Low": 0.25636406,
+        "ci95High": 0.29549673
+      },
+      {
+        "round": 70,
+        "survivors": 224,
+        "rate": 0.112,
+        "ci95Low": 0.09891553,
+        "ci95High": 0.12657215
+      },
+      {
+        "round": 90,
+        "survivors": 160,
+        "rate": 0.08,
+        "ci95Low": 0.06889938,
+        "ci95High": 0.09271099
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-3",
+    "runs": 3000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 14,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 15,
+    "twoPrimordialManyMythicWins": 1,
+    "clearRate": 0.00466667,
+    "ci95Low": 0.00278189,
+    "ci95High": 0.0078184,
+    "meanRound": 42.524,
+    "meanSummons": 763.324,
+    "seconds": 33.27,
+    "healthCurve": "1:73.2,10:1000.0,20:11200.0,30:16500.0,50:24000.0,60:70000.0,70:180000.0,80:220000.0,90:225000.0,100:230000.0",
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 1578,
+        "rate": 0.526,
+        "ci95Low": 0.50811008,
+        "ci95High": 0.54382341
+      },
+      {
+        "round": 50,
+        "survivors": 863,
+        "rate": 0.28766667,
+        "ci95Low": 0.27174754,
+        "ci95High": 0.3041289
+      },
+      {
+        "round": 70,
+        "survivors": 312,
+        "rate": 0.104,
+        "ci95Low": 0.09357808,
+        "ci95High": 0.1154348
+      },
+      {
+        "round": 90,
+        "survivors": 235,
+        "rate": 0.07833333,
+        "ci95Low": 0.06924849,
+        "ci95High": 0.08849671
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-4",
+    "runs": 2000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 2,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 6,
+    "twoPrimordialManyMythicWins": 0,
+    "clearRate": 0.001,
+    "ci95Low": 0.00027427,
+    "ci95High": 0.00363901,
+    "meanRound": 42.115,
+    "meanSummons": 751.707,
+    "seconds": 21.38,
+    "healthCurve": "1:73.2,10:1000.0,20:11800.0,30:15500.0,50:23000.0,60:70000.0,70:240000.0,80:300000.0,90:300000.0,100:300000.0",
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 1011,
+        "rate": 0.5055,
+        "ci95Low": 0.48359833,
+        "ci95High": 0.52738058
+      },
+      {
+        "round": 50,
+        "survivors": 588,
+        "rate": 0.294,
+        "ci95Low": 0.27444297,
+        "ci95High": 0.31434688
+      },
+      {
+        "round": 70,
+        "survivors": 209,
+        "rate": 0.1045,
+        "ci95Low": 0.09184262,
+        "ci95High": 0.11867382
+      },
+      {
+        "round": 90,
+        "survivors": 123,
+        "rate": 0.0615,
+        "ci95Low": 0.05178801,
+        "ci95High": 0.07289331
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-5",
+    "runs": 3000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 17,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 14,
+    "twoPrimordialManyMythicWins": 3,
+    "clearRate": 0.00566667,
+    "ci95Low": 0.00354103,
+    "ci95High": 0.00905671,
+    "meanRound": 42.475,
+    "meanSummons": 761.966,
+    "seconds": 33.42,
+    "healthCurve": "1:73.2,10:1000.0,20:11800.0,30:15500.0,50:23000.0,60:70000.0,70:260000.0,80:340000.0,90:340000.0,100:340000.0",
+    "bossHealthScale": 0.5,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 1544,
+        "rate": 0.51466667,
+        "ci95Low": 0.49677477,
+        "ci95High": 0.53252105
+      },
+      {
+        "round": 50,
+        "survivors": 904,
+        "rate": 0.30133333,
+        "ci95Low": 0.28517667,
+        "ci95High": 0.31799815
+      },
+      {
+        "round": 70,
+        "survivors": 312,
+        "rate": 0.104,
+        "ci95Low": 0.09357808,
+        "ci95High": 0.1154348
+      },
+      {
+        "round": 90,
+        "survivors": 176,
+        "rate": 0.05866667,
+        "ci95Low": 0.05080817,
+        "ci95High": 0.067654
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-6",
+    "runs": 5000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 31,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 26,
+    "twoPrimordialManyMythicWins": 4,
+    "clearRate": 0.0062,
+    "ci95Low": 0.00437136,
+    "ci95High": 0.00878685,
+    "meanRound": 42.442,
+    "meanSummons": 761.636,
+    "seconds": 52.35,
+    "healthCurve": "1:73.2,10:1000.0,20:12000.0,30:15500.0,50:23000.0,60:70000.0,70:260000.0,80:390000.0,90:390000.0,100:390000.0",
+    "bossHealthScale": 0.3,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 2530,
+        "rate": 0.506,
+        "ci95Low": 0.49214242,
+        "ci95High": 0.51984837
+      },
+      {
+        "round": 50,
+        "survivors": 1520,
+        "rate": 0.304,
+        "ci95Low": 0.29140441,
+        "ci95High": 0.31689654
+      },
+      {
+        "round": 70,
+        "survivors": 527,
+        "rate": 0.1054,
+        "ci95Low": 0.09718933,
+        "ci95High": 0.11421656
+      },
+      {
+        "round": 90,
+        "survivors": 284,
+        "rate": 0.0568,
+        "ci95Low": 0.05071796,
+        "ci95High": 0.06356256
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-7",
+    "runs": 5000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 46,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 22,
+    "twoPrimordialManyMythicWins": 5,
+    "clearRate": 0.0092,
+    "ci95Low": 0.0069047,
+    "ci95High": 0.0122489,
+    "meanRound": 42.473,
+    "meanSummons": 761.85,
+    "seconds": 55.54,
+    "healthCurve": "1:73.2,10:1000.0,20:12000.0,30:15500.0,50:23000.0,60:70000.0,70:280000.0,80:430000.0,90:430000.0,100:430000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 2579,
+        "rate": 0.5158,
+        "ci95Low": 0.50194081,
+        "ci95High": 0.52963493
+      },
+      {
+        "round": 50,
+        "survivors": 1541,
+        "rate": 0.3082,
+        "ci95Low": 0.29555227,
+        "ci95High": 0.32114223
+      },
+      {
+        "round": 70,
+        "survivors": 518,
+        "rate": 0.1036,
+        "ci95Low": 0.0954551,
+        "ci95High": 0.11235356
+      },
+      {
+        "round": 90,
+        "survivors": 254,
+        "rate": 0.0508,
+        "ci95Low": 0.04505074,
+        "ci95High": 0.05723899
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "probe-8",
+    "runs": 5000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 47,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 22,
+    "twoPrimordialManyMythicWins": 4,
+    "clearRate": 0.0094,
+    "ci95Low": 0.00707652,
+    "ci95High": 0.01247678,
+    "meanRound": 42.114,
+    "meanSummons": 752.072,
+    "seconds": 52.06,
+    "healthCurve": "1:73.2,10:1000.0,20:12300.0,30:15500.0,50:23500.0,60:70000.0,70:280000.0,80:430000.0,90:430000.0,100:430000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 2505,
+        "rate": 0.501,
+        "ci95Low": 0.48714529,
+        "ci95High": 0.51485318
+      },
+      {
+        "round": 50,
+        "survivors": 1519,
+        "rate": 0.3038,
+        "ci95Low": 0.29120693,
+        "ci95High": 0.31669433
+      },
+      {
+        "round": 70,
+        "survivors": 516,
+        "rate": 0.1032,
+        "ci95Low": 0.09506982,
+        "ci95High": 0.11193945
+      },
+      {
+        "round": 90,
+        "survivors": 247,
+        "rate": 0.0494,
+        "ci95Low": 0.04373162,
+        "ci95High": 0.05576026
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "first-validation-used-for-further-tuning",
+    "runs": 20000,
+    "seedStart": 4100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 223,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 76,
+    "twoPrimordialManyMythicWins": 23,
+    "clearRate": 0.01115,
+    "ci95Low": 0.00978572,
+    "ci95High": 0.01270204,
+    "meanRound": 42.387,
+    "meanSummons": 761.025,
+    "seconds": 214.48,
+    "healthCurve": "1:73.2,10:1000.0,20:12300.0,30:15500.0,50:23500.0,60:70000.0,70:280000.0,80:430000.0,90:430000.0,100:430000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 10115,
+        "rate": 0.50575,
+        "ci95Low": 0.49882037,
+        "ci95High": 0.51267742
+      },
+      {
+        "round": 50,
+        "survivors": 6114,
+        "rate": 0.3057,
+        "ci95Low": 0.2993528,
+        "ci95High": 0.31212183
+      },
+      {
+        "round": 70,
+        "survivors": 2159,
+        "rate": 0.10795,
+        "ci95Low": 0.10372427,
+        "ci95High": 0.11232631
+      },
+      {
+        "round": 90,
+        "survivors": 1093,
+        "rate": 0.05465,
+        "ci95Low": 0.05158451,
+        "ci95High": 0.05788654
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "final-probe",
+    "runs": 5000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 41,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 20,
+    "twoPrimordialManyMythicWins": 4,
+    "clearRate": 0.0082,
+    "ci95Low": 0.00605045,
+    "ci95High": 0.01110469,
+    "meanRound": 41.941,
+    "meanSummons": 746.068,
+    "seconds": 54.32,
+    "healthCurve": "1:73.2,10:1000.0,20:12300.0,30:15500.0,50:23500.0,60:76000.0,70:300000.0,80:450000.0,90:450000.0,100:450000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 2505,
+        "rate": 0.501,
+        "ci95Low": 0.48714529,
+        "ci95High": 0.51485318
+      },
+      {
+        "round": 50,
+        "survivors": 1519,
+        "rate": 0.3038,
+        "ci95Low": 0.29120693,
+        "ci95High": 0.31669433
+      },
+      {
+        "round": 70,
+        "survivors": 493,
+        "rate": 0.0986,
+        "ci95Low": 0.09064201,
+        "ci95High": 0.10717432
+      },
+      {
+        "round": 90,
+        "survivors": 235,
+        "rate": 0.047,
+        "ci95Low": 0.0414734,
+        "ci95High": 0.05322216
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "pre-hash-final-validation",
+    "runs": 20000,
+    "seedStart": 5100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 174,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 67,
+    "twoPrimordialManyMythicWins": 19,
+    "clearRate": 0.0087,
+    "ci95Low": 0.00750395,
+    "ci95High": 0.01008475,
+    "meanRound": 42.009,
+    "meanSummons": 748.639,
+    "seconds": 277.84,
+    "healthCurve": "1:73.2,10:1000.0,20:12300.0,30:15500.0,50:23500.0,60:76000.0,70:300000.0,80:450000.0,90:450000.0,100:450000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 10019,
+        "rate": 0.50095,
+        "ci95Low": 0.49402085,
+        "ci95High": 0.50787879
+      },
+      {
+        "round": 50,
+        "survivors": 6070,
+        "rate": 0.3035,
+        "ci95Low": 0.29716616,
+        "ci95High": 0.30990931
+      },
+      {
+        "round": 70,
+        "survivors": 2025,
+        "rate": 0.10125,
+        "ci95Low": 0.09714549,
+        "ci95High": 0.10550766
+      },
+      {
+        "round": 90,
+        "survivors": 966,
+        "rate": 0.0483,
+        "ci95Low": 0.04541434,
+        "ci95High": 0.05135915
+      }
+    ],
+    "randomAlgorithm": "java.util.Random-legacy"
+  },
+  {
+    "stage": "hash-calibration",
+    "runs": 5000,
+    "seedStart": 100000,
+    "healthScale": 1.0,
+    "gridSize": 6,
+    "primordialCap": 2147483647,
+    "strategy": "BALANCED",
+    "wins": 35,
+    "winsBelowTwoPrimordials": 0,
+    "twoPrimordialManyMythicRuns": 23,
+    "twoPrimordialManyMythicWins": 1,
+    "clearRate": 0.007,
+    "ci95Low": 0.0050376,
+    "ci95High": 0.00971938,
+    "meanRound": 41.675,
+    "meanSummons": 739.08,
+    "seconds": 54.65,
+    "randomAlgorithm": "sha256-counter-v1",
+    "healthCurve": "1:73.2,10:1000.0,20:12300.0,30:15500.0,50:23500.0,60:76000.0,70:300000.0,80:450000.0,90:450000.0,100:450000.0",
+    "bossHealthScale": 0.15,
+    "checkpoints": [
+      {
+        "round": 30,
+        "survivors": 2470,
+        "rate": 0.494,
+        "ci95Low": 0.48015163,
+        "ci95High": 0.50785758
+      },
+      {
+        "round": 50,
+        "survivors": 1470,
+        "rate": 0.294,
+        "ci95Low": 0.28153365,
+        "ci95High": 0.30678266
+      },
+      {
+        "round": 70,
+        "survivors": 498,
+        "rate": 0.0996,
+        "ci95Low": 0.09160412,
+        "ci95High": 0.10821068
+      },
+      {
+        "round": 90,
+        "survivors": 235,
+        "rate": 0.047,
+        "ci95Low": 0.0414734,
+        "ci95High": 0.05322216
+      }
+    ]
+  }
+]

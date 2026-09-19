@@ -37,7 +37,7 @@ final class ShopMenu implements Listener {
         Arena arena = holder.arena;
         holder.inventory.clear();
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "보유 재화: " + arena.coins() + "원", "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenders().size())));
-        holder.inventory.setItem(SUMMON, item(Material.EGG, "무작위 소환 · 10원", "24종 × 9개 등급 독립 추첨", "바깥줄부터 자동 배치", "좌클릭으로 1회 소환"));
+        holder.inventory.setItem(SUMMON, item(Material.EGG, "무작위 소환 · 10원", "24종 × 9개 등급 독립 추첨", "근접은 가장자리 · 원거리는 안쪽 우선", "우선 영역이 차면 남은 칸 사용", "좌클릭으로 1회 소환"));
         Optional<Defender> selected = arena.selected();
         if (selected.isPresent()) {
             Defender d = selected.orElseThrow();

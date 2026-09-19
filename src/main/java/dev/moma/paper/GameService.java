@@ -6,7 +6,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import java.util.*;
-import java.util.random.RandomGenerator;
 
 final class GameService {
     private final MomaPlugin plugin;
@@ -15,7 +14,6 @@ final class GameService {
     final EntityAdapter entities;
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private final CombatEngine combat = new CombatEngine();
-    private final RandomGenerator random = RandomGenerator.getDefault();
     private long tick;
 
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings) {
@@ -28,7 +26,7 @@ final class GameService {
         if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
         ArenaMap map = maps.get(id);
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
-        if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 5×5 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
+        if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
         GameSession session = new GameSession(player, map, settings);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
@@ -61,7 +59,7 @@ final class GameService {
     void summon(Player player) {
         GameSession session = session(player);
         if (session == null) return;
-        SummonRoll roll = SummonRoll.draw(random);
+        SummonRoll roll = SummonRoll.draw(session.random);
         Arena.Result result;
         try {
             result = session.arena.summon(player.getUniqueId(), roll,

@@ -8,6 +8,35 @@ import static dev.moma.core.Arena.Result.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ArenaTest {
+    @Test void meleeAndRangedPreferDifferentRegionsAndFallbackWhenFull() {
+        for (UnitType type : List.of(UnitType.WOLF, UnitType.IRON_GOLEM, UnitType.SKELETON, UnitType.BLAZE)) {
+            Arena arena = new Arena("placement", owner, new Grid(6), 370, 100);
+            for (int i = 0; i < 36; i++) {
+                UUID id = UUID.randomUUID();
+                assertEquals(OK, arena.summon(owner, new SummonRoll(type, Rarity.COMMON), (t, r, cell) -> id));
+                Cell placed = arena.defenders().getLast().cell();
+                assertEquals(type.role().melee() ? i < 20 : i >= 16, arena.grid().perimeter(placed));
+            }
+            assertEquals(36, arena.defenders().stream().map(Defender::cell).distinct().count());
+            assertEquals(FULL, arena.summon(owner, new SummonRoll(type, Rarity.COMMON), (t, r, cell) -> { fail(); return null; }));
+            assertEquals(10, arena.coins());
+        }
+    }
+    @Test void mixedSummonsLeaveManuallyMovedUnitsAndCooldownsUntouched() {
+        Arena arena = new Arena("placement", owner, new Grid(6), 100, 100);
+        UUID melee = UUID.randomUUID(), ranged = UUID.randomUUID();
+        arena.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.MYTHIC), (t, r, c) -> melee);
+        arena.summon(owner, new SummonRoll(UnitType.SKELETON, Rarity.COMMON), (t, r, c) -> ranged);
+        assertEquals(new Cell(0, 0), arena.defenders().getFirst().cell());
+        assertEquals(new Cell(1, 1), arena.defenders().getLast().cell());
+        Defender unit = arena.defenders().getFirst(); unit.attackAt(10, 30);
+        arena.select(owner, melee); arena.moveSelected(owner, new Cell(2, 2));
+        arena.summon(owner, new SummonRoll(UnitType.BLAZE, Rarity.COMMON), (t, r, c) -> UUID.randomUUID());
+        assertEquals(new Cell(2, 2), unit.cell()); assertEquals(40, unit.nextAttackTick());
+        arena.select(owner, ranged); arena.sellSelected(owner);
+        arena.summon(owner, new SummonRoll(UnitType.WITCH, Rarity.COMMON), (t, r, c) -> UUID.randomUUID());
+        assertEquals(new Cell(1, 1), arena.defenders().getLast().cell());
+    }
     private final UUID owner = UUID.randomUUID();
     private Arena arena(long coins) { return new Arena("one", owner, new Grid(3), coins, 3); }
     private UUID summon(Arena arena, Rarity rarity) {

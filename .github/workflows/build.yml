@@ -16,7 +16,7 @@ jobs:
           java-version: '25'
           cache: maven
       - run: mvn -B -ntp clean verify
-      - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 3.05 target/simulation-smoke
+      - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: moma-defense

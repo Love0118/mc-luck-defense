@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** CLI: runs seed health-scale output strategy late-health-scale primordial-cap. */
+/** CLI: runs seed health-scale output strategy primordial-cap health-curve boss-health-scale. */
 public final class SimulatorMain {
     private SimulatorMain() {}
     public static void main(String[] args) throws Exception {
@@ -17,8 +17,9 @@ public final class SimulatorMain {
         if (args.length > 2) rules = rules.withHealthScale(Double.parseDouble(args[2]));
         Path output = Path.of(args.length > 3 ? args[3] : "target/simulation");
         AutoPlayer.Strategy strategy = args.length > 4 ? AutoPlayer.Strategy.valueOf(args[4]) : AutoPlayer.Strategy.BALANCED;
-        if (args.length > 5) rules = rules.withLateHealthScale(Double.parseDouble(args[5]));
-        int primordialCap = args.length > 6 ? Integer.parseInt(args[6]) : Integer.MAX_VALUE;
+        int primordialCap = args.length > 5 ? Integer.parseInt(args[5]) : Integer.MAX_VALUE;
+        if (args.length > 6) rules = rules.withHealthCurve(HealthCurve.parse(args[6]));
+        if (args.length > 7) rules = rules.withBossHealthScale(Double.parseDouble(args[7]));
         if (runs < 1 || runs > 100_000) throw new IllegalArgumentException("runs must be 1..100000");
         if (primordialCap < 0) throw new IllegalArgumentException("primordial-cap must not be negative");
         Files.createDirectories(output);
@@ -45,14 +46,21 @@ public final class SimulatorMain {
         double[] ci = wilson(wins, runs);
         double meanRounds = Arrays.stream(results).mapToInt(Simulation.Result::round).average().orElse(0);
         double meanSummons = Arrays.stream(results).mapToInt(Simulation.Result::summons).average().orElse(0);
+        var checkpoints = new ArrayList<String>();
+        for (int round : new int[]{30, 50, 70, 90}) {
+            int survivors = (int) Arrays.stream(results).filter(r -> r.completedRounds() >= round).count();
+            double[] bounds = wilson(survivors, runs);
+            checkpoints.add(String.format(Locale.ROOT, "{\"round\":%d,\"survivors\":%d,\"rate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f}", round, survivors, survivors / (double) runs, bounds[0], bounds[1]));
+        }
         String summary = String.format(Locale.ROOT,
-                "{\"runs\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"lateHealthScale\":%.8f,\"primordialCap\":%d,\"strategy\":\"%s\",\"wins\":%d,\"winsBelowTwoPrimordials\":%d,\"twoPrimordialManyMythicRuns\":%d,\"twoPrimordialManyMythicWins\":%d,\"clearRate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f,\"meanRound\":%.3f,\"meanSummons\":%.3f,\"seconds\":%.2f}",
-                runs, seed, rules.healthScale(), rules.lateHealthScale(), primordialCap, strategy, wins, lowPrimordialWins, targetRuns, targetWins, wins / (double) runs, ci[0], ci[1], meanRounds, meanSummons, (System.nanoTime() - start) / 1e9);
+                "{\"runs\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"gridSize\":%d,\"primordialCap\":%d,\"strategy\":\"%s\",\"wins\":%d,\"winsBelowTwoPrimordials\":%d,\"twoPrimordialManyMythicRuns\":%d,\"twoPrimordialManyMythicWins\":%d,\"clearRate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f,\"meanRound\":%.3f,\"meanSummons\":%.3f,\"seconds\":%.2f}",
+                runs, seed, rules.healthScale(), rules.gridSize(), primordialCap, strategy, wins, lowPrimordialWins, targetRuns, targetWins, wins / (double) runs, ci[0], ci[1], meanRounds, meanSummons, (System.nanoTime() - start) / 1e9);
+        summary = summary.substring(0, summary.length() - 1) + ",\"randomAlgorithm\":\"" + HashRandom.ALGORITHM + "\",\"healthCurve\":\"" + rules.healthCurve().specification() + "\",\"bossHealthScale\":" + rules.bossHealthScale() + ",\"checkpoints\":[" + String.join(",", checkpoints) + "]}";
         Files.writeString(output.resolve("summary.json"), summary + "\n", StandardCharsets.UTF_8);
         var lines = new ArrayList<String>();
         for (Simulation.Result r : results) lines.add(String.format(Locale.ROOT,
-                "{\"seed\":%d,\"outcome\":\"%s\",\"round\":%d,\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%d,\"coins\":%d,\"primordial\":%d,\"mythic\":%d,\"damage\":%s,\"deployedTicks\":%s}",
-                r.seed(), r.outcome(), r.round(), r.ticks(), r.summons(), r.sales(), r.moves(), r.earned(), r.coins(), r.primordial(), r.mythic(), Arrays.toString(r.damage()), Arrays.toString(r.deployedTicks())));
+                "{\"seed\":%d,\"outcome\":\"%s\",\"round\":%d,\"completedRounds\":%d,\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%d,\"coins\":%d,\"primordial\":%d,\"mythic\":%d,\"damage\":%s,\"deployedTicks\":%s}",
+                r.seed(), r.outcome(), r.round(), r.completedRounds(), r.ticks(), r.summons(), r.sales(), r.moves(), r.earned(), r.coins(), r.primordial(), r.mythic(), Arrays.toString(r.damage()), Arrays.toString(r.deployedTicks())));
         Files.write(output.resolve("runs.jsonl"), lines, StandardCharsets.UTF_8);
         long replaySeed = Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY && r.primordial() == 2 && r.mythic() >= 4)
                 .mapToLong(Simulation.Result::seed).findFirst().orElseGet(() -> Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY).mapToLong(Simulation.Result::seed).findFirst().orElse(seed));

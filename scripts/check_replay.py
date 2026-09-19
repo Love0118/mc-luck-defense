@@ -13,8 +13,12 @@ with sync_playwright() as p:
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto((ROOT / "docs/simulation/example-clear/replay.html").as_uri())
+    assert "6×6 · 36칸" in page.locator("#placement").inner_text()
+    assert page.evaluate("gridSize === 6 && routeSide === 21")
+    assert page.evaluate("frames.every(f => f.units.every(u => u.column >= 0 && u.column < 6 && u.row >= 0 && u.row < 6))")
     page.locator("#time").evaluate("el => { el.value = el.max; el.dispatchEvent(new Event('input')); }")
     assert "R100/100" in page.locator("#stats").inner_text()
+    assert page.evaluate("frames.at(-1).enemies === 0 && summary.wins === 1")
     assert page.locator("#roster tr").count() > 1
     assert page.evaluate("document.querySelector('#board').getContext('2d').getImageData(0,0,640,640).data.some((v,i)=>i%4===3&&v>0)")
     page.screenshot(path=str(ROOT / "target/replay-desktop.png"), full_page=True)

@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 /** Observable-state-only policy: no future rolls, enemy health scaling, or seed inspection. */
 public final class AutoPlayer {
     public enum Strategy { BALANCED, AUTO_PLACE }
-    private final Random random;
+    private final HashRandom random;
     private final Strategy strategy;
     private final Supplier<UUID> ids;
     private final double[][] coverage;
@@ -21,7 +21,7 @@ public final class AutoPlayer {
     public AutoPlayer(long seed, Strategy strategy, Grid grid, Supplier<UUID> ids, int primordialCap) {
         if (primordialCap < 0) throw new IllegalArgumentException("Negative primordial cap");
         this.primordialCap = primordialCap;
-        random = new Random(seed); this.strategy = strategy; this.ids = ids;
+        random = new HashRandom(seed); this.strategy = strategy; this.ids = ids;
         coverage = new double[UnitType.values().length * Rarity.values().length][grid.size() * grid.size()];
         for (UnitType type : UnitType.values()) for (Rarity rarity : Rarity.values()) {
             double range = type.profile().at(rarity).range();

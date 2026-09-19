@@ -9,7 +9,7 @@ public final class Simulation {
     public record EnemyFrame(String type, double x, double z, double health, boolean boss) {}
     public record Snapshot(int tick, int round, long coins, int enemies, int defenders, int summons, int sales, int moves, long earned,
                            List<UnitFrame> units, List<EnemyFrame> mobs) {}
-    public record Result(long seed, Arena.Outcome outcome, int round, int ticks, int summons, int sales, int moves,
+    public record Result(long seed, Arena.Outcome outcome, int round, int completedRounds, int ticks, int summons, int sales, int moves,
                          long earned, long coins, int primordial, int mythic, double[] damage, long[] deployedTicks) {}
     private Simulation() {}
     public static Result run(long seed, CampaignRules rules, AutoPlayer.Strategy strategy, Consumer<Snapshot> trace) {
@@ -41,7 +41,7 @@ public final class Simulation {
         }
         if (!arena.ended()) throw new IllegalStateException("Campaign failed to terminate");
         int[] rarities = bot.rarities();
-        return new Result(seed, arena.outcome(), campaign.round(), tick, bot.summons(), bot.sales(), bot.moves(), arena.earnedCoins(), arena.coins(),
+        return new Result(seed, arena.outcome(), campaign.round(), campaign.completedRounds(), tick, bot.summons(), bot.sales(), bot.moves(), arena.earnedCoins(), arena.coins(),
                 rarities[Rarity.PRIMORDIAL.ordinal()], rarities[Rarity.MYTHIC.ordinal()], damage, exposure);
     }
 }

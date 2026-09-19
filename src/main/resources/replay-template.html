@@ -6,6 +6,7 @@
 </style>
 <h1>운빨 디펜스 <span class="badge">100라운드 리플레이</span></h1>
 <p>서버와 같은 Java 전투·경제·웨이브 엔진으로 실행한 기록입니다. 1초 간격의 상태를 재생하며 실제 Minecraft 화면이나 사람의 플레이 결과는 아닙니다.</p>
+<p id="placement"></p>
 <div class="panel"><div id="summary"></div><p>재현 시드 <strong>__SEED__</strong> · 파란 칸: 포탑 / 붉은 점: 적 / 큰 붉은 점: 보스</p>
 <button id="play">재생</button> <select id="speed" aria-label="재생 속도"><option value="1">1배</option><option value="10">10배</option><option value="30" selected>30배</option><option value="100">100배</option></select>
 <input id="time" aria-label="재생 위치" type="range" min="0" value="0"><div id="stats"></div></div>
@@ -18,10 +19,12 @@ const colors={COMMON:'#a8b4c5',RARE:'#71cf90',ANCIENT:'#79cfed',RELIC:'#6f92ff',
 const time=document.querySelector('#time'),board=document.querySelector('#board'),ctx=board.getContext('2d'),chart=document.querySelector('#chart'),cx=chart.getContext('2d');
 time.max=frames.length-1;let playing=false,acc=0,last=0;
 document.querySelector('#summary').textContent=(summary.primordialCap<2147483647?'태초 '+summary.primordialCap+'개 제한 실험 · ':'')+(summary.runs===1?'단일 시드 재현 · '+(summary.wins===1?'100라운드 클리어':'패배')+' · 모집단 클리어 확률은 검증 보고서 참조':summary.runs.toLocaleString()+'회 · 클리어 '+(summary.clearRate*100).toFixed(2)+'% · 95% 신뢰구간 '+(summary.ci95Low*100).toFixed(2)+'–'+(summary.ci95High*100).toFixed(2)+'%');
-function point(x){return 64+(x+3)*28}
+const gridSize=summary.gridSize,routeSide=(gridSize-1)*3+6;
+document.querySelector('#placement').textContent=gridSize+'×'+gridSize+' · '+(gridSize*gridSize)+'칸 · 근접은 가장자리 우선, 원거리는 안쪽 우선 · 선호 구역이 차면 나머지 빈 칸 사용';
+function point(x){return 64+(x+3)*504/routeSide}
 function render(){const i=+time.value,f=frames[i];document.querySelector('#stats').textContent='R'+f.round+'/100 · '+Math.floor(f.tick/1200)+'분 '+Math.floor(f.tick/20)%60+'초 · 재화 '+f.coins+'원 · 적 '+f.enemies+'/100 · 소환 '+f.summons+' · 판매 '+f.sales+' · 이동 '+f.moves+' · 처치 수익 '+f.earned+'원';
 ctx.clearRect(0,0,640,640);ctx.strokeStyle='#b45466';ctx.lineWidth=4;ctx.strokeRect(point(-3),point(-3),504,504);
-for(let row=0;row<5;row++)for(let col=0;col<5;col++){ctx.fillStyle='#233e57';ctx.fillRect(point(col*3)-22,point(row*3)-22,44,44)}
+for(let row=0;row<gridSize;row++)for(let col=0;col<gridSize;col++){ctx.fillStyle='#233e57';ctx.fillRect(point(col*3)-22,point(row*3)-22,44,44)}
 for(const e of f.mobs){ctx.fillStyle=e.boss?'#ff9b75':'#ef596d';ctx.beginPath();ctx.arc(point(e.x),point(e.z),e.boss?8:3,0,Math.PI*2);ctx.fill()}
 for(const u of f.units){ctx.fillStyle=colors[u.rarity];ctx.beginPath();ctx.arc(point(u.column*3),point(u.row*3),17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#10141d';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(labels[u.rarity],point(u.column*3),point(u.row*3)+4)}
 document.querySelector('#roster').innerHTML='<table><tr><th>종</th><th>등급</th><th>역할</th></tr>'+f.units.map(u=>'<tr><td>'+u.type+'</td><td style="color:'+colors[u.rarity]+'">'+labels[u.rarity]+'</td><td>'+labels[u.role]+'</td></tr>').join('')+'</table>';

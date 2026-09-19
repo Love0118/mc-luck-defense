@@ -7,6 +7,7 @@ public final class Grid {
     public static final int SPACING = 3;
     private final int size;
     private final List<Cell> placementOrder;
+    private final List<Cell> rangedPlacementOrder;
     private final Route route;
 
     public Grid(int size) {
@@ -23,9 +24,17 @@ public final class Grid {
             }
         }
         placementOrder = List.copyOf(cells);
+        var ranged = new ArrayList<Cell>();
+        for (Cell cell : cells) if (!perimeter(cell)) ranged.add(cell);
+        for (Cell cell : cells) if (perimeter(cell)) ranged.add(cell);
+        rangedPlacementOrder = List.copyOf(ranged);
     }
     public int size() { return size; }
     public List<Cell> placementOrder() { return placementOrder; }
+    public List<Cell> placementOrder(AttackRole role) { return role.melee() ? placementOrder : rangedPlacementOrder; }
+    public boolean perimeter(Cell cell) {
+        return contains(cell) && (cell.column() == 0 || cell.row() == 0 || cell.column() == size - 1 || cell.row() == size - 1);
+    }
     public boolean contains(Cell cell) {
         return cell != null && cell.column() >= 0 && cell.column() < size && cell.row() >= 0 && cell.row() < size;
     }

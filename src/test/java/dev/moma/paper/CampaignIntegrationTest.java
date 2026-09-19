@@ -10,6 +10,33 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CampaignIntegrationTest {
+    @Test void olderFiveByFiveArenaIsRejectedBeforeAnyPlayerStateChanges() {
+        MomaPlugin plugin = mock(MomaPlugin.class); when(plugin.namespace()).thenReturn("momadefense");
+        ArenaMaps maps = mock(ArenaMaps.class);
+        Player player = mock(Player.class); when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(maps.get("old")).thenReturn(new ArenaMap("old", mock(World.class), 0, 64, 0, new Grid(5)));
+        var games = new GameService(plugin, maps, CampaignRules.standard());
+        var error = assertThrows(IllegalArgumentException.class, () -> games.join(player, "old"));
+        assertTrue(error.getMessage().contains("6×6"));
+        assertNull(games.session(player));
+        verify(player, never()).teleport(any(Location.class));
+        verify(player, never()).setGameMode(any());
+    }
+    @Test void sixBySixMapBuilds36CellsAndResolvesTheNewOuterBoundary() {
+        World world = mock(World.class);
+        var floor = mock(org.bukkit.block.Block.class);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(floor);
+        var map = new ArenaMap("a", world, 128, 64, 0, new Grid(6));
+        map.build();
+        verify(floor, times(36)).setType(Material.LIGHT_BLUE_CONCRETE, false);
+        assertEquals(84, map.grid().route().length());
+        assertTrue(map.contains(new Location(world, 149.99, 65, 21.99)));
+        assertFalse(map.contains(new Location(world, 150, 65, 0)));
+        when(floor.getWorld()).thenReturn(world); when(floor.getY()).thenReturn(64);
+        when(floor.getX()).thenReturn(143); when(floor.getZ()).thenReturn(15);
+        assertEquals(new Cell(5, 5), map.cellAt(floor));
+        when(floor.getX()).thenReturn(146); assertNull(map.cellAt(floor));
+    }
     @Test void joiningCreatesTheSameCampaignRulesUsedByTheSimulator() {
         Player player = mock(Player.class); World world = mock(World.class);
         UUID owner = UUID.randomUUID();
@@ -17,7 +44,7 @@ class CampaignIntegrationTest {
         when(player.getLocation()).thenReturn(new Location(world, 10, 70, 10));
         when(player.getGameMode()).thenReturn(GameMode.SURVIVAL);
         CampaignRules rules = CampaignRules.standard();
-        GameSession session = new GameSession(player, new ArenaMap("a", world, 0, 64, 0, new Grid(5)), rules);
+        GameSession session = new GameSession(player, new ArenaMap("a", world, 0, 64, 0, new Grid(rules.gridSize())), rules);
         assertEquals(rules.startingCoins(), session.arena.coins());
         assertEquals(rules.enemyLimit(), session.arena.enemyLimit());
         assertEquals(0, session.campaign.round());

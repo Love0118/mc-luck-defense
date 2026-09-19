@@ -50,7 +50,7 @@ public final class Arena {
         Result access = access(actor);
         if (access != Result.OK) return access;
         if (coins < SUMMON_COST) return Result.INSUFFICIENT_COINS;
-        Cell cell = grid.placementOrder().stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
+        Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
         // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
         UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));

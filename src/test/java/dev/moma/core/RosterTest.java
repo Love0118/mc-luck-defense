@@ -28,8 +28,9 @@ class RosterTest {
         for (Rarity rarity : Rarity.values()) {
             for (UnitType type : UnitType.values()) {
                 int roll = boundary;
-                var random = new Random(1) {
+                var random = new java.util.random.RandomGenerator() {
                     int calls;
+                    @Override public long nextLong() { throw new AssertionError("Must use separate bounded draws"); }
                     @Override public int nextInt(int bound) {
                         assertEquals(calls == 0 ? 100_000 : 24, bound);
                         return calls++ == 0 ? roll : type.ordinal();

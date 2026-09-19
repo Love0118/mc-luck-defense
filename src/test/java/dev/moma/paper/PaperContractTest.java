@@ -23,7 +23,7 @@ class PaperContractTest {
         assertTrue(plugin.contains("commands.mud"));
         assertFalse(plugin.getString("version").contains("$"));
         CampaignRules settings = CampaignRules.standard();
-        assertEquals(5, settings.gridSize()); assertEquals(100, settings.startingCoins());
+        assertEquals(6, settings.gridSize()); assertEquals(100, settings.startingCoins());
         assertThrows(IllegalArgumentException.class, () -> settings.withHealthScale(Double.NaN));
         assertFalse(plugin.contains("commands.moma"));
     }

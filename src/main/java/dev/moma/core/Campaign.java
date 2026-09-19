@@ -10,9 +10,12 @@ public final class Campaign {
     private int elapsed = -1;
     private int round;
     private int spawnedInRound;
+    private int completedRounds;
     public Campaign(CampaignRules rules) { this.rules = rules; waves = WaveSchedule.create(rules); }
     public int elapsed() { return elapsed; }
     public int round() { return round; }
+    /** Rounds whose final tick was survived; victory also completes round 100. */
+    public int completedRounds() { return completedRounds; }
     public Wave wave() { return round == 0 ? null : waves.get(round - 1); }
     public boolean cleanup() { return elapsed >= rules.preparationTicks() + rules.roundTicks() * CampaignRules.ROUNDS; }
     public int secondsRemaining() {
@@ -39,5 +42,7 @@ public final class Campaign {
         if (round == CampaignRules.ROUNDS && spawnedInRound == wave().entries().size() && arena.enemyCount() == 0)
             arena.finish(Arena.Outcome.VICTORY);
         else if (elapsed >= rules.maximumTicks()) arena.finish(Arena.Outcome.TIME_LIMIT);
+        completedRounds = arena.outcome() == Arena.Outcome.VICTORY ? CampaignRules.ROUNDS
+                : Math.min(CampaignRules.ROUNDS, Math.max(0, (elapsed + 1 - rules.preparationTicks()) / rules.roundTicks()));
     }
 }
