@@ -108,6 +108,7 @@ class InteractionTest {
             actualShop.click(event); verify(games, never()).summon(player);
             when(event.getRawSlot()).thenReturn(11);
             actualShop.click(event); actualShop.click(event); verify(games, times(1)).summon(player);
+            verify(player,times(1)).playSound(any(Location.class),eq(Ui.Cue.OPEN.sound),eq(SoundCategory.MASTER),eq(Ui.Cue.OPEN.volume),eq(Ui.Cue.OPEN.pitch));
             verify(event, times(4)).setCancelled(true);
             var refresh=org.mockito.ArgumentCaptor.forClass(Runnable.class);
             verify(scheduler).runTaskLater(eq(plugin),refresh.capture(),eq(1L));

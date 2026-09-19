@@ -32,6 +32,7 @@ final class ShopMenu implements Listener {
         holder.inventory = Bukkit.createInventory(holder, 27, Ui.text("&6운빨 디펜스 &8· &e소환과 판매"));
         render(holder);
         player.openInventory(holder.inventory);
+        Ui.sound(player,Ui.Cue.OPEN);
     }
     private void render(Holder holder) {
         Arena arena = holder.arena;

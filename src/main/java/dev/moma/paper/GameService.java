@@ -36,6 +36,7 @@ final class GameService {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) throw new IllegalArgumentException("자신의 진행 중인 게임에서만 배속을 변경할 수 있습니다.");
         session.speed(value);
+        Ui.sound(player,Ui.Cue.SPEED);
         player.sendMessage(Ui.text("&a게임 배속: &e" + value + "배 &7· 자신의 세션에만 적용됩니다."));
     }
     List<SessionInfo> activeSessions() {
@@ -187,9 +188,11 @@ final class GameService {
         } catch (RuntimeException exception) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Defender spawn failed", exception);
             player.sendMessage(Component.text("소환에 실패했습니다. 재화는 차감하지 않았습니다.", NamedTextColor.RED));
+            Ui.sound(player,Ui.Cue.ERROR);
             return;
         }
         tell(player, result);
+        if (result == Arena.Result.OK) Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : Ui.Cue.SUMMON);
         if (result == Arena.Result.OK && roll.rarity().abilityLevel() > 0)
             Bukkit.broadcast(Component.text(player.getName() + " 님이 [" + roll.rarity().label() + "] " + roll.type().label() + " 획득!", EntityAdapter.rarityColor(roll.rarity())));
     }
@@ -198,14 +201,17 @@ final class GameService {
         if (session == null) return;
         UUID selected = session.arena.selected().map(Defender::entityId).orElse(null);
         Arena.Result result = session.arena.sellSelected(player.getUniqueId());
-        if (result == Arena.Result.OK) entities.remove(selected);
+        if (result == Arena.Result.OK) { entities.remove(selected); Ui.sound(player,Ui.Cue.SELL); }
         tell(player, result);
     }
     void sellRarity(Player player, Rarity rarity) {
         GameSession session = session(player); if (session == null) return;
         Arena.BulkSale sale = session.arena.sellRarity(player.getUniqueId(), rarity);
         sale.entities().forEach(entities::remove); tell(player, sale.result());
-        if (sale.result() == Arena.Result.OK) player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "원"));
+        if (sale.result() == Arena.Result.OK) {
+            player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "원"));
+            Ui.sound(player,Ui.Cue.SELL);
+        }
     }
     void select(Player player, UUID entity) {
         GameSession session = session(player);
@@ -311,6 +317,7 @@ final class GameService {
     }
     static void tell(Player player, Arena.Result result) {
         if (result == Arena.Result.OK) return;
+        Ui.sound(player,Ui.Cue.ERROR);
         String message = switch (result) {
             case NOT_OWNER -> "자신의 포탑만 선택할 수 있습니다.";
             case ENDED -> "이미 종료된 전장입니다.";

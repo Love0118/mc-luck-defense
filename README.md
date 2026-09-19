@@ -10,7 +10,7 @@ Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-0.8.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-0.8.2.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 
@@ -232,3 +232,7 @@ mud-optimizations:
 - 소환·판매 GUI의 클릭 대기 시간을 5틱에서 1틱(정상 20 TPS에서 약 50ms)으로 줄였습니다. 같은 틱의 중복 이벤트와 이전 세션의 메뉴는 거절합니다.
 
 [20세션 1배/8배 부하 비교와 기능 검증](docs/performance/0.8.1/REPORT.md)
+
+## 0.8.2 GUI 사운드 피드백
+
+로비·게임 메뉴 열기와 페이지 전환, 참가·관전 버튼, 소환 성공, 판매·일괄판매 성공, 배속 변경에 소리를 재생합니다. 전설 이상 소환은 별도 차임을 사용하고 재화 부족·빈 칸 부족·선택 없음·판매 불가 등 실패는 낮은 거절음으로 구분합니다. 2번 도구 판매에도 동일한 결과음을 적용합니다. 소리는 조작한 플레이어에게만 전달하며 중복 클릭으로 추가 재생하지 않습니다. 1틱 구매 간격은 유지합니다. 클라이언트의 주 음량이 0이면 들리지 않습니다.

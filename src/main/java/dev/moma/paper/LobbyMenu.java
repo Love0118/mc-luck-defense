@@ -42,6 +42,7 @@ final class LobbyMenu implements Listener {
         if (page > 0) holder.inventory.setItem(PREVIOUS, Ui.item(Material.ARROW, "&e이전 페이지"));
         if (page+1 < pages) holder.inventory.setItem(NEXT, Ui.item(Material.ARROW, "&e다음 페이지"));
         player.openInventory(holder.inventory);
+        Ui.sound(player,Ui.Cue.OPEN);
     }
     @EventHandler public void click(InventoryClickEvent event) {
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
@@ -61,7 +62,10 @@ final class LobbyMenu implements Listener {
                 else if (slot == JOIN) games.start(player);
                 else if (slot == LEAVE) games.leave(player);
                 else games.spectate(player, holder.sessions.get(slot).sessionId());
-            } catch (IllegalArgumentException error) { player.sendMessage(Ui.text("&c" + error.getMessage())); }
+                if (!previous && !next) Ui.sound(player,Ui.Cue.CLICK);
+            } catch (IllegalArgumentException error) {
+                player.sendMessage(Ui.text("&c" + error.getMessage())); Ui.sound(player,Ui.Cue.ERROR);
+            }
         });
     }
     @EventHandler public void drag(InventoryDragEvent event) {
