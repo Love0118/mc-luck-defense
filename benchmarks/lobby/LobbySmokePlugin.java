@@ -20,6 +20,9 @@ public final class LobbySmokePlugin extends JavaPlugin {
     private long firstTick, secondTick;
     private int expectedSpeed = 2, speedChecks;
     private boolean fractionalGold;
+    private int portalPhase, portalWait;
+    private org.bukkit.block.Block portalBlock;
+    private org.bukkit.block.data.BlockData portalOriginal;
     @Override public void onEnable() {
         if (!Bukkit.getIp().equals("127.0.0.1")) throw new IllegalStateException("Localhost only");
         try {
@@ -49,6 +52,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
         if (stage==0) {
             first=Bukkit.getPlayerExact("MudBench00"); second=Bukkit.getPlayerExact("MudBench01"); viewer=Bukkit.getPlayerExact("MudBench02");
             if (first==null || second==null || viewer==null || !first.isOnline() || !second.isOnline() || !viewer.isOnline()) return;
+            if (!checkLobbyPortal(world)) return;
             require(first.getWorld().equals(world)&&second.getWorld().equals(world),"Login must enter lobby");
             require(first.getLocation().distance(world.getSpawnLocation())<1,"Login must use configured spawn");
             require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight(),"Lobby flight disabled");
@@ -209,6 +213,32 @@ public final class LobbySmokePlugin extends JavaPlugin {
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
             Files.writeString(Path.of("automation-smoke-passed.json"),"{\"clients\":3,\"autoSaleGui\":true,\"existingAndNewAutoSale\":true,\"bulkBuyGui\":true,\"autoPlacementGui\":true,\"physicalLayout\":true,\"sessionIsolation\":true,\"freshSessionResets\":true}");
         }
+    }
+    private boolean checkLobbyPortal(World world) throws Exception {
+        if (portalPhase == 0) {
+            portalBlock=world.getBlockAt(world.getSpawnLocation().clone().add(4,0,0));
+            portalOriginal=portalBlock.getBlockData();
+            portalBlock.setType(Material.NETHER_PORTAL,false);
+            first.teleport(portalBlock.getLocation().add(.5,0,.5));
+            portalPhase=1;return false;
+        }
+        if (portalPhase == 4) return true;
+        if (++portalWait < 10) return false;
+        portalWait=0;
+        if (portalPhase == 1) {
+            require(first.getOpenInventory().getTopInventory().getSize()==54,"Portal opens session menu");
+            require(first.getOpenInventory().getTopInventory().getItem(49).getType()==Material.NETHER_STAR,"Portal join button");
+            first.closeInventory();portalPhase=2;return false;
+        }
+        if (portalPhase == 2) {
+            require(first.getOpenInventory().getTopInventory().getSize()!=54,"Standing inside does not reopen menu");
+            require(first.getWorld()==world && call(games,"session",first)==null,"Portal stays in lobby without auto join");
+            first.teleport(world.getSpawnLocation());portalPhase=3;return false;
+        }
+        portalBlock.setBlockData(portalOriginal,false);portalPhase=4;
+        try { Files.writeString(Path.of("portal-smoke-passed.json"),"{\"entryOpensMenu\":true,\"noRepeatWhileInside\":true,\"staysInLobby\":true,\"joinButton\":true}"); }
+        catch(java.io.IOException error) { throw new RuntimeException(error); }
+        return true;
     }
     private void menuClick(int slot) {
         var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());

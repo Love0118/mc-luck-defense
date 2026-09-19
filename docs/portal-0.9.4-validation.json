@@ -1,0 +1,9 @@
+{
+  "entryOpensMenu": true,
+  "noRepeatWhileInside": true,
+  "staysInLobby": true,
+  "joinButton": true,
+  "tests": 175,
+  "clients": 3,
+  "sha256": "ca795259418f624a432b0a1f60d38d245b26ecf559bb1b76ecabbacd2e62cff6"
+}

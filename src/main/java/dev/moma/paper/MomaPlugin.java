@@ -25,6 +25,9 @@ public final class MomaPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SpectatorListener(games), this);
         if (lobby != null) {
             getServer().getPluginManager().registerEvents(new LobbyListener(lobby, games, lobbyMenu), this);
+            var portals = new LobbyPortals(lobby, games, lobbyMenu);
+            getServer().getPluginManager().registerEvents(portals, this);
+            getServer().getScheduler().runTaskTimer(this, portals, 1, 5);
             for (var player : Bukkit.getOnlinePlayers()) lobby.send(player);
         }
         getServer().getPluginManager().registerEvents(shop, this);
