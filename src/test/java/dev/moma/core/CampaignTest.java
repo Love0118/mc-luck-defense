@@ -68,7 +68,7 @@ class CampaignTest {
             }
             assertEquals(wave.round() % 10 == 0 ? 1 : 0, wave.entries().stream().filter(e -> e.enemy().boss()).count());
         }
-        assertEquals(10, bosses); assertEquals(6, types.size());
+        assertEquals(10, bosses); assertEquals(EnumSet.allOf(EnemyType.class),types);
     }
     @Test void preparationSpawnsAndRoundBoundariesAreExactAndSurvivorsPersist() {
         CampaignRules rules = new CampaignRules(5, 100, 1000, 3, 100, 100, 1, CampaignRules.standard().healthCurve(), 1);

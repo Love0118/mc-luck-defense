@@ -97,7 +97,10 @@ final class GameListener implements Listener {
     @EventHandler public void placeBlock(BlockPlaceEvent event) {
         if (games.playing(event.getPlayer()) || maps.contains(event.getBlock().getLocation())) event.setCancelled(true);
     }
-    @EventHandler public void entityExplosion(EntityExplodeEvent event) { event.blockList().removeIf(b -> maps.contains(b.getLocation())); }
+    @EventHandler public void entityExplosion(EntityExplodeEvent event) {
+        if(games.entities.managed(event.getEntity()))event.setCancelled(true);
+        event.blockList().removeIf(b -> maps.contains(b.getLocation()));
+    }
     @EventHandler public void blockExplosion(BlockExplodeEvent event) { event.blockList().removeIf(b -> maps.contains(b.getLocation())); }
     @EventHandler public void food(FoodLevelChangeEvent event) {
         if (event.getEntity() instanceof Player player && games.playing(player)) event.setCancelled(true);

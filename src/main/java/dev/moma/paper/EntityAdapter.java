@@ -32,15 +32,19 @@ final class EntityAdapter {
     void enablePrivateGlow(MomaPlugin plugin) { privateGlow = new PrivateGlow(plugin); }
     void selectGlow(Player player, UUID entity) { if (privateGlow != null) privateGlow.select(player, entity); }
     void close() { if (privateGlow != null) privateGlow.close(); }
-    boolean managed(Entity entity) { return entity.getPersistentDataContainer().has(factionKey, PersistentDataType.STRING); }
+    boolean managed(Entity entity) {
+        if(entity instanceof ComplexEntityPart part)entity=part.getParent();
+        return entity.getPersistentDataContainer().has(factionKey, PersistentDataType.STRING);
+    }
     boolean moving(Entity entity) { return moving.contains(entity.getUniqueId()); }
     UUID spawnDefender(ArenaMap map, UUID owner, UnitType type, Rarity rarity, Cell cell) {
         return spawn(map, owner, EntityType.valueOf(type.name()), Faction.DEFENDER, map.location(cell.point()),
                 Component.text("[아군] [" + rarity.label() + "] " + type.label(), rarityColor(rarity))).getUniqueId();
     }
     UUID spawnEnemy(ArenaMap map, UUID owner, EnemyType type, boolean boss) {
-        return spawn(map, owner, EntityType.valueOf(type.name()), Faction.ENEMY, map.location(map.grid().route().at(0)),
-                Component.text(boss ? "[적·보스] " + type.label() : "[적] " + type.label(), NamedTextColor.RED)).getUniqueId();
+        LivingEntity enemy=spawn(map, owner, EntityType.valueOf(type.name()), Faction.ENEMY, map.location(map.grid().route().at(0)),
+                Component.text(boss ? "[적·보스] " + type.label() : "[적] " + type.label(), NamedTextColor.RED));
+        return enemy.getUniqueId();
     }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {
@@ -58,8 +62,11 @@ final class EntityAdapter {
             if (living instanceof Zombie zombie) { zombie.setBaby(false); zombie.setShouldBurnInDay(false); }
             if (living instanceof AbstractSkeleton skeleton) skeleton.setShouldBurnInDay(false);
             if (living instanceof Vex vex) vex.setLimitedLifetime(false);
+            if (living instanceof Endermite mite) mite.setLifetimeTicks(0);
+            if (living instanceof Wither wither) wither.setInvulnerableTicks(0);
+            if (living instanceof EnderDragon dragon) dragon.setPhase(EnderDragon.Phase.HOVER);
             if (living.getAttribute(Attribute.SCALE) != null) living.getAttribute(Attribute.SCALE).setBaseValue(switch (type) {
-                case GHAST, WARDEN, IRON_GOLEM, RAVAGER, HOGLIN, POLAR_BEAR, PANDA -> 1.0;
+                case GHAST, WARDEN, IRON_GOLEM, RAVAGER, HOGLIN, POLAR_BEAR, PANDA, WITHER, ENDER_DRAGON, ELDER_GUARDIAN -> 1.0;
                 default -> 2.0;
             });
             living.getPersistentDataContainer().set(factionKey, PersistentDataType.STRING, faction.name());
@@ -115,6 +122,7 @@ final class EntityAdapter {
     boolean advance(UUID id, Location destination) {
         Entity entity = Bukkit.getEntity(id);
         if (entity == null || !entity.isValid()) return false;
+        if(entity instanceof Shulker) return ShulkerMotion.move(entity,destination);
         if (entity instanceof LivingEntity living && living.getBodyYaw() != destination.getYaw()) living.setBodyYaw(destination.getYaw());
         var bridge = PRESENTATION_MOTION.get(entity.getClass());
         if (bridge.isPresent()) {
@@ -131,7 +139,7 @@ final class EntityAdapter {
                 catch (NoSuchMethodException absent) { /* Standard Paper fallback. */ }
             }
         }
-        if (batchBridge != null && arena.enemyCount() <= batchEntities.length) {
+        if (batchBridge != null && arena.enemyCount() <= batchEntities.length && arena.activeEnemies().stream().noneMatch(e->e.type()==EnemyType.SHULKER)) {
             int i = 0;
             try {
                 for (dev.moma.core.Enemy enemy : arena.activeEnemies()) {

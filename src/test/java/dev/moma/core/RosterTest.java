@@ -21,7 +21,8 @@ class RosterTest {
         Set<String> enemyNames = new HashSet<>();
         for (EnemyType type : EnemyType.values()) enemyNames.add(type.name());
         for (AttackRole role : AttackRole.values()) assertEquals(4, Arrays.stream(UnitType.values()).filter(u -> u.role() == role).count());
-        for (UnitType type : UnitType.values()) assertFalse(enemyNames.contains(type.name()));
+        assertTrue(enemyNames.contains(UnitType.WARDEN.name()));
+        assertNotEquals(Faction.ENEMY,Faction.DEFENDER); // Appearance is no longer a faction identifier.
     }
     @Test void independentDrawsCanProduceEverySpeciesAtEveryRarity() {
         int boundary = 0;

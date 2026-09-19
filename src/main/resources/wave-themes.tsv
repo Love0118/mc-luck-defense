@@ -1,0 +1,101 @@
+round	biome	stage	theme	roster	boss	wardens
+1	plains	OVERWORLD	평야 진입	ZOMBIE,SPIDER	-	0
+2	sunflower_plains	OVERWORLD	해바라기 들판	BEE,ZOMBIE	-	0
+3	forest	OVERWORLD	숲길	WOLF,SPIDER,ZOMBIE	-	0
+4	flower_forest	OVERWORLD	꽃숲	BEE	-	0
+5	birch_forest	OVERWORLD	자작나무숲	SKELETON,SPIDER	-	0
+6	old_growth_birch_forest	OVERWORLD	오래된 자작나무숲	ZOMBIE,SKELETON,SPIDER	-	0
+7	dappled_forest	OVERWORLD	얼룩빛 숲	WOLF,SKELETON	-	0
+8	dark_forest	OVERWORLD	삼림 대저택 외곽	VINDICATOR,SPIDER	-	0
+9	pale_garden	OVERWORLD	창백한 정원	SPIDER,SPIDER,CREAKING	-	0
+10	swamp	OVERWORLD	늪지 오두막	SLIME,WITCH	WITCH	0
+11	mangrove_swamp	OVERWORLD	맹그로브 수로	FROG,SLIME,DROWNED	-	0
+12	jungle	OVERWORLD	정글 유적 입구	ZOMBIE,SKELETON,SPIDER	-	0
+13	sparse_jungle	OVERWORLD	성긴 정글	OCELOT,SKELETON	-	0
+14	bamboo_jungle	OVERWORLD	대나무 밀림	SPIDER,SPIDER,PANDA	-	0
+15	savanna	OVERWORLD	사바나 마을 외곽	PILLAGER,ZOMBIE	-	0
+16	savanna_plateau	OVERWORLD	고원 습격대	PILLAGER,PILLAGER,RAVAGER	-	0
+17	windswept_savanna	OVERWORLD	바람 부는 사바나	SPIDER,PILLAGER	-	0
+18	desert	OVERWORLD	사막 피라미드	HUSK,SKELETON,CREEPER	-	0
+19	badlands	OVERWORLD	황무지 협곡	HUSK,SPIDER	-	0
+20	wooded_badlands	OVERWORLD	황무지 폐광	CAVE_SPIDER,HUSK	CAVE_SPIDER	0
+21	eroded_badlands	OVERWORLD	침식된 첨탑 지대	HUSK,CAVE_SPIDER	-	0
+22	meadow	OVERWORLD	산기슭 초원	SHEEP,BEE,ZOMBIE	-	0
+23	cherry_grove	OVERWORLD	벚꽃 언덕	BEE,SPIDER,SKELETON	-	0
+24	taiga	OVERWORLD	타이가 마을	WOLF,ZOMBIE	-	0
+25	old_growth_pine_taiga	OVERWORLD	거대 소나무숲	WOLF,SKELETON	-	0
+26	old_growth_spruce_taiga	OVERWORLD	거대 가문비나무숲	ZOMBIE,SPIDER	-	0
+27	snowy_taiga	OVERWORLD	눈 덮인 숲	STRAY,WOLF	-	0
+28	snowy_plains	OVERWORLD	이글루 주변	STRAY,ZOMBIE	-	0
+29	ice_spikes	OVERWORLD	역고드름 지대	STRAY,STRAY,POLAR_BEAR	-	0
+30	grove	OVERWORLD	설산 수목 지대	WOLF,STRAY	POLAR_BEAR	0
+31	snowy_slopes	OVERWORLD	눈 덮인 비탈	GOAT,STRAY	-	0
+32	frozen_peaks	OVERWORLD	얼어붙은 봉우리	POLAR_BEAR,STRAY	-	0
+33	jagged_peaks	OVERWORLD	뾰족한 봉우리	GOAT,SKELETON	-	0
+34	stony_peaks	OVERWORLD	돌 봉우리	SKELETON,CREEPER	-	0
+35	windswept_hills	OVERWORLD	바람 부는 언덕	LLAMA,SKELETON	-	0
+36	windswept_gravelly_hills	OVERWORLD	자갈 언덕	CREEPER,SPIDER	-	0
+37	windswept_forest	OVERWORLD	산악 숲	WOLF,SPIDER,SKELETON	-	0
+38	river	OVERWORLD	강변	DROWNED,SQUID	-	0
+39	frozen_river	OVERWORLD	얼어붙은 강	DROWNED,STRAY	-	0
+40	beach	OVERWORLD	난파선 해안	DROWNED,TURTLE	DROWNED	0
+41	snowy_beach	OVERWORLD	눈 덮인 해안	STRAY,DROWNED	-	0
+42	stony_shore	OVERWORLD	돌 해안	DROWNED,SKELETON	-	0
+43	ocean	OVERWORLD	대양	COD,SQUID,DROWNED	-	0
+44	deep_ocean	OVERWORLD	해저 유적	DROWNED,GUARDIAN	-	0
+45	lukewarm_ocean	OVERWORLD	미지근한 바다	TROPICAL_FISH,PUFFERFISH,DROWNED	-	0
+46	deep_lukewarm_ocean	OVERWORLD	깊은 해저 유적	GUARDIAN,DROWNED	-	0
+47	warm_ocean	OVERWORLD	산호초	TROPICAL_FISH,PUFFERFISH	-	0
+48	cold_ocean	OVERWORLD	차가운 바다	SALMON,SQUID,DROWNED	-	0
+49	deep_cold_ocean	OVERWORLD	해저 신전 접근	GUARDIAN,DROWNED	-	0
+50	frozen_ocean	OVERWORLD	빙산 아래 해저 신전	GUARDIAN,DROWNED	ELDER_GUARDIAN	0
+51	deep_frozen_ocean	OVERWORLD	깊은 빙해	GUARDIAN,SQUID	-	0
+52	mushroom_fields	OVERWORLD	버섯섬	MOOSHROOM,RABBIT	-	0
+53	lush_caves	OVERWORLD	무성한 동굴	AXOLOTL,GLOW_SQUID,ZOMBIE	-	0
+54	dripstone_caves	OVERWORLD	점적석 동굴 폐광	CAVE_SPIDER,SKELETON,CREEPER	-	0
+55	sulfur_caves	OVERWORLD	유황 동굴	SLIME,CREEPER,CAVE_SPIDER	-	0
+56	deep_dark	ANCIENT_CITY	깊은 어둠	ZOMBIE,SKELETON,SPIDER	-	0
+57	deep_dark	ANCIENT_CITY	스컬크가 번진 동굴	CREEPER,CAVE_SPIDER,SKELETON	-	0
+58	deep_dark	ANCIENT_CITY	고대 도시 외곽	ZOMBIE,SPIDER,SKELETON	-	0
+59	deep_dark	ANCIENT_CITY	첫 비명	ZOMBIE,SKELETON,CAVE_SPIDER	-	1
+60	deep_dark	ANCIENT_CITY	고대 도시 관문	ZOMBIE,SKELETON,SPIDER	WARDEN	0
+61	deep_dark	ANCIENT_CITY	도시 회랑	CAVE_SPIDER,CAVE_SPIDER,SKELETON	-	0
+62	deep_dark	ANCIENT_CITY	스컬크 저장고	CREEPER,ZOMBIE	-	1
+63	deep_dark	ANCIENT_CITY	무너진 도시 구역	SPIDER,CAVE_SPIDER,SKELETON	-	0
+64	deep_dark	ANCIENT_CITY	도시 중심부	ZOMBIE,SKELETON	-	2
+65	deep_dark	ANCIENT_CITY	고대 도시 탈출	ZOMBIE,SPIDER,CREEPER	-	1
+66	nether_wastes	NETHER	네더 포탈 도착	ZOMBIFIED_PIGLIN,MAGMA_CUBE	-	0
+67	soul_sand_valley	NETHER	영혼 모래 골짜기	SKELETON,SKELETON,GHAST	-	0
+68	crimson_forest	NETHER	진홍빛 숲	PIGLIN,HOGLIN	-	0
+69	warped_forest	NETHER	뒤틀린 숲	ENDERMAN	-	0
+70	basalt_deltas	NETHER	현무암 삼각주	MAGMA_CUBE	GHAST	0
+71	crimson_forest	NETHER	호글린 서식지	HOGLIN,PIGLIN	-	0
+72	nether_wastes	NETHER	보루 잔해 다리	PIGLIN,PIGLIN,PIGLIN_BRUTE	-	0
+73	crimson_forest	NETHER	보루 호글린 우리	HOGLIN,PIGLIN	-	0
+74	nether_wastes	NETHER	보루 주거 구역	PIGLIN,ZOMBIFIED_PIGLIN	-	0
+75	nether_wastes	NETHER	보루 보물방	PIGLIN_BRUTE,MAGMA_CUBE	-	0
+76	soul_sand_valley	NETHER	네더 요새 접근	SKELETON,GHAST	-	0
+77	nether_wastes	NETHER	네더 요새 다리	WITHER_SKELETON,ZOMBIFIED_PIGLIN	-	0
+78	nether_wastes	NETHER	블레이즈 구역	BLAZE	-	0
+79	nether_wastes	NETHER	네더 요새 내부	WITHER_SKELETON,BLAZE,MAGMA_CUBE	-	0
+80	nether_wastes	NETHER	네더 최종 관문	WITHER_SKELETON,BLAZE	WITHER	0
+81	the_void	END	차원 전환의 공허	ENDERMITE,ENDERMAN	-	0
+82	the_end	END	엔드 중앙 섬	ENDERMAN,ENDERMITE	-	0
+83	small_end_islands	END	작은 엔드 섬	ENDERMITE,ENDERMITE,ENDERMAN	-	0
+84	end_barrens	END	엔드 불모지	ENDERMAN	-	0
+85	end_midlands	END	엔드 중지대	ENDERMAN,ENDERMITE	-	0
+86	end_highlands	END	엔드 고지대	ENDERMAN	-	0
+87	small_end_islands	END	외곽 섬 연결 구간	ENDERMITE,ENDERMAN	-	0
+88	end_midlands	END	엔드 관문 귀환	ENDERMAN	-	0
+89	the_end	END	흑요석 기둥	ENDERMAN	-	0
+90	the_end	END	엔더 드래곤	ENDERMAN	ENDER_DRAGON	0
+91	end_barrens	END_CITY	외곽 재진입	ENDERMAN,ENDERMITE	-	0
+92	end_highlands	END_CITY	엔드 시티 접근로	ENDERMAN,SHULKER	-	0
+93	end_highlands	END_CITY	엔드 시티 성문	SHULKER,ENDERMITE	-	0
+94	end_highlands	END_CITY	엔드 시티 하층	SHULKER,ENDERMAN	-	0
+95	end_highlands	END_CITY	엔드 시티 연결 다리	ENDERMITE,SHULKER	-	0
+96	end_highlands	END_CITY	엔드 시티 상층	SHULKER	-	0
+97	end_highlands	END_CITY	엔드 시티 첨탑	SHULKER,ENDERMAN	-	0
+98	end_highlands	END_CITY	엔드 함선 접근	SHULKER,ENDERMITE	-	0
+99	end_highlands	END_CITY	엔드 함선 갑판	SHULKER,ENDERMAN	-	0
+100	end_highlands	END_CITY	엔드 함선 보물실 수호자	SHULKER,ENDERMAN	SHULKER	0
