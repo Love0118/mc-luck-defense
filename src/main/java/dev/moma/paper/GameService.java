@@ -110,6 +110,7 @@ final class GameService {
         player.sendMessage(Component.text("100라운드 도전! 15초 후 적이 출현합니다. F: 소환·판매 / 좌클릭: 선택·이동", NamedTextColor.GREEN));
     }
     void leave(Player player) {
+        entities.selectGlow(player, null);
         if (watching(player)) { stopWatching(player, true); return; }
         GameSession session = sessions.remove(player.getUniqueId());
         if (session == null) { if (lobby != null) lobby.send(player); return; }
@@ -119,6 +120,7 @@ final class GameService {
         else { player.setGameMode(session.returnMode); player.teleport(session.returnLocation); }
     }
     void disconnect(Player player) {
+        entities.selectGlow(player, null);
         stopWatching(player, false);
         GameSession session = sessions.remove(player.getUniqueId());
         if (session != null) release(session);
@@ -146,6 +148,7 @@ final class GameService {
         for (UUID id : List.copyOf(spectators.keySet())) {
             Player player = Bukkit.getPlayer(id); if (player != null) stopWatching(player, true); else spectators.remove(id);
         }
+        entities.close();
     }
     void summon(Player player) {
         GameSession session = session(player);
@@ -183,18 +186,22 @@ final class GameService {
         if (session == null) return;
         Arena.Result result = session.arena.select(player.getUniqueId(), entity);
         tell(player, result);
-        if (result == Arena.Result.OK) session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.type().label() + " · " + d.type().role().label())));
+        if (result == Arena.Result.OK) {
+            entities.selectGlow(player, entity);
+            session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.type().label() + " · " + d.type().role().label())));
+        }
     }
     void move(Player player, org.bukkit.block.Block block) {
         GameSession session = session(player);
         if (session == null || session.arena.selected().isEmpty()) return;
         Defender selected = session.arena.selected().orElseThrow();
         Arena.Result result = session.arena.moveSelected(player.getUniqueId(), session.map.cellAt(block));
-        if (result == Arena.Result.OK && !entities.move(selected.entityId(), session.map.location(selected.position()))) {
+        if (result == Arena.Result.OK && !entities.moveDefender(selected.entityId(), session.map.location(selected.position()))) {
             player.sendMessage(Component.text("포탑 엔티티를 찾을 수 없어 게임을 종료합니다.", NamedTextColor.RED));
             leave(player);
             return;
         }
+        if (result == Arena.Result.OK) entities.selectGlow(player, null);
         tell(player, result);
     }
     void spawnEnemies(Player player, EnemyType type, int count, boolean boss) {
@@ -237,7 +244,10 @@ final class GameService {
                 player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             }
             session.attackEffects.clear();
-            combat.tick(session.arena, tick, (defender, enemy, damage) -> session.attackEffects.hit(defender, enemy.position(session.map.grid().route())));
+            combat.tick(session.arena, tick, (defender, enemy, damage) -> {
+                Point target = enemy.position(session.map.grid().route());
+                if (session.attackEffects.hit(defender, target)) entities.face(defender, target);
+            });
             session.attackEffects.render(session.map, viewers(player, session));
             session.arena.collectDeadEnemies().forEach(entities::remove);
             session.campaign.afterCombat(session.arena);
@@ -245,7 +255,7 @@ final class GameService {
             boolean intact = entities.advanceAll(session.arena, session.map);
             // Anchor unusual vanilla bodies such as shulkers as well as ordinary mobs.
             for (Defender defender : session.arena.activeDefenders())
-                intact &= entities.move(defender.entityId(), session.map.location(defender.position()));
+                intact &= entities.moveDefender(defender.entityId(), session.map.location(defender.position()));
             if (!intact) {
                 player.sendMessage(Component.text("게임 엔티티가 사라져 전장을 종료했습니다.", NamedTextColor.RED));
                 leave(player); continue;

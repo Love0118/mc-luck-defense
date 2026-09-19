@@ -121,6 +121,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
                 catch (Exception e) { throw new IllegalStateException(e); }
             });
         }
+        call(games, "select", player, arena.defenders().getFirst().entityId());
         var progress = Enemy.class.getDeclaredField("progress"); progress.setAccessible(true);
         for (int i = 0; i < 90; i++) {
             EnemyType type = EnemyType.values()[i % 6];

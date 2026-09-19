@@ -14,6 +14,8 @@ import java.util.Set;
 final class EntityAdapter {
     private final NamespacedKey factionKey, arenaKey, ownerKey;
     private final Set<UUID> moving = new HashSet<>();
+    private final java.util.Map<UUID, Float> defenderYaw = new java.util.HashMap<>();
+    private PrivateGlow privateGlow;
     private final Entity[] batchEntities = new Entity[100];
     private final double[] batchPositions = new double[500];
     private java.lang.reflect.Method batchBridge;
@@ -27,6 +29,9 @@ final class EntityAdapter {
     EntityAdapter(MomaPlugin plugin) {
         factionKey = new NamespacedKey(plugin, "faction"); arenaKey = new NamespacedKey(plugin, "arena"); ownerKey = new NamespacedKey(plugin, "owner");
     }
+    void enablePrivateGlow(MomaPlugin plugin) { privateGlow = new PrivateGlow(plugin); }
+    void selectGlow(Player player, UUID entity) { if (privateGlow != null) privateGlow.select(player, entity); }
+    void close() { if (privateGlow != null) privateGlow.close(); }
     boolean managed(Entity entity) { return entity.getPersistentDataContainer().has(factionKey, PersistentDataType.STRING); }
     boolean moving(Entity entity) { return moving.contains(entity.getUniqueId()); }
     UUID spawnDefender(ArenaMap map, UUID owner, UnitType type, Rarity rarity, Cell cell) {
@@ -53,7 +58,7 @@ final class EntityAdapter {
             if (living instanceof Zombie zombie) { zombie.setBaby(false); zombie.setShouldBurnInDay(false); }
             if (living instanceof AbstractSkeleton skeleton) skeleton.setShouldBurnInDay(false);
             if (living instanceof Vex vex) vex.setLimitedLifetime(false);
-            if (type == EntityType.GHAST && living.getAttribute(Attribute.SCALE) != null) living.getAttribute(Attribute.SCALE).setBaseValue(0.45);
+            if (living.getAttribute(Attribute.SCALE) != null) living.getAttribute(Attribute.SCALE).setBaseValue(2.0);
             living.getPersistentDataContainer().set(factionKey, PersistentDataType.STRING, faction.name());
             living.getPersistentDataContainer().set(arenaKey, PersistentDataType.STRING, map.id());
             living.getPersistentDataContainer().set(ownerKey, PersistentDataType.STRING, owner.toString());
@@ -64,7 +69,34 @@ final class EntityAdapter {
         }
         return (LivingEntity) entity;
     }
-    void remove(UUID id) { Entity entity = Bukkit.getEntity(id); if (entity != null) entity.remove(); }
+    void remove(UUID id) {
+        defenderYaw.remove(id);
+        if (privateGlow != null) privateGlow.removed(id);
+        Entity entity = Bukkit.getEntity(id); if (entity != null) entity.remove();
+    }
+    void face(Defender defender, Point target) {
+        Point origin = defender.position();
+        if (origin.equals(target)) return;
+        float yaw = yawTo(origin, target);
+        defenderYaw.put(defender.entityId(), yaw);
+        Entity entity = Bukkit.getEntity(defender.entityId());
+        if (entity != null && entity.isValid()) rotateDefender(entity, yaw);
+    }
+    static float yawTo(Point origin, Point target) {
+        return Location.normalizeYaw((float) Math.toDegrees(Math.atan2(-(target.x()-origin.x()), target.z()-origin.z())));
+    }
+    private void rotateDefender(Entity entity, float yaw) {
+        if (entity.getYaw() != yaw || entity.getPitch() != 0) entity.setRotation(yaw, 0);
+        if (entity instanceof LivingEntity living && living.getBodyYaw() != yaw) living.setBodyYaw(yaw);
+    }
+    boolean moveDefender(UUID id, Location destination) {
+        Entity entity = Bukkit.getEntity(id);
+        if (entity == null || !entity.isValid()) return false;
+        float yaw = defenderYaw.getOrDefault(id, 0f);
+        rotateDefender(entity, yaw);
+        destination = destination.clone(); destination.setYaw(yaw); destination.setPitch(0);
+        return move(id, destination);
+    }
     boolean move(UUID id, Location destination) {
         Entity entity = Bukkit.getEntity(id);
         if (entity == null || !entity.isValid()) return false;
@@ -80,6 +112,7 @@ final class EntityAdapter {
     boolean advance(UUID id, Location destination) {
         Entity entity = Bukkit.getEntity(id);
         if (entity == null || !entity.isValid()) return false;
+        if (entity instanceof LivingEntity living && living.getBodyYaw() != destination.getYaw()) living.setBodyYaw(destination.getYaw());
         var bridge = PRESENTATION_MOTION.get(entity.getClass());
         if (bridge.isPresent()) {
             try { if ((boolean) bridge.orElseThrow().invoke(entity, destination)) return true; }
@@ -106,7 +139,9 @@ final class EntityAdapter {
                     batchPositions[i*5] = map.originX()+point.x()+.5;
                     batchPositions[i*5+1] = map.floorY()+1;
                     batchPositions[i*5+2] = map.originZ()+point.z()+.5;
-                    batchPositions[i*5+3] = 0; batchPositions[i*5+4] = 0;
+                    float yaw = routeYaw(map.grid().route(), enemy.progress());
+                    batchPositions[i*5+3] = yaw; batchPositions[i*5+4] = 0;
+                    if (entity instanceof LivingEntity living && living.getBodyYaw() != yaw) living.setBodyYaw(yaw);
                     i++;
                 }
                 if ((boolean) batchBridge.invoke(Bukkit.getServer(), batchEntities, batchPositions, i)) return true;
@@ -115,9 +150,17 @@ final class EntityAdapter {
             } finally { java.util.Arrays.fill(batchEntities, null); }
         }
         boolean intact = true;
-        for (dev.moma.core.Enemy enemy : arena.activeEnemies())
-            intact &= advance(enemy.entityId(), map.location(enemy.position(map.grid().route())));
+        for (dev.moma.core.Enemy enemy : arena.activeEnemies()) {
+            Location destination = map.location(enemy.position(map.grid().route()));
+            destination.setYaw(routeYaw(map.grid().route(), enemy.progress()));
+            intact &= advance(enemy.entityId(), destination);
+        }
         return intact;
+    }
+    static float routeYaw(Route route, double progress) {
+        double distance = ((progress % route.length()) + route.length()) % route.length();
+        int side = (int) (distance / (route.max()-route.min()));
+        return switch (side) { case 0 -> -90; case 1 -> 0; case 2 -> 90; default -> -180; };
     }
     static NamedTextColor rarityColor(Rarity rarity) {
         return switch (rarity) {

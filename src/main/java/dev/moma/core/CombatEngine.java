@@ -75,7 +75,7 @@ public final class CombatEngine {
         if (role == AttackRole.MELEE_SINGLE || role == AttackRole.RANGED_SINGLE) return;
         int level = defender.rarity().abilityLevel();
         int limit = profile.targets() + level;
-        double radius = profile.areaRadius() + (role == AttackRole.LARGE_AREA ? 0.5 * level : 0);
+        double radius = AttackGeometry.areaRadius(defender, profile);
         for (Enemy enemy : enemies) {
             if (enemy == primary || !eligible(defender, enemy)) continue;
             Point position = enemy.position(route);
@@ -83,15 +83,9 @@ public final class CombatEngine {
                 if (result.size() >= limit) break;
                 if (origin.distanceSquared(position) <= rangeSquared) result.add(enemy);
             } else if (role == AttackRole.MELEE_CLEAVE) {
-                if (origin.distanceSquared(position) <= rangeSquared && inCone(origin, primary.position(route), position)) result.add(enemy);
+                if (AttackGeometry.inCleave(origin, primary.position(route), position, profile.range())) result.add(enemy);
             } else if (primary.position(route).distanceSquared(position) <= radius * radius) result.add(enemy);
         }
     }
     private boolean eligible(Defender defender, Enemy enemy) { return enemy.alive() && enemy.arenaId().equals(defender.arenaId()); }
-    private boolean inCone(Point origin, Point facing, Point target) {
-        double ax = facing.x() - origin.x(), az = facing.z() - origin.z();
-        double bx = target.x() - origin.x(), bz = target.z() - origin.z();
-        double lengths = Math.sqrt((ax * ax + az * az) * (bx * bx + bz * bz));
-        return lengths == 0 || (ax * bx + az * bz) / lengths >= 0.5;
-    }
 }

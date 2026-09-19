@@ -16,6 +16,8 @@ public final class MomaPlugin extends JavaPlugin {
         maps.load();
         Lobby lobby = Lobby.load(this);
         games = new GameService(this, maps, settings, lobby);
+        games.entities.enablePrivateGlow(this);
+        getServer().getPluginManager().registerEvents(new UnsignedChat(this), this);
         var shop = new ShopMenu(this, games);
         var lobbyMenu = new LobbyMenu(this, games);
         getServer().getPluginManager().registerEvents(lobbyMenu, this);

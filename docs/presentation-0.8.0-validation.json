@@ -1,0 +1,54 @@
+{
+  "blockStates": 480,
+  "clients": 3,
+  "sessionIsolation": true,
+  "defeatReturn": true,
+  "slotReuse": true,
+  "victoryReturn": true,
+  "dynamicArena": true,
+  "spectatorReturn": true,
+  "bulkSale": true,
+  "facedMobTypes": 24,
+  "actualAttackDirections": 6,
+  "selectedEntityId": 6,
+  "secondSelectedEntityId": 38,
+  "packetChecks": {
+    "ownerOnlyGlow": true,
+    "glowPreservesInvisibleFlag": true,
+    "glowRestoredOnRetracking": true,
+    "glowClearedOnSelectionChangeAndRemoval": true,
+    "systemChatProbesPerClient": 3,
+    "signedChatPackets": 0,
+    "soundsOwner": 6,
+    "soundsSpectator": 6,
+    "soundsOtherSession": 0,
+    "ownerFlags": [
+      [
+        64,
+        64,
+        96,
+        64,
+        0
+      ],
+      [
+        64,
+        64,
+        0
+      ]
+    ],
+    "spectatorFlags": [
+      [
+        32,
+        0
+      ],
+      []
+    ]
+  },
+  "pluginSha256": "be3b78f135c1d16217f34b23921c6c194a6e4f560b520bc9d5cd75f7bfe111d3",
+  "javaTests": {
+    "run": 146,
+    "passed": 146,
+    "nativeCombatEnabled": true
+  },
+  "scope": "Paper 26.3 three localhost protocol clients; entity state and real packets verified, no rendered client visual/audio inspection."
+}

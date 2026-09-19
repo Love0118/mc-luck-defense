@@ -48,10 +48,11 @@ async def frame_length(reader):
 
 async def client(index, args, states):
     name = f"MudBench{index:02}"
-    stats = states[name] = dict(ready=False, bytes=0, packets=0, errors=[], playPackets={})
+    stats = states[name] = dict(ready=False, bytes=0, packets=0, errors=[], playPackets={}, glowFlags={}, unsignedChatReceived=0)
     reader, writer = await asyncio.open_connection("127.0.0.1", args.port)
     compression = -1
     phase = "login"
+    sent_chat = False
 
     def send(packet_id, payload=b""):
         packet = varint(packet_id) + payload
@@ -107,6 +108,21 @@ async def client(index, args, states):
                     # 26.3 acknowledgement includes position and rotation (not just the id).
                     send(0, varint(teleport_id) + payload[offset:offset+24] + payload[offset+48:offset+56])
                     send(44)
+                    if args.chat_probe and not sent_chat:
+                        sent_chat = True
+                        async def chat_probe():
+                            await asyncio.sleep(1)
+                            send(9, string("mud_unsigned_chat_probe") + struct.pack(">qq", int(time.time()*1000), 0) + bytes([0,0,0,0,0,0]))
+                            await writer.drain()
+                        asyncio.create_task(chat_probe())
+                elif pid == 101 and args.chat_probe:
+                    entity, offset = decode(payload)
+                    if payload[offset] == 0:
+                        serializer, value_offset = decode(payload, offset+1)
+                        if serializer == 0:
+                            stats["glowFlags"].setdefault(str(entity), []).append(payload[value_offset])
+                elif pid == 124 and b"mud_unsigned_chat_probe" in payload:
+                    stats["unsignedChatReceived"] += 1
                 elif pid == 62:
                     send(45, payload)
                 elif pid == 11:
@@ -148,4 +164,5 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=25585)
     parser.add_argument("--count", type=int, default=20)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--chat-probe", action="store_true")
     asyncio.run(main(parser.parse_args()))

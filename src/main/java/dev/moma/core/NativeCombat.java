@@ -58,7 +58,7 @@ final class NativeCombat {
             for (int e = 0; e < n; e++) if (ordered.get(e).entityId().equals(d.lastTarget())) { previous = e; break; }
             int o = i*10;
             put(defenders,o,at.x()); put(defenders,o+1,at.z()); put(defenders,o+2,p.range());
-            put(defenders,o+3,p.areaRadius() + (d.type().role()==AttackRole.LARGE_AREA ? .5*level : 0));
+            put(defenders,o+3,AttackGeometry.areaRadius(d, p));
             put(defenders,o+4,p.damage()); put(defenders,o+5,d.type().role().ordinal()); put(defenders,o+6,level);
             put(defenders,o+7,p.targets()+level); put(defenders,o+8,d.consecutiveHits()); put(defenders,o+9,previous);
         }

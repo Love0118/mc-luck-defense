@@ -75,4 +75,49 @@ class EntityAdapterTest {
             assertTrue(adapter.advance(id, destination)); verify(entity).teleport(destination);
         }
     }
+    @Test void defendersFacePrimaryWithHeadAndBodyAndKeepYawWhenAnchoredOrRelocated() {
+        EntityAdapter adapter=adapter();LivingEntity entity=mock(LivingEntity.class);World world=mock(World.class);
+        UUID id=UUID.randomUUID();Defender defender=new Defender(id,UUID.randomUUID(),"a",UnitType.IRON_GOLEM,Rarity.COMMON,new Cell(0,0));
+        when(entity.getUniqueId()).thenReturn(id);when(entity.isValid()).thenReturn(true);when(entity.getWorld()).thenReturn(world);
+        when(entity.getX()).thenReturn(.5);when(entity.getY()).thenReturn(65d);when(entity.getZ()).thenReturn(.5);
+        float[] rotation={0};
+        when(entity.getYaw()).thenAnswer(call->rotation[0]);when(entity.getBodyYaw()).thenAnswer(call->rotation[0]);
+        doAnswer(call->{rotation[0]=call.getArgument(0);return null;}).when(entity).setRotation(anyFloat(),anyFloat());
+        when(entity.teleport(any(Location.class))).thenReturn(true);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(()->Bukkit.getEntity(id)).thenReturn(entity);
+            adapter.face(defender,new Point(3,0));
+            verify(entity).setRotation(-90f,0f);assertEquals(-90f,rotation[0]);
+            assertTrue(adapter.moveDefender(id,new Location(world,.5,65,.5)));
+            verify(entity,never()).teleport(any(Location.class));
+            Location moved=new Location(world,3.5,65,.5);
+            assertTrue(adapter.moveDefender(id,moved));
+            var location=org.mockito.ArgumentCaptor.forClass(Location.class);verify(entity).teleport(location.capture());
+            assertEquals(-90f,location.getValue().getYaw());assertEquals(0,moved.getYaw());
+            when(entity.getBodyYaw()).thenReturn(0f);
+            adapter.moveDefender(id,new Location(world,.5,65,.5));verify(entity).setBodyYaw(-90f);
+            adapter.face(defender,new Point(0,-3));assertEquals(-180f,rotation[0]);
+            adapter.face(defender,defender.position());assertEquals(-180f,rotation[0]);
+            adapter.remove(id);verify(entity).remove();
+            adapter.moveDefender(id,new Location(world,.5,65,.5));assertEquals(0f,rotation[0]);
+        }
+    }
+    @Test void facingUsesMinecraftYawCoordinates() {
+        Point origin=new Point(0,0);
+        assertEquals(0f,EntityAdapter.yawTo(origin,new Point(0,1)),0f);
+        assertEquals(-90f,EntityAdapter.yawTo(origin,new Point(1,0)));
+        assertEquals(90f,EntityAdapter.yawTo(origin,new Point(-1,0)));
+        assertEquals(-180f,EntityAdapter.yawTo(origin,new Point(0,-1)));
+    }
+    @Test void routeFacingTurnsAtCornersAndWrapsEveryLap() {
+        Route route=new Route(-3,18);double side=21;
+        for(int lap=0;lap<4;lap++) {
+            double base=lap*route.length();
+            assertEquals(-90f,EntityAdapter.routeYaw(route,base));
+            assertEquals(-90f,EntityAdapter.routeYaw(route,base+side-.001));
+            assertEquals(0f,EntityAdapter.routeYaw(route,base+side));
+            assertEquals(90f,EntityAdapter.routeYaw(route,base+side*2));
+            assertEquals(-180f,EntityAdapter.routeYaw(route,base+side*3));
+        }
+    }
 }
