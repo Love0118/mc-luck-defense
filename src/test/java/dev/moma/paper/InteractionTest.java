@@ -30,6 +30,7 @@ class InteractionTest {
         player = mock(Player.class); when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         doReturn(true).when(games).usingMoveTool(player);
         doReturn(false).when(games).usingSellTool(player);
+        doReturn(false).when(games).usingLeaveTool(player);
     }
     @Test void swapOpensShopOnlyForParticipantsAndCancelsItemSwap() {
         var event = mock(PlayerSwapHandItemsEvent.class); when(event.getPlayer()).thenReturn(player);
@@ -170,6 +171,24 @@ class InteractionTest {
                 actualShop.click(event);verify(games,times(4)).speed(eq(player),anyInt());
             }
         }
+    }
+    @Test void viewerBedUsesMainHandOnceAndBlocksOtherInteractions() {
+        doReturn(true).when(games).watching(player);
+        doReturn(true).when(games).usingLeaveTool(player);
+        doNothing().when(games).leave(player);
+        when(player.getLocation()).thenReturn(new Location(mock(World.class),0,70,0));
+        var event=mock(PlayerInteractEvent.class);when(event.getPlayer()).thenReturn(player);
+        when(event.getAction()).thenReturn(Action.RIGHT_CLICK_AIR);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(10);
+            when(event.getHand()).thenReturn(EquipmentSlot.OFF_HAND); listener.interact(event);verify(games,never()).leave(player);
+            when(event.getHand()).thenReturn(EquipmentSlot.HAND);listener.interact(event);listener.interact(event);
+            verify(games,times(1)).leave(player);verify(event,times(3)).setCancelled(true);
+        }
+        var damage=mock(EntityDamageEvent.class);when(damage.getEntity()).thenReturn(player);
+        when(player.getPersistentDataContainer()).thenReturn(mock(org.bukkit.persistence.PersistentDataContainer.class));
+        listener.damage(damage);verify(damage).setCancelled(true);
+        var drop=mock(PlayerDropItemEvent.class);when(drop.getPlayer()).thenReturn(player);listener.drop(drop);verify(drop).setCancelled(true);
     }
     @Test void saleToolIgnoresOffhandAndDeduplicatesAirBlockAndEntityEvents() {
         doReturn(true).when(games).playing(player);doReturn(true).when(games).usingSellTool(player);

@@ -9,9 +9,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SessionSpeedTest {
+    private org.mockito.MockedConstruction<SpectatorAppearance> appearance;
     private org.mockito.MockedConstruction<SessionTools> tools;
-    @BeforeEach void mockTools() { tools=mockConstruction(SessionTools.class); }
-    @AfterEach void closeTools() { tools.close(); }
+    @BeforeEach void mockTools() { tools=mockConstruction(SessionTools.class); appearance=mockConstruction(SpectatorAppearance.class); }
+    @AfterEach void closeTools() { tools.close(); appearance.close(); }
     private Player player(World world) {
         Player player=mock(Player.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());

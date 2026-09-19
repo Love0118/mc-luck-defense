@@ -24,7 +24,7 @@ class SessionToolsTest {
         Player player=mock(Player.class);var inventory=mock(PlayerInventory.class);
         var playerData=data();when(player.getInventory()).thenReturn(inventory);when(player.getPersistentDataContainer()).thenReturn(playerData);
         ItemStack original0=mock(ItemStack.class),original1=mock(ItemStack.class),other=mock(ItemStack.class);
-        ItemStack[] slots=new ItemStack[41];slots[0]=original0;slots[1]=original1;slots[5]=other;int[] held={5};
+        ItemStack[] slots=new ItemStack[41];slots[0]=original0;slots[1]=original1;slots[5]=other;slots[8]=other;int[] held={5};
         when(inventory.getSize()).thenReturn(slots.length);
         when(inventory.getItem(anyInt())).thenAnswer(call->slots[call.getArgument(0,Integer.class)]);
         doAnswer(call->{slots[call.getArgument(0,Integer.class)]=call.getArgument(1);return null;}).when(inventory).setItem(anyInt(),nullable(ItemStack.class));
@@ -37,15 +37,16 @@ class SessionToolsTest {
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
-                assertArrayEquals(new ItemStack[]{original0,original1},call.getArgument(0));return saved;
+                assertArrayEquals(new ItemStack[]{original0,original1,other},call.getArgument(0));return saved;
             });
-            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"move"));assertFalse(tools.holding(player,"sell"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"sell"));
+            inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"leave"));
             slots[10]=slots[1]; // A stale copied session item must not survive cleanup.
             new SessionTools(plugin).restore(player);
-            assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertNull(slots[10]);assertEquals(5,held[0]);
+            assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
         }
     }

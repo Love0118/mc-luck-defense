@@ -10,6 +10,6 @@ final class SpectatorListener implements Listener {
         if (games.watching(event.getPlayer()) && !games.spectatorDestination(event.getPlayer(), event.getTo())) event.setCancelled(true);
     }
     @EventHandler public void mode(PlayerGameModeChangeEvent event) {
-        if (games.watching(event.getPlayer()) && event.getNewGameMode() != org.bukkit.GameMode.SPECTATOR) event.setCancelled(true);
+        if (games.watching(event.getPlayer()) && event.getNewGameMode() != org.bukkit.GameMode.ADVENTURE) event.setCancelled(true);
     }
 }

@@ -1,0 +1,11 @@
+{
+  "restoration": true,
+  "sha256": "bbeec1ad94820d6edaae55bc1c361848e3eee5c2e832def79327987f828f470e",
+  "visualClientInspection": false,
+  "leaveBed": true,
+  "tests": 172,
+  "clients": 3,
+  "pluginVersion": "0.9.2",
+  "adventureObserver": true,
+  "invisibleTeammateRule": true
+}

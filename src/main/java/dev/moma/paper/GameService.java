@@ -14,6 +14,7 @@ final class GameService {
     private final Lobby lobby;
     final EntityAdapter entities;
     final SessionTools tools;
+    final SpectatorAppearance appearance = new SpectatorAppearance();
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private record Watch(GameSession target, Location returnLocation, GameMode returnMode, boolean returnAllowFlight, boolean returnFlying) {}
     private final Map<UUID, Watch> spectators = new LinkedHashMap<>();
@@ -30,6 +31,8 @@ final class GameService {
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
     boolean watching(Player player) { return spectators.containsKey(player.getUniqueId()); }
+    boolean active(Player player) { return playing(player) || watching(player); }
+    boolean usingLeaveTool(Player player) { return active(player) && tools.holding(player,"leave"); }
     boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
     void speed(Player player, int value) {
@@ -56,11 +59,13 @@ final class GameService {
                 previous == null ? player.getAllowFlight() : previous.returnAllowFlight,
                 previous == null ? player.isFlying() : previous.returnFlying);
         if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
-        player.closeInventory(); player.setGameMode(GameMode.SPECTATOR);
+        player.closeInventory(); player.setGameMode(GameMode.ADVENTURE);
         spectators.put(player.getUniqueId(), watch);
         if (!player.teleport(viewpoint(target))) { stopWatching(player, true); throw new IllegalArgumentException("관전 위치로 이동하지 못했습니다."); }
         player.setAllowFlight(true); player.setFlying(true);
-        player.sendMessage(Ui.text("&b관전 시작 &7· /mud: 관전 메뉴 /mud lobby: 로비 복귀"));
+        if (previous == null) tools.giveViewer(player);
+        appearance.enter(player, true);
+        player.sendMessage(Ui.text("&b관전 시작 &7· F: 관전 메뉴 / 9번 침대 우클릭: 로비 복귀"));
     }
     void spectate(Player player, String playerName) {
         SessionInfo target = activeSessions().stream().filter(s -> s.playerName.equalsIgnoreCase(playerName) || s.arena.equals(playerName)).findFirst()
@@ -76,6 +81,7 @@ final class GameService {
     private void stopWatching(Player player, boolean returnToLobby) {
         Watch watch = spectators.remove(player.getUniqueId());
         if (watch == null) return;
+        tools.restore(player); appearance.leave(player);
         if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
         if (returnToLobby && lobby != null) lobby.send(player);
         else {
@@ -124,6 +130,7 @@ final class GameService {
         player.setGameMode(GameMode.ADVENTURE);
         player.setAllowFlight(true); player.setFlying(true);
         tools.give(player);
+        appearance.enter(player, false);
         player.sendMessage(Component.text("100라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
     }
     void leave(Player player) {
@@ -133,6 +140,7 @@ final class GameService {
         if (session == null) { if (lobby != null) lobby.send(player); return; }
         player.closeInventory();
         tools.restore(player);
+        appearance.leave(player);
         release(session);
         if (lobby != null) lobby.send(player);
         else {
@@ -144,6 +152,7 @@ final class GameService {
     void disconnect(Player player) {
         entities.selectGlow(player, null);
         tools.restore(player);
+        appearance.leave(player);
         stopWatching(player, false);
         GameSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
@@ -175,7 +184,7 @@ final class GameService {
         for (UUID id : List.copyOf(spectators.keySet())) {
             Player player = Bukkit.getPlayer(id); if (player != null) stopWatching(player, true); else spectators.remove(id);
         }
-        entities.close();
+        appearance.close(); entities.close();
     }
     void summon(Player player) {
         GameSession session = session(player);

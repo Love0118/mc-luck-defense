@@ -11,9 +11,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class LobbySessionTest {
+    private org.mockito.MockedConstruction<SpectatorAppearance> appearance;
     private org.mockito.MockedConstruction<SessionTools> tools;
-    @BeforeEach void mockTools() { tools=mockConstruction(SessionTools.class); }
-    @AfterEach void closeTools() { tools.close(); }
+    @BeforeEach void mockTools() { tools=mockConstruction(SessionTools.class); appearance=mockConstruction(SpectatorAppearance.class); }
+    @AfterEach void closeTools() { tools.close(); appearance.close(); }
     private Player player(World world) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
@@ -155,7 +156,7 @@ class LobbySessionTest {
             bukkit.when(()->Bukkit.getPlayer(viewer.getUniqueId())).thenReturn(viewer);
             games.spectate(viewer,session.sessionId);
             assertTrue(games.watching(viewer)); assertFalse(games.playing(viewer));assertTrue(games.available("b"));
-            verify(viewer).setGameMode(GameMode.SPECTATOR);
+            verify(viewer).setGameMode(GameMode.ADVENTURE);
             assertTrue(viewer.getAllowFlight()); assertTrue(viewer.isFlying());
             assertFalse(games.spectatorDestination(viewer,new Location(world,128,72,0)));
             assertTrue(games.spectatorDestination(viewer,new Location(world,4,72,4)));

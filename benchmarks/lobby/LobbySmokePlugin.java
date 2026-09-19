@@ -72,7 +72,10 @@ public final class LobbySmokePlugin extends JavaPlugin {
             call(games,"spectate",viewer,first.getName());
             require((boolean)call(games,"watching",viewer),"Spectator registered");
             require(call(games,"session",viewer)==null,"Spectator has no combat session");
-            require(viewer.getGameMode()==GameMode.SPECTATOR,"Spectator mode");
+            require(viewer.getGameMode()==GameMode.ADVENTURE,"Adventure observer");
+            require(viewer.isInvisible(),"Invisible teammate observer");
+            require(viewer.getScoreboard()==first.getScoreboard() && viewer.getScoreboard().getEntryTeam(viewer.getName()).canSeeFriendlyInvisibles(),"Translucent teammate rule");
+            require(viewer.getInventory().getItem(8).getType()==Material.RED_BED && first.getInventory().getItem(8).getType()==Material.RED_BED,"Slot nine leave beds");
             require(viewer.getAllowFlight() && viewer.isFlying(),"Spectator flight enabled");
             Object adapter=field(games,"entities"),map=field(firstSession,"map");
             verifyAllBodies(adapter,map);
@@ -175,6 +178,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
         if (stage==2) {
             require(call(games,"session",first)==null,"Defeat must release session");
             require(first.getWorld().equals(world),"Defeat must return to lobby");
+            require(!viewer.isInvisible(),"Observer visibility restored");
             require(viewer.getWorld().equals(world) && !(boolean)call(games,"watching",viewer),"Spectator auto return");
             require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight() && !viewer.isFlying(),"Defeat removes player and spectator flight");
             require(first.getInventory().getItem(0).equals(new org.bukkit.inventory.ItemStack(Material.DIAMOND,3))
@@ -187,7 +191,11 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require((int)call(restarted,"speed")==1 && first.getAllowFlight(),"Rejoin resets speed and enables flight");
             require(((Set<?>)field(restarted,"autoSell")).isEmpty() && !(boolean)field(restarted,"autoPlacement") && !(boolean)field(restarted,"bulkBuying"),"Fresh automation controls");
             require(arena(restarted).coins()==CampaignRules.standard().startingCoins(),"Fresh funds");
-            arena(restarted).finish(Arena.Outcome.TIME_LIMIT); arena(secondSession).finish(Arena.Outcome.VICTORY);
+            first.getInventory().setHeldItemSlot(8); sellClick();
+            require(call(games,"session",first)==null,"Participant bed exits");
+            call(games,"spectate",first,second.getName()); first.getInventory().setHeldItemSlot(8);
+            call(games,"leave",first); require(!first.isInvisible(),"Observer exit cleanup");
+            arena(secondSession).finish(Arena.Outcome.VICTORY);
             stage=3;return;
         }
         if (stage==3) {
@@ -228,7 +236,14 @@ public final class LobbySmokePlugin extends JavaPlugin {
         Bukkit.getPluginManager().callEvent(event);
     }
     private void verifyAllBodies(Object adapter,Object map) throws Exception {
+        Class<?> effectsClass = Class.forName("dev.moma.paper.AttackEffects");
+        Method attackSound = effectsClass.getDeclaredMethod("attackSound", UnitType.class);
+        attackSound.setAccessible(true);
         for(UnitType type:UnitType.values()) {
+            Object sound = attackSound.invoke(null, type);
+            String soundKey = (String)call(sound, "key");
+            require(Registry.SOUNDS.get(NamespacedKey.fromString(soundKey)) != null, "Registered attack sound " + type + " " + soundKey);
+            require(type == UnitType.WOLF || !soundKey.contains("wolf"), "Wolf sound only for wolf");
             UUID id=(UUID)call(adapter,"spawnDefender",map,first.getUniqueId(),type,Rarity.COMMON,new Cell(0,0));
             Defender defender=new Defender(id,first.getUniqueId(),arena(firstSession).id(),type,Rarity.COMMON,new Cell(0,0));
             var entity=(org.bukkit.entity.LivingEntity)Bukkit.getEntity(id);

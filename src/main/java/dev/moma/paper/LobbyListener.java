@@ -20,7 +20,7 @@ final class LobbyListener implements Listener {
         lobby.prepare(event.getPlayer());
     }
     @EventHandler public void swap(PlayerSwapHandItemsEvent event) {
-        if (!games.playing(event.getPlayer()) && lobby.contains(event.getPlayer().getLocation())) { event.setCancelled(true); menu.open(event.getPlayer()); }
+        if (games.watching(event.getPlayer()) || !games.playing(event.getPlayer()) && lobby.contains(event.getPlayer().getLocation())) { event.setCancelled(true); menu.open(event.getPlayer()); }
     }
     @EventHandler public void move(PlayerMoveEvent event) {
         if (!games.playing(event.getPlayer()) && lobby.contains(event.getTo()) && lobby.outside(event.getTo())) {
