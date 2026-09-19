@@ -1,4 +1,5 @@
-name: MomaDefense
+name: MCLuckDefense
+prefix: MC Luck Defense
 version: '${project.version}'
 main: dev.moma.paper.MomaPlugin
 api-version: '26.3'

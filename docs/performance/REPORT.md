@@ -60,8 +60,8 @@ retained slice·in-place prefix는 26.3 build19 바이트코드에 없는 것을
 
 ~~~powershell
 mvn -B -ntp verify
-.\scripts\build_server_benchmark.ps1 -PluginJar target/moma-defense-0.5.0.jar -PaperLibraries .runtime/server-discovery/libraries
-python scripts/run_server_benchmark.py --server <26.3-mud.jar> --plugin target/moma-defense-0.5.0.jar --eula <기존에동의한-eula.txt> --output .runtime/new-run --template .runtime/bench-pilot --warmup 3200 --ticks 61520 --mud-tick --framing --campaign
+.\scripts\build_server_benchmark.ps1 -PluginJar target/mc-luck-defense-0.5.1.jar -PaperLibraries .runtime/server-discovery/libraries
+python scripts/run_server_benchmark.py --server <26.3-mud.jar> --plugin target/mc-luck-defense-0.5.1.jar --eula <기존에동의한-eula.txt> --output .runtime/new-run --template .runtime/bench-pilot --warmup 3200 --ticks 61520 --mud-tick --framing --campaign
 ~~~
 
 템플릿을 생략하면 전장을 새로 생성합니다. 테스트 서버는 127.0.0.1:25585에서만 열고 기존 EULA 동의 파일을 요구합니다. benchmarks/server는 별도 테스트 플러그인이며 제품 JAR에 포함되지 않습니다. .runtime의 각 실행 폴더에 전체 로그·JFR이 남고, docs/performance에는 틱 원본·수신 카운트·JFR 해시와 실행별 서버·플러그인·벤치마크 JAR 해시를 보존합니다.

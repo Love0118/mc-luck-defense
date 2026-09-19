@@ -22,8 +22,8 @@ jobs:
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
-          name: moma-defense
-          path: target/moma-defense-*.jar
+          name: mc-luck-defense
+          path: target/mc-luck-defense-*.jar
       - uses: actions/upload-artifact@v4
         with:
           name: mud-combat-linux

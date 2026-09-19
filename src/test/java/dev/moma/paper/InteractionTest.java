@@ -22,7 +22,7 @@ class InteractionTest {
     private GameListener listener;
     private Player player;
     @BeforeEach void setup() {
-        plugin = mock(MomaPlugin.class); when(plugin.getName()).thenReturn("MomaDefense"); when(plugin.namespace()).thenReturn("momadefense");
+        plugin = mock(MomaPlugin.class); when(plugin.getName()).thenReturn("MCLuckDefense"); when(plugin.namespace()).thenReturn("momadefense");
         maps = mock(ArenaMaps.class);
         games = spy(new GameService(plugin, maps, CampaignRules.standard()));
         shop = mock(ShopMenu.class);

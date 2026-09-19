@@ -18,6 +18,8 @@ class PaperContractTest {
     }
     @Test void packagedMetadataAndDevelopmentDefaultsAreValid() throws Exception {
         var plugin = load("plugin.yml");
+        assertEquals("MCLuckDefense", plugin.getString("name"));
+        assertEquals("MC Luck Defense", plugin.getString("prefix"));
         assertEquals(MomaPlugin.class.getName(), plugin.getString("main"));
         assertEquals("26.3", plugin.getString("api-version"));
         assertTrue(plugin.contains("commands.mud"));

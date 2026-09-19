@@ -10,7 +10,7 @@ import java.nio.file.*;
 import java.util.*;
 import jdk.jfr.Recording;
 
-/** Isolated test plugin, never bundled in MomaDefense. Exercises the actual GameService. */
+/** Isolated test plugin, never bundled in MCLuckDefense. Exercises the actual GameService. */
 public final class BenchmarkPlugin extends JavaPlugin {
     private final int sessions = Integer.getInteger("mudbench.sessions", 20);
     private final int warmup = Integer.getInteger("mudbench.warmup", 6400);
@@ -39,7 +39,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
         if (tick < 0) {
             if (Bukkit.getOnlinePlayers().size() != sessions) return;
             if (games == null) {
-                var plugin = Bukkit.getPluginManager().getPlugin("MomaDefense");
+                var plugin = Bukkit.getPluginManager().getPlugin("MCLuckDefense");
                 games = field(plugin, "games"); maps = field(games, "maps"); adapter = field(games, "entities");
                 minecraftServer = Bukkit.getServer().getClass().getMethod("getServer").invoke(Bukkit.getServer());
                 getTickCount = minecraftServer.getClass().getMethod("getTickCount");

@@ -1,4 +1,4 @@
-# MomaDefense — 마크 운빨 디펜스
+# MC Luck Defense — 마크 운빨 디펜스
 
 Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니다. 기본 명령은 **/mud**, 포탑 조작은 **좌클릭**입니다. 클라이언트 모드는 필요하지 않습니다.
 
@@ -10,7 +10,9 @@ Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/moma-defense-0.5.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-0.5.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+
+0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 
 [Paper build 19 메타데이터](https://fill.papermc.io/v3/projects/paper/versions/26.3/builds/19) · 서버 파일 paper-26.3-19.jar · SHA-256 f623c073913db7f21c6338eef22a00b19a8d87c1ef3115c2060d2382b90f4650
 
@@ -175,7 +177,7 @@ mud-optimizations:
 
 전장은 moma_arenas 월드에 128블록 간격으로 생성되며 기존 블록을 덮어쓰지 않습니다. **이전 5×5 전장은 참가가 거절됩니다. /mud create 새이름으로 6×6 전장을 생성한 뒤 참가하세요.** 기존 지형·목록은 보존하며 자동 확장하지 않습니다. 이전 개발용 config.yml은 더 이상 읽지 않습니다. 정식 캠페인은 패키지에 포함된 campaign.properties를 사용합니다.
 
-전장 목록은 plugins/MomaDefense/arenas.yml에 저장됩니다. 진행 중 라운드·유닛·재화는 메모리에만 있으며 퇴장·접속 종료·서버 종료 시 정리됩니다. 정상 종료 시 이전 위치·게임 모드를 복구합니다. 재접속 이어하기와 크래시 복구는 지원하지 않습니다.
+전장 목록은 plugins/MCLuckDefense/arenas.yml에 저장됩니다. 진행 중 라운드·유닛·재화는 메모리에만 있으며 퇴장·접속 종료·서버 종료 시 정리됩니다. 정상 종료 시 이전 위치·게임 모드를 복구합니다. 재접속 이어하기와 크래시 복구는 지원하지 않습니다.
 
 ## 검증
 

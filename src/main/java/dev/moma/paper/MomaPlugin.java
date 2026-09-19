@@ -8,6 +8,8 @@ import java.util.Objects;
 
 public final class MomaPlugin extends JavaPlugin {
     private GameService games;
+    // Keep existing entity data keys valid across the plugin rename.
+    @Override public String namespace() { return "momadefense"; }
     @Override public void onEnable() {
         CampaignRules settings = CampaignRules.standard();
         var maps = new ArenaMaps(this);
@@ -21,7 +23,7 @@ public final class MomaPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("mud")).setExecutor(command);
         Objects.requireNonNull(getCommand("mud")).setTabCompleter(command);
         getServer().getScheduler().runTaskTimer(this, games::tick, 1, 1);
-        getLogger().info("MomaDefense enabled. Paper 26.3.build.19-alpha; /mud; 100-round campaign.");
+        getLogger().info("MC Luck Defense enabled. Paper 26.3.build.19-alpha; /mud; 100-round campaign.");
     }
     @Override public void onDisable() {
         if (games != null) games.shutdown();

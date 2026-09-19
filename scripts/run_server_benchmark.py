@@ -18,15 +18,17 @@ def main(a):
     run.mkdir(parents=True)
     (run / "plugins").mkdir()
     shutil.copy2(a.eula, run / "eula.txt")
-    shutil.copy2(a.plugin, run / "plugins/MomaDefense.jar")
+    shutil.copy2(a.plugin, run / "plugins/MCLuckDefense.jar")
     shutil.copy2(ROOT / ".runtime/mud-benchmark.jar", run / "plugins/MudBenchmark.jar")
     if a.template:
         for name in ["world", "moma_arenas", "config"]:
             if (a.template / name).exists():
                 shutil.copytree(a.template / name, run / name)
-        source = a.template / "plugins/MomaDefense"
+        source = a.template / "plugins/MCLuckDefense"
+        if not source.exists():
+            source = a.template / "plugins/MomaDefense"  # Existing pre-rename templates.
         if source.exists():
-            shutil.copytree(source, run / "plugins/MomaDefense")
+            shutil.copytree(source, run / "plugins/MCLuckDefense")
     if a.mud_tick or a.framing:
         config = run / "config/paper-global.yml"
         config.parent.mkdir(exist_ok=True)

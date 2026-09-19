@@ -2,4 +2,4 @@ name: MudBenchmark
 version: '1.0'
 main: dev.moma.benchmark.BenchmarkPlugin
 api-version: '26.3'
-depend: [MomaDefense]
+depend: [MCLuckDefense]
