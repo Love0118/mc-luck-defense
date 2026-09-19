@@ -9,7 +9,8 @@ import org.bukkit.inventory.*;
 import java.util.*;
 
 final class ShopMenu implements Listener {
-    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, BULK_FIRST = 20, SPEED = 8, ODDS = 0;
+    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, AUTO_SELL_FIRST = 20,
+            SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6;
     private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
     private final GameService games;
@@ -42,12 +43,22 @@ final class ShopMenu implements Listener {
         holder.inventory.setItem(ODDS, oddsItem());
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &610골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
+        boolean buying = holder.session.bulkBuying, layout = holder.session.autoPlacement;
+        holder.inventory.setItem(BULK_BUY, item(buying ? Material.BARRIER : Material.DRAGON_EGG,
+                buying ? "&e일괄구매 중 &7· &f클릭하여 중지" : "&a일괄구매 &7· &610골드/회",
+                buying ? "&e" + holder.session.bulkPurchases + "회 소환" : "골드와 빈 칸이 허용하는 만큼 소환",
+                "자동판매로 얻은 골드도 사용합니다."));
+        holder.inventory.setItem(AUTO_LAYOUT, item(layout ? Material.LIME_DYE : Material.GRAY_DYE,
+                "&b자동 배치 &7· " + (layout ? "&aON" : "&cOFF"),
+                "사거리와 공격력에 맞춰 배치", "소환·판매 시 다시 배치", "클릭하여 " + (layout ? "끄기" : "켜기")));
         for (int i = 0; i < SELLABLE.length; i++) {
             Rarity rarity = SELLABLE[i];
-            long count = arena.activeDefenders().stream().filter(d -> d.rarity() == rarity).count();
+            boolean enabled = holder.session.autoSell.contains(rarity);
             String color = "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(rarity).value());
-            holder.inventory.setItem(BULK_FIRST+i, item(Material.EMERALD, color + rarity.label() + " &f일괄판매",
-                    "&e" + count + "마리 &7· &6+" + count*rarity.salePrice().getAsInt() + "골드", "이 등급만 전부 판매합니다.", "전설 이상은 판매할 수 없습니다."));
+            holder.inventory.setItem(AUTO_SELL_FIRST+i, item(enabled ? Material.LIME_DYE : Material.GRAY_DYE,
+                    color + rarity.label() + " &f자동판매 &7· " + (enabled ? "&aON" : "&cOFF"),
+                    "마리당 &6+" + rarity.salePrice().getAsInt() + "골드", "켜면 보유·소환한 이 등급을 자동판매",
+                    "클릭하여 " + (enabled ? "끄기" : "켜기")));
         }
         Optional<Defender> selected = arena.selected();
         if (selected.isPresent()) {
@@ -82,6 +93,13 @@ final class ShopMenu implements Listener {
     private ItemStack item(Material material, String title, String... lore) {
         return Ui.item(material, "&6" + title, Arrays.stream(lore).map(s -> "&7" + s).toArray(String[]::new));
     }
+    void refreshOpen() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getOpenInventory().getTopInventory().getHolder() instanceof Holder holder
+                    && !holder.consumed && games.session(player) == holder.session && !holder.arena.ended())
+                render(holder);
+        }
+    }
     @EventHandler public void click(InventoryClickEvent event) {
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
         event.setCancelled(true);
@@ -90,13 +108,16 @@ final class ShopMenu implements Listener {
         if (session == null || session.arena != holder.arena || session.arena.ended()) return;
         if (event.getClick() != ClickType.LEFT || holder.consumed || Bukkit.getCurrentTick() < nextClick.getOrDefault(holder.owner, 0)) return;
         int slot = event.getRawSlot();
-        if (slot != SUMMON && slot != SELL && slot != SPEED && (slot < BULK_FIRST || slot >= BULK_FIRST+SELLABLE.length)) return;
+        if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT
+                && (slot < AUTO_SELL_FIRST || slot >= AUTO_SELL_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
         if (slot == SUMMON) games.summon(player);
         else if (slot == SELL) games.sell(player);
         else if (slot == SPEED) games.speed(player, session.speed() == 8 ? 1 : session.speed() * 2);
-        else games.sellRarity(player, SELLABLE[slot-BULK_FIRST]);
+        else if (slot == BULK_BUY) games.toggleBulkBuy(player);
+        else if (slot == AUTO_LAYOUT) games.toggleAutoPlacement(player);
+        else games.toggleAutoSell(player, SELLABLE[slot-AUTO_SELL_FIRST]);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (games.session(player) == session && player.getOpenInventory().getTopInventory() == holder.inventory) {
                 render(holder); holder.consumed = false;

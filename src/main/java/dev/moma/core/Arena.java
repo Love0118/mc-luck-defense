@@ -91,6 +91,19 @@ public final class Arena {
         selected = null;
         return Result.OK;
     }
+    /** Apply a complete layout atomically, including swaps on a full board. */
+    public Result rearrange(UUID actor, Map<UUID, Cell> layout) {
+        Result access = access(actor);
+        if (access != Result.OK) return access;
+        if (!layout.keySet().equals(defenders.keySet())) return Result.NOT_OWNER;
+        Set<Cell> destinations = new HashSet<>();
+        for (Cell cell : layout.values()) {
+            if (!grid.contains(cell)) return Result.INVALID_CELL;
+            if (!destinations.add(cell)) return Result.OCCUPIED;
+        }
+        layout.forEach((id, cell) -> defenders.get(id).move(cell));
+        return Result.OK;
+    }
     public record BulkSale(Result result, List<UUID> entities, long income) {}
     /** Exactly this grade; validates the whole sale before mutating currency or units. */
     public BulkSale sellRarity(UUID actor, Rarity rarity) {

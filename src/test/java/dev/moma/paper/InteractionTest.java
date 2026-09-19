@@ -119,11 +119,11 @@ class InteractionTest {
             actualShop.drag(drag); verify(drag).setCancelled(true);
         }
     }
-    @Test void bulkSaleGuiRoutesExactGradeOnceAndRejectsBottomInventory() {
+    @Test void autoSaleGuiRoutesExactGradeOnceAndRejectsBottomInventory() {
         ShopMenu actualShop = new ShopMenu(plugin, games); World world = mock(World.class);
         when(player.getLocation()).thenReturn(new Location(world,0,70,0)); when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
         GameSession session = new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
-        doReturn(session).when(games).session(player); doNothing().when(games).sellRarity(any(),any());
+        doReturn(session).when(games).session(player); doNothing().when(games).toggleAutoSell(any(),any());
         Inventory inventory=mock(Inventory.class); InventoryView view=mock(InventoryView.class);
         when(view.getTopInventory()).thenReturn(inventory);when(player.getOpenInventory()).thenReturn(view);
         var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);
@@ -135,11 +135,11 @@ class InteractionTest {
             try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {actualShop.open(player);}
             var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
             when(event.getRawSlot()).thenReturn(21);when(event.getClick()).thenReturn(ClickType.SHIFT_LEFT);
-            actualShop.click(event);verify(games,never()).sellRarity(any(),any());
+            actualShop.click(event);verify(games,never()).toggleAutoSell(any(),any());
             when(event.getClick()).thenReturn(ClickType.LEFT);when(event.getRawSlot()).thenReturn(48);
-            actualShop.click(event);verify(games,never()).sellRarity(any(),any());
+            actualShop.click(event);verify(games,never()).toggleAutoSell(any(),any());
             when(event.getRawSlot()).thenReturn(21);actualShop.click(event);actualShop.click(event);
-            verify(games,times(1)).sellRarity(player,Rarity.RARE);verify(event,times(4)).setCancelled(true);
+            verify(games,times(1)).toggleAutoSell(player,Rarity.RARE);verify(event,times(4)).setCancelled(true);
         }
     }
     @Test void speedButtonCyclesOncePerClickAndRejectsMenusFromAnOldSession() {

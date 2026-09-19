@@ -20,6 +20,10 @@ final class GameSession {
     int announcedRound;
     long simulationTick;
     private int speed = 1;
+    final EnumSet<Rarity> autoSell = EnumSet.noneOf(Rarity.class);
+    final AutoPlacement placement;
+    boolean autoPlacement, layoutDirty, bulkBuying;
+    int bulkPurchases;
 
     int speed() { return speed; }
     void speed(int value) {
@@ -30,6 +34,7 @@ final class GameSession {
 
     GameSession(Player player, ArenaMap map, CampaignRules settings) {
         this.map = map;
+        placement = new AutoPlacement(map.grid());
         arena = new Arena(map.id(), player.getUniqueId(), map.grid(), settings.startingCoins(), settings.enemyLimit());
         campaign = new Campaign(settings);
         returnLocation = player.getLocation().clone(); returnMode = player.getGameMode();

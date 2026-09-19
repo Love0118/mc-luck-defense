@@ -87,9 +87,11 @@ public final class LobbySmokePlugin extends JavaPlugin {
             }
             double coins=arena(firstSession).coins();
             long commonCount=arena(firstSession).activeDefenders().stream().filter(d->d.rarity()==Rarity.COMMON).count();
-            call(games,"sellRarity",first,Rarity.COMMON);
+            call(games,"toggleAutoSell",first,Rarity.COMMON);
             require(arena(firstSession).coins()==coins+commonCount*3,"Bulk sale payout");
             for(UUID id:common) require(Bukkit.getEntity(id)==null,"Bulk sale entity removal");
+            require(((Set<?>)field(firstSession,"autoSell")).contains(Rarity.COMMON),"Auto-sale enabled");
+            call(games,"toggleAutoSell",first,Rarity.COMMON);
             arena(firstSession).summon(first.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->{
                 try{return (UUID)call(adapter,"spawnDefender",map,first.getUniqueId(),t,r,c);}
                 catch(Exception e){throw new RuntimeException(e);}
@@ -145,6 +147,27 @@ public final class LobbySmokePlugin extends JavaPlugin {
             }
             if(waitTicks==100) first.hideEntity(this,Bukkit.getEntity(arena(firstSession).selected().orElseThrow().entityId()));
             if(waitTicks==110) first.showEntity(this,Bukkit.getEntity(arena(firstSession).selected().orElseThrow().entityId()));
+            if(waitTicks==120) {
+                menuClick(20);
+                require(((Set<?>)field(firstSession,"autoSell")).contains(Rarity.COMMON),"GUI auto-sale on");
+                require(arena(firstSession).activeDefenders().stream().noneMatch(d->d.rarity()==Rarity.COMMON),"Existing common units sold");
+            }
+            if(waitTicks==125) { menuClick(6); require((boolean)field(firstSession,"autoPlacement"),"GUI layout on"); }
+            if(waitTicks==130) { arena(firstSession).credit(100); menuClick(10); require((boolean)field(firstSession,"bulkBuying"),"GUI bulk buy started"); }
+            if(waitTicks==150) {
+                require(!(boolean)field(firstSession,"bulkBuying"),"Batch stops at gold or slot limit");
+                require((int)field(firstSession,"bulkPurchases")>0,"Batch purchased units");
+                require(arena(firstSession).activeDefenders().stream().noneMatch(d->d.rarity()==Rarity.COMMON),"New common draws sold");
+                require(arena(firstSession).defenders().stream().map(Defender::cell).distinct().count()==arena(firstSession).defenderCount(),"Unique layout cells");
+                for(Defender d:arena(firstSession).activeDefenders()) {
+                    Location actual=Bukkit.getEntity(d.entityId()).getLocation();
+                    Location desired=(Location)call(field(firstSession,"map"),"location",d.position());
+                    require(Math.abs(actual.getX()-desired.getX())<.001 && Math.abs(actual.getZ()-desired.getZ())<.001,"Physical layout matches combat cells");
+                }
+                require(((Set<?>)field(secondSession,"autoSell")).isEmpty() && !(boolean)field(secondSession,"autoPlacement"),"Automation session isolation");
+            }
+            if(waitTicks==155) { menuClick(6); require(!(boolean)field(firstSession,"autoPlacement"),"GUI layout off"); }
+            if(waitTicks==160) { menuClick(20); require(((Set<?>)field(firstSession,"autoSell")).isEmpty(),"GUI auto-sale off"); }
             if (++waitTicks<340) return;
             require(arena(secondSession).enemyCount()>0,"Waves must spawn actual enemies");
             arena(firstSession).finish(Arena.Outcome.ENEMY_LIMIT); stage=2;return;
@@ -162,6 +185,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             call(games,"start",first); Object restarted=call(games,"session",first);
             require(restarted!=firstSession && arena(restarted).id().equals(arena(firstSession).id()),"Arena reuse with new state");
             require((int)call(restarted,"speed")==1 && first.getAllowFlight(),"Rejoin resets speed and enables flight");
+            require(((Set<?>)field(restarted,"autoSell")).isEmpty() && !(boolean)field(restarted,"autoPlacement") && !(boolean)field(restarted,"bulkBuying"),"Fresh automation controls");
             require(arena(restarted).coins()==CampaignRules.standard().startingCoins(),"Fresh funds");
             arena(restarted).finish(Arena.Outcome.TIME_LIMIT); arena(secondSession).finish(Arena.Outcome.VICTORY);
             stage=3;return;
@@ -175,7 +199,16 @@ public final class LobbySmokePlugin extends JavaPlugin {
             Files.writeString(Path.of("lobby-smoke-passed.json"),"{\"blockStates\":"+samples.size()+",\"clients\":3,\"sessionIsolation\":true,\"defeatReturn\":true,\"slotReuse\":true,\"victoryReturn\":true,\"dynamicArena\":true,\"spectatorReturn\":true,\"bulkSale\":true,\"facedMobTypes\":"+facedTypes+",\"actualAttackDirections\":"+checkedAttackDirections+",\"selectedEntityId\":"+selectedEntityId+",\"secondSelectedEntityId\":"+glowClearEntityId+"}");
             Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"startingGold\":30,\"fractionalRewards\":"+fractionalGold+",\"oddsIcon\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
+            Files.writeString(Path.of("automation-smoke-passed.json"),"{\"clients\":3,\"autoSaleGui\":true,\"existingAndNewAutoSale\":true,\"bulkBuyGui\":true,\"autoPlacementGui\":true,\"physicalLayout\":true,\"sessionIsolation\":true,\"freshSessionResets\":true}");
         }
+    }
+    private void menuClick(int slot) {
+        var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());
+        Bukkit.getPluginManager().callEvent(swap); require(swap.isCancelled(),"F menu");
+        var click=new org.bukkit.event.inventory.InventoryClickEvent(first.getOpenInventory(),org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,slot,
+                org.bukkit.event.inventory.ClickType.LEFT,org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(click); Bukkit.getPluginManager().callEvent(click);
+        require(click.isCancelled(),"Automation menu click is protected"); first.closeInventory();
     }
     private void speedClick() {
         var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());

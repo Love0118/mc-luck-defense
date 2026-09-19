@@ -180,28 +180,42 @@ final class GameService {
     void summon(Player player) {
         GameSession session = session(player);
         if (session == null) return;
+        purchase(player, session, true);
+    }
+    private boolean purchase(Player player, GameSession session, boolean feedback) {
         SummonRoll roll = SummonRoll.draw(session.random);
+        boolean autoSell = session.autoSell.contains(roll.rarity());
         Arena.Result result;
         try {
             result = session.arena.summon(player.getUniqueId(), roll,
-                    (type, rarity, cell) -> entities.spawnDefender(session.map, player.getUniqueId(), type, rarity, cell));
+                    (type, rarity, cell) -> autoSell ? UUID.randomUUID()
+                            : entities.spawnDefender(session.map, player.getUniqueId(), type, rarity, cell));
         } catch (RuntimeException exception) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Defender spawn failed", exception);
             player.sendMessage(Component.text("소환에 실패했습니다. 재화는 차감하지 않았습니다.", NamedTextColor.RED));
             Ui.sound(player,Ui.Cue.ERROR);
-            return;
+            return false;
         }
-        tell(player, result);
-        if (result == Arena.Result.OK) Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : Ui.Cue.SUMMON);
+        if (feedback) tell(player, result);
+        if (result == Arena.Result.OK) {
+            if (autoSell) session.arena.sellRarity(player.getUniqueId(), roll.rarity());
+            session.layoutDirty = true;
+            if (feedback || roll.rarity().abilityLevel() > 0)
+                Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
+        }
         if (result == Arena.Result.OK && roll.rarity().abilityLevel() > 0)
             Bukkit.broadcast(Component.text(player.getName() + " 님이 [" + roll.rarity().label() + "] " + roll.type().label() + " 획득!", EntityAdapter.rarityColor(roll.rarity())));
+        return result == Arena.Result.OK;
     }
     void sell(Player player) {
         GameSession session = session(player);
         if (session == null) return;
         UUID selected = session.arena.selected().map(Defender::entityId).orElse(null);
         Arena.Result result = session.arena.sellSelected(player.getUniqueId());
-        if (result == Arena.Result.OK) { entities.remove(selected); Ui.sound(player,Ui.Cue.SELL); }
+        if (result == Arena.Result.OK) {
+            entities.remove(selected); entities.selectGlow(player, null);
+            session.layoutDirty = true; Ui.sound(player,Ui.Cue.SELL);
+        }
         tell(player, result);
     }
     void sellRarity(Player player, Rarity rarity) {
@@ -209,8 +223,66 @@ final class GameService {
         Arena.BulkSale sale = session.arena.sellRarity(player.getUniqueId(), rarity);
         sale.entities().forEach(entities::remove); tell(player, sale.result());
         if (sale.result() == Arena.Result.OK) {
+            session.layoutDirty |= !sale.entities().isEmpty();
+            if (session.arena.selected().isEmpty()) entities.selectGlow(player, null);
             player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "골드"));
             Ui.sound(player,Ui.Cue.SELL);
+        }
+    }
+    void toggleAutoSell(Player player, Rarity rarity) {
+        GameSession session = session(player);
+        if (session == null || session.arena.ended()) return;
+        if (rarity.salePrice().isEmpty()) { tell(player, Arena.Result.NOT_SELLABLE); return; }
+        if (!session.autoSell.remove(rarity)) {
+            session.autoSell.add(rarity);
+            sellRarity(player, rarity);
+        }
+        Ui.sound(player, Ui.Cue.CLICK);
+    }
+    void toggleAutoPlacement(Player player) {
+        GameSession session = session(player);
+        if (session == null || session.arena.ended()) return;
+        session.autoPlacement = !session.autoPlacement;
+        session.layoutDirty = session.autoPlacement;
+        Ui.sound(player, Ui.Cue.CLICK);
+    }
+    void toggleBulkBuy(Player player) {
+        GameSession session = session(player);
+        if (session == null || session.arena.ended()) return;
+        if (session.bulkBuying) { stopBulkBuy(player, session); return; }
+        if (!canBuy(session)) {
+            tell(player, session.arena.coins() < Arena.SUMMON_COST ? Arena.Result.INSUFFICIENT_COINS : Arena.Result.FULL);
+            return;
+        }
+        session.bulkBuying = true; session.bulkPurchases = 0;
+        Ui.sound(player, Ui.Cue.CLICK);
+    }
+    private boolean canBuy(GameSession session) {
+        return !session.arena.ended() && session.arena.coins() >= Arena.SUMMON_COST
+                && session.arena.defenderCount() < session.map.grid().placementOrder().size();
+    }
+    private void stopBulkBuy(Player player, GameSession session) {
+        session.bulkBuying = false;
+        player.sendMessage(Ui.text("&a일괄구매 종료 &7· &e" + session.bulkPurchases + "회 소환"));
+        Ui.sound(player, Ui.Cue.CLICK);
+    }
+    /** A fixed real-tick budget, independent of the session's game speed. */
+    void processAutomation(Player player, GameSession session) {
+        if (session(player) != session || session.arena.ended()) return;
+        if (session.bulkBuying) {
+            for (int i = 0; i < 4 && session.bulkBuying; i++) {
+                if (!canBuy(session) || !purchase(player, session, false)) {
+                    stopBulkBuy(player, session); break;
+                }
+                session.bulkPurchases++;
+            }
+            if (session.bulkBuying && !canBuy(session)) stopBulkBuy(player, session);
+            else if (session.bulkBuying && tick % 4 == 0) Ui.sound(player, Ui.Cue.SUMMON);
+        }
+        if (session.layoutDirty) {
+            session.layoutDirty = false;
+            if (session.autoPlacement)
+                session.arena.rearrange(player.getUniqueId(), session.placement.arrange(session.arena.defenders()));
         }
     }
     void select(Player player, UUID entity) {
@@ -226,6 +298,10 @@ final class GameService {
     void move(Player player, org.bukkit.block.Block block) {
         GameSession session = session(player);
         if (session == null || session.arena.selected().isEmpty()) return;
+        if (session.autoPlacement) {
+            player.sendMessage(Ui.text("&e직접 이동하려면 자동 배치를 꺼주세요."));
+            Ui.sound(player, Ui.Cue.ERROR); return;
+        }
         Defender selected = session.arena.selected().orElseThrow();
         Arena.Result result = session.arena.moveSelected(player.getUniqueId(), session.map.cellAt(block));
         if (result == Arena.Result.OK && !entities.moveDefender(selected.entityId(), session.map.location(selected.position()))) {
@@ -263,6 +339,7 @@ final class GameService {
                 finish(player, session);
                 continue;
             }
+            processAutomation(player, session);
             session.attackEffects.clear();
             for (int step = 0; step < session.speed(); step++) if (!step(player, session)) break;
             if (session(player) != session) continue;
