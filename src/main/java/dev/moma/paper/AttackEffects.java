@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 /** Latest actual attack per defender per server tick, delivered only to its owner and spectators. */
 final class AttackEffects {
+    static final double SOUND_RADIUS = 64;
     record SoundProfile(String key, float volume) {}
     private final Map<Defender, List<Point>> attacks = new LinkedHashMap<>();
     private final Set<Defender> currentStep = new HashSet<>();
@@ -28,12 +29,24 @@ final class AttackEffects {
         for (var attack : attacks.entrySet()) {
             Defender defender = attack.getKey();
             SoundProfile sound = attackSound(defender.type());
-            // Anchor audio at each listener so flying owners and spectators hear attacks across the arena.
-            for (Player viewer : viewers) viewer.playSound(viewer.getLocation(), sound.key(), SoundCategory.PLAYERS, sound.volume(), 1f);
+            Location source = map.location(defender.position()).add(0, .8, 0);
+            for (Player viewer : viewers) {
+                Location audibleSource = soundLocation(source, viewer.getEyeLocation());
+                if (audibleSource != null) viewer.playSound(audibleSource, sound.key(), SoundCategory.PLAYERS, sound.volume(), 1f);
+            }
             Particle.DustOptions dust = COLORS[defender.rarity().ordinal()];
             emit(map, viewers, trace(defender, attack.getValue()), 1.65, dust);
             emit(map, viewers, footprint(defender, attack.getValue().getFirst()), 1.06, dust);
         }
+    }
+    static Location soundLocation(Location tower, Location listener) {
+        if (listener == null || !Objects.equals(tower.getWorld(), listener.getWorld())) return null;
+        if (tower.distanceSquared(listener) >= SOUND_RADIUS * SOUND_RADIUS) return null;
+        // Vanilla quiet sounds attenuate over 16 blocks. Compress distance, preserving the
+        // tower-to-listener direction, to extend that falloff without raising volume.
+        double scale = 16 / SOUND_RADIUS;
+        return listener.clone().add((tower.getX() - listener.getX()) * scale,
+                (tower.getY() - listener.getY()) * scale, (tower.getZ() - listener.getZ()) * scale);
     }
     static SoundProfile attackSound(UnitType type) {
         return switch (type) {
