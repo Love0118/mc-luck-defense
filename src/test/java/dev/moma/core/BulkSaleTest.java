@@ -10,7 +10,7 @@ class BulkSaleTest {
         for (Rarity grade:Rarity.values()) for (int i=0;i<2;i++)
             assertEquals(Arena.Result.OK,arena.summon(owner,new SummonRoll(UnitType.WOLF,grade),(t,r,c)->UUID.randomUUID()));
         UUID selected=arena.defenders().stream().filter(d->d.rarity()==Rarity.RARE).findFirst().orElseThrow().entityId();
-        arena.select(owner,selected); long before=arena.coins();
+        arena.select(owner,selected); double before=arena.coins();
         var sale=arena.sellRarity(owner,Rarity.RARE);
         assertEquals(Arena.Result.OK,sale.result()); assertEquals(2,sale.entities().size());
         assertEquals(12,sale.income()); assertEquals(before+12,arena.coins());
@@ -24,7 +24,7 @@ class BulkSaleTest {
         UUID owner=UUID.randomUUID(); Arena arena=new Arena("a",owner,new Grid(6),100,100);
         for(Rarity grade:List.of(Rarity.COMMON,Rarity.LEGENDARY,Rarity.PRIMORDIAL))
             arena.summon(owner,new SummonRoll(UnitType.WOLF,grade),(t,r,c)->UUID.randomUUID());
-        long coins=arena.coins(); var units=arena.defenders();
+        double coins=arena.coins(); var units=arena.defenders();
         assertEquals(Arena.Result.NOT_OWNER,arena.sellRarity(UUID.randomUUID(),Rarity.COMMON).result());
         assertEquals(Arena.Result.NOT_SELLABLE,arena.sellRarity(owner,Rarity.LEGENDARY).result());
         assertEquals(Arena.Result.NOT_SELLABLE,arena.sellRarity(owner,Rarity.PRIMORDIAL).result());

@@ -47,7 +47,7 @@ public final class SimulatorMain {
         double meanRounds = Arrays.stream(results).mapToInt(Simulation.Result::round).average().orElse(0);
         double meanSummons = Arrays.stream(results).mapToInt(Simulation.Result::summons).average().orElse(0);
         var checkpoints = new ArrayList<String>();
-        for (int round : new int[]{30, 50, 70, 90}) {
+        for (int round : new int[]{10, 20, 30, 50, 70, 90}) {
             int survivors = (int) Arrays.stream(results).filter(r -> r.completedRounds() >= round).count();
             double[] bounds = wilson(survivors, runs);
             checkpoints.add(String.format(Locale.ROOT, "{\"round\":%d,\"survivors\":%d,\"rate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f}", round, survivors, survivors / (double) runs, bounds[0], bounds[1]));
@@ -56,10 +56,18 @@ public final class SimulatorMain {
                 "{\"runs\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"gridSize\":%d,\"primordialCap\":%d,\"strategy\":\"%s\",\"wins\":%d,\"winsBelowTwoPrimordials\":%d,\"twoPrimordialManyMythicRuns\":%d,\"twoPrimordialManyMythicWins\":%d,\"clearRate\":%.8f,\"ci95Low\":%.8f,\"ci95High\":%.8f,\"meanRound\":%.3f,\"meanSummons\":%.3f,\"seconds\":%.2f}",
                 runs, seed, rules.healthScale(), rules.gridSize(), primordialCap, strategy, wins, lowPrimordialWins, targetRuns, targetWins, wins / (double) runs, ci[0], ci[1], meanRounds, meanSummons, (System.nanoTime() - start) / 1e9);
         summary = summary.substring(0, summary.length() - 1) + ",\"randomAlgorithm\":\"" + HashRandom.ALGORITHM + "\",\"healthCurve\":\"" + rules.healthCurve().specification() + "\",\"bossHealthScale\":" + rules.bossHealthScale() + ",\"checkpoints\":[" + String.join(",", checkpoints) + "]}";
+        summary = summary.substring(0, summary.length()-1) + ",\"startingGold\":" + rules.startingCoins()
+                + ",\"summonCost\":" + Arena.SUMMON_COST
+                + ",\"botTransactionIntervalTicks\":" + AutoPlayer.TRANSACTION_INTERVAL
+                + ",\"finalBossHealthMultiplier\":" + WaveSchedule.FINAL_BOSS_HEALTH_MULTIPLIER
+                + ",\"blazeBaseDamage\":" + UnitType.BLAZE.profile().damage()
+                + ",\"wolfBaseInterval\":" + UnitType.WOLF.profile().intervalTicks()
+                + ",\"regularRewardsByDecade\":" + Arrays.toString(java.util.stream.IntStream.range(0,10).mapToDouble(i -> WaveSchedule.reward(i*10+1)).toArray())
+                + ",\"rarityDamageMultipliers\":" + Arrays.toString(Arrays.stream(Rarity.values()).mapToDouble(Rarity::damageMultiplier).toArray()) + "}";
         Files.writeString(output.resolve("summary.json"), summary + "\n", StandardCharsets.UTF_8);
         var lines = new ArrayList<String>();
         for (Simulation.Result r : results) lines.add(String.format(Locale.ROOT,
-                "{\"seed\":%d,\"outcome\":\"%s\",\"round\":%d,\"completedRounds\":%d,\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%d,\"coins\":%d,\"primordial\":%d,\"mythic\":%d,\"damage\":%s,\"deployedTicks\":%s}",
+                "{\"seed\":%d,\"outcome\":\"%s\",\"round\":%d,\"completedRounds\":%d,\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%.1f,\"coins\":%.1f,\"primordial\":%d,\"mythic\":%d,\"damage\":%s,\"deployedTicks\":%s}",
                 r.seed(), r.outcome(), r.round(), r.completedRounds(), r.ticks(), r.summons(), r.sales(), r.moves(), r.earned(), r.coins(), r.primordial(), r.mythic(), Arrays.toString(r.damage()), Arrays.toString(r.deployedTicks())));
         Files.write(output.resolve("runs.jsonl"), lines, StandardCharsets.UTF_8);
         long replaySeed = Arrays.stream(results).filter(r -> r.outcome() == Arena.Outcome.VICTORY && r.primordial() == 2 && r.mythic() >= 4)
@@ -82,7 +90,7 @@ public final class SimulatorMain {
         String mobs = String.join(",", s.mobs().stream().map(e -> String.format(Locale.ROOT,
                 "{\"type\":\"%s\",\"x\":%.4f,\"z\":%.4f,\"health\":%.2f,\"boss\":%s}", e.type(), e.x(), e.z(), e.health(), e.boss())).toList());
         return String.format(Locale.ROOT,
-                "{\"tick\":%d,\"round\":%d,\"coins\":%d,\"enemies\":%d,\"defenders\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%d,\"units\":[%s],\"mobs\":[%s]}",
+                "{\"tick\":%d,\"round\":%d,\"coins\":%.1f,\"enemies\":%d,\"defenders\":%d,\"summons\":%d,\"sales\":%d,\"moves\":%d,\"earned\":%.1f,\"units\":[%s],\"mobs\":[%s]}",
                 s.tick(), s.round(), s.coins(), s.enemies(), s.defenders(), s.summons(), s.sales(), s.moves(), s.earned(), units, mobs);
     }
     public static double[] wilson(int wins, int count) {

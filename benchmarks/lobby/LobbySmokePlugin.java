@@ -19,6 +19,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
     private int selectedEntityId, glowClearEntityId;
     private long firstTick, secondTick;
     private int expectedSpeed = 2, speedChecks;
+    private boolean fractionalGold;
     @Override public void onEnable() {
         if (!Bukkit.getIp().equals("127.0.0.1")) throw new IllegalStateException("Localhost only");
         try {
@@ -57,6 +58,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(first.getAllowFlight() && first.isFlying() && second.getAllowFlight(),"Participants fly by default");
             require(first.getInventory().getItem(0).getType()==Material.BLAZE_ROD && first.getInventory().getItem(1).getType()==Material.EMERALD,"Tools in slots one and two");
             firstSession=call(games,"session",first); secondSession=call(games,"session",second);
+            require(arena(firstSession).coins()==30 && arena(secondSession).coins()==30,"Thirty starting gold");
             require(firstSession!=secondSession,"Distinct session objects");
             require(!arena(firstSession).id().equals(arena(secondSession).id()),"Distinct arenas");
             call(games,"summon",first);
@@ -83,7 +85,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
                     catch(Exception e){throw new RuntimeException(e);}
                 });
             }
-            long coins=arena(firstSession).coins();
+            double coins=arena(firstSession).coins();
             long commonCount=arena(firstSession).activeDefenders().stream().filter(d->d.rarity()==Rarity.COMMON).count();
             call(games,"sellRarity",first,Rarity.COMMON);
             require(arena(firstSession).coins()==coins+commonCount*3,"Bulk sale payout");
@@ -93,7 +95,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
                 catch(Exception e){throw new RuntimeException(e);}
             });
             Defender sellable=arena(firstSession).defenders().getLast();call(games,"select",first,sellable.entityId());
-            long beforeSale=arena(firstSession).coins();first.getInventory().setHeldItemSlot(1);
+            double beforeSale=arena(firstSession).coins();first.getInventory().setHeldItemSlot(1);
             sellClick();sellClick();
             require(arena(firstSession).coins()==beforeSale+3 && Bukkit.getEntity(sellable.entityId())==null,"Right-click tool sells once");
             first.getInventory().setHeldItemSlot(0);
@@ -116,6 +118,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             stage=1;return;
         }
         if (stage==1) {
+            fractionalGold |= arena(firstSession).coins()!=Math.rint(arena(firstSession).coins());
             long nextFirst=(long)field(firstSession,"simulationTick"), nextSecond=(long)field(secondSession,"simulationTick");
             require(nextFirst-firstTick==expectedSpeed && nextSecond-secondTick==1,"Independent session clocks");
             firstTick=nextFirst;secondTick=nextSecond;speedChecks++;
@@ -168,8 +171,9 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(first.getWorld().equals(world)&&second.getWorld().equals(world),"Both back to lobby");
             require(!first.getAllowFlight() && !second.getAllowFlight(),"Timeout and victory remove flight");
             require(facedTypes==24 && checkedAttackDirections>0,"Actual entity facing must be exercised");
+            require(fractionalGold,"Live fractional kill rewards");
             Files.writeString(Path.of("lobby-smoke-passed.json"),"{\"blockStates\":"+samples.size()+",\"clients\":3,\"sessionIsolation\":true,\"defeatReturn\":true,\"slotReuse\":true,\"victoryReturn\":true,\"dynamicArena\":true,\"spectatorReturn\":true,\"bulkSale\":true,\"facedMobTypes\":"+facedTypes+",\"actualAttackDirections\":"+checkedAttackDirections+",\"selectedEntityId\":"+selectedEntityId+",\"secondSelectedEntityId\":"+glowClearEntityId+"}");
-            Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
+            Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"startingGold\":30,\"fractionalRewards\":"+fractionalGold+",\"oddsIcon\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
         }
     }
@@ -177,6 +181,9 @@ public final class LobbySmokePlugin extends JavaPlugin {
         var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());
         Bukkit.getPluginManager().callEvent(swap);require(swap.isCancelled(),"F opens GUI");
         require(first.getOpenInventory().getTopInventory().getItem(8).getType()==Material.CLOCK,"Speed clock in F GUI");
+        var odds=first.getOpenInventory().getTopInventory().getItem(0);
+        require(odds.getType()==Material.KNOWLEDGE_BOOK && odds.getItemMeta().lore().size()>=9,"Summon odds icon");
+        require(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(odds.getItemMeta().lore().get(8)).contains("0.019%"),"Exact Primordial probability");
         var click=new org.bukkit.event.inventory.InventoryClickEvent(first.getOpenInventory(),org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,8,
                 org.bukkit.event.inventory.ClickType.LEFT,org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
         Bukkit.getPluginManager().callEvent(click);Bukkit.getPluginManager().callEvent(click);

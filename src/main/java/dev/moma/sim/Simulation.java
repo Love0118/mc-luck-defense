@@ -7,10 +7,10 @@ import java.util.function.Consumer;
 public final class Simulation {
     public record UnitFrame(String type, String rarity, String role, int column, int row) {}
     public record EnemyFrame(String type, double x, double z, double health, boolean boss) {}
-    public record Snapshot(int tick, int round, long coins, int enemies, int defenders, int summons, int sales, int moves, long earned,
+    public record Snapshot(int tick, int round, double coins, int enemies, int defenders, int summons, int sales, int moves, double earned,
                            List<UnitFrame> units, List<EnemyFrame> mobs) {}
     public record Result(long seed, Arena.Outcome outcome, int round, int completedRounds, int ticks, int summons, int sales, int moves,
-                         long earned, long coins, int primordial, int mythic, double[] damage, long[] deployedTicks) {}
+                         double earned, double coins, int primordial, int mythic, double[] damage, long[] deployedTicks) {}
     private Simulation() {}
     public static Result run(long seed, CampaignRules rules, AutoPlayer.Strategy strategy, Consumer<Snapshot> trace) {
         return run(seed, rules, strategy, trace, Integer.MAX_VALUE);

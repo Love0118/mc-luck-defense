@@ -37,7 +37,7 @@ final class LobbyMenu implements Listener {
                     "&7전장 &f" + session.arena(), "&eR" + session.round() + " &7· 적 &c" + session.enemies(), "&7클릭하면 이 세션을 관전합니다."));
         }
         if (active.isEmpty()) holder.inventory.setItem(22, Ui.item(Material.GRAY_DYE, "&7관전 가능한 게임이 없습니다."));
-        holder.inventory.setItem(JOIN, Ui.item(Material.NETHER_STAR, "&a&l게임 참가", "&7개인 세션과 빈 전장을 자동 배정합니다.", "&7빈 전장이 없으면 새 전장을 생성합니다."));
+        holder.inventory.setItem(JOIN, Ui.item(Material.NETHER_STAR, "&a&l게임 참가", "&730골드로 시작", "&7100라운드에 도전하세요."));
         if (games.watching(player)) holder.inventory.setItem(LEAVE, Ui.item(Material.OAK_DOOR, "&e관전 종료 · 로비로"));
         if (page > 0) holder.inventory.setItem(PREVIOUS, Ui.item(Material.ARROW, "&e이전 페이지"));
         if (page+1 < pages) holder.inventory.setItem(NEXT, Ui.item(Material.ARROW, "&e다음 페이지"));

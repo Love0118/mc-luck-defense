@@ -9,3 +9,6 @@ docs/simulation/**/trace-*.jsonl
 docs/simulation/validation/replay.html
 docs/simulation/auto-placement/replay.html
 docs/simulation/one-primordial-stress/replay.html
+docs/simulation/economy-0.9.0/validation/replay.html
+docs/simulation/economy-0.9.0/one-primordial-stress/replay.html
+docs/simulation/economy-0.9.0/auto-placement/replay.html

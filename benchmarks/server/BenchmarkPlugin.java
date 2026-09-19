@@ -105,7 +105,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
         if (campaignMode) {
             final Object arenaMap = map;
             // Same clear-capable seed per session sustains a full campaign load; not a win-rate sample.
-            bots.add(new AutoPlayer(101476, AutoPlayer.Strategy.BALANCED, arena.grid(), (type, rarity, cell) -> {
+            bots.add(new AutoPlayer(100147, AutoPlayer.Strategy.BALANCED, arena.grid(), (type, rarity, cell) -> {
                 try { return (UUID) call(adapter, "spawnDefender", arenaMap, player.getUniqueId(), type, rarity, cell); }
                 catch (Exception e) { throw new IllegalStateException(e); }
             }, entity -> {

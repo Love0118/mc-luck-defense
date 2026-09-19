@@ -67,7 +67,7 @@ class SessionSpeedTest {
             var durable=new Enemy(new UUID(0,999),"a",EnemyType.ZOMBIE,1e10,6,0,true);
             durable.slow(.5,40); session.arena.addEnemy(durable);
             for(int speed:frameSpeeds) { games.speed(player,speed); games.tick(); }
-            assertTrue(games.playing(player)); assertTrue(session.arena.coins()>860,"Actual kill rewards must occur");
+            assertTrue(games.playing(player)); assertTrue(session.arena.earnedCoins()>0,"Actual kill rewards must occur");
             assertTrue(session.arena.defenders().stream().anyMatch(d->d.nextAttackTick()>0));
             List<Object> state=new ArrayList<>();
             state.add(session.simulationTick); state.add(session.campaign.elapsed()); state.add(session.campaign.round());

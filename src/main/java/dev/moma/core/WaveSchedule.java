@@ -3,6 +3,12 @@ package dev.moma.core;
 import java.util.*;
 
 public final class WaveSchedule {
+    public static final double FINAL_BOSS_HEALTH_MULTIPLIER = 1.75;
+    private static final double[] REWARDS = {.1,.1,.2,.5,1,3,6,10,15,30};
+    public static double reward(int round) {
+        if (round < 1 || round > CampaignRules.ROUNDS) throw new IllegalArgumentException("Round must be 1..100");
+        return REWARDS[(round-1)/10];
+    }
     private WaveSchedule() {}
     public static List<Wave> create(CampaignRules rules) {
         var waves = new ArrayList<Wave>();
@@ -41,10 +47,11 @@ public final class WaveSchedule {
                 case MAGMA_CUBE -> 2.1;
             };
             int spawnWindow = rules.roundTicks() * 3 / 4;
-            entries.add(new Wave.Entry(i * spawnWindow / count, new EnemySpawn(type, health, speed, 6, false)));
+            entries.add(new Wave.Entry(i * spawnWindow / count, new EnemySpawn(type, health, speed, reward(round), false)));
         }
         if (round % 10 == 0) entries.add(new Wave.Entry(rules.roundTicks() / 2,
-                new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK, base * (15 + round / 5.0) * rules.bossHealthScale(), 1.2, 30, true)));
+                new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK,
+                        base * (15 + round / 5.0) * rules.bossHealthScale() * (round == 100 ? FINAL_BOSS_HEALTH_MULTIPLIER : 1), 1.2, reward(round)*25, true)));
         entries.sort(Comparator.comparingInt(Wave.Entry::offsetTick));
         String name = switch (pattern) { case 0 -> "보병"; case 1 -> "돌격"; case 2 -> "군집"; case 3 -> "중장갑"; default -> "혼성"; };
         return new Wave(round, round % 10 == 0 ? name + " + 보스" : name, entries);

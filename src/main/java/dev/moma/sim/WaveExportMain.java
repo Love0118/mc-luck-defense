@@ -15,7 +15,7 @@ public final class WaveExportMain {
             var enemies = new ArrayList<String>();
             for (var entry : groups.entrySet()) {
                 EnemySpawn e = entry.getKey();
-                enemies.add(String.format(Locale.ROOT, "{\"type\":\"%s\",\"count\":%d,\"health\":%.4f,\"speed\":%.2f,\"reward\":%d,\"boss\":%s}",
+                enemies.add(String.format(Locale.ROOT, "{\"type\":\"%s\",\"count\":%d,\"health\":%.4f,\"speed\":%.2f,\"reward\":%.1f,\"boss\":%s}",
                         e.type(), entry.getValue(), e.health(), e.speed(), e.reward(), e.boss()));
             }
             rows.add("{\"round\":" + wave.round() + ",\"name\":\"" + wave.name() + "\",\"enemies\":[" + String.join(",", enemies) + "]}");

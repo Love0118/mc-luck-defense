@@ -10,7 +10,7 @@ public final class Enemy {
     private final EnemyType type;
     private final boolean boss;
     private final double speed;
-    private final long reward;
+    private final long rewardUnits;
     private final ArrayList<Slow> slows = new ArrayList<>();
     private double health, progress;
     private double positionProgress = Double.NaN;
@@ -18,11 +18,11 @@ public final class Enemy {
     private Point position;
     private boolean rewarded;
 
-    public Enemy(UUID entityId, String arenaId, EnemyType type, double health, double speed, long reward, boolean boss) {
+    public Enemy(UUID entityId, String arenaId, EnemyType type, double health, double speed, double reward, boolean boss) {
         if (!Double.isFinite(health) || health <= 0 || !Double.isFinite(speed) || speed <= 0 || reward < 0)
             throw new IllegalArgumentException("Invalid enemy stats");
         this.entityId = entityId; this.arenaId = arenaId; this.type = type;
-        this.health = health; this.speed = speed; this.reward = reward; this.boss = boss;
+        this.health = health; this.speed = speed; this.rewardUnits = Gold.units(reward); this.boss = boss;
     }
     public UUID entityId() { return entityId; }
     public String arenaId() { return arenaId; }
@@ -57,9 +57,9 @@ public final class Enemy {
         return strongest;
     }
     void advance(long tick) { if (alive()) progress += speed / 20.0 * (1 - slowAt(tick)); }
-    long claimReward() {
+    long claimRewardUnits() {
         if (alive() || rewarded) return 0;
         rewarded = true;
-        return reward;
+        return rewardUnits;
     }
 }

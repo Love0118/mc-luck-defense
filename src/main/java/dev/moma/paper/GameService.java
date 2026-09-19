@@ -37,7 +37,7 @@ final class GameService {
         if (session == null || session.arena.ended()) throw new IllegalArgumentException("자신의 진행 중인 게임에서만 배속을 변경할 수 있습니다.");
         session.speed(value);
         Ui.sound(player,Ui.Cue.SPEED);
-        player.sendMessage(Ui.text("&a게임 배속: &e" + value + "배 &7· 자신의 세션에만 적용됩니다."));
+        player.sendMessage(Ui.text("&a게임 속도 &e" + value + "배"));
     }
     List<SessionInfo> activeSessions() {
         return sessions.values().stream().filter(s -> !s.arena.ended()).map(s -> {
@@ -124,7 +124,7 @@ final class GameService {
         player.setGameMode(GameMode.ADVENTURE);
         player.setAllowFlight(true); player.setFlying(true);
         tools.give(player);
-        player.sendMessage(Component.text("100라운드 도전! 15게임초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("100라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
     }
     void leave(Player player) {
         entities.selectGlow(player, null);
@@ -209,7 +209,7 @@ final class GameService {
         Arena.BulkSale sale = session.arena.sellRarity(player.getUniqueId(), rarity);
         sale.entities().forEach(entities::remove); tell(player, sale.result());
         if (sale.result() == Arena.Result.OK) {
-            player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "원"));
+            player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "골드"));
             Ui.sound(player,Ui.Cue.SELL);
         }
     }
@@ -279,7 +279,7 @@ final class GameService {
             }
             if (tick % 10 == 0) {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
-                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + session.speed() + "배 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "게임초 · " + session.arena.coins() + "원 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
+                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + session.speed() + "배 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
     }
@@ -321,7 +321,7 @@ final class GameService {
         String message = switch (result) {
             case NOT_OWNER -> "자신의 포탑만 선택할 수 있습니다.";
             case ENDED -> "이미 종료된 전장입니다.";
-            case INSUFFICIENT_COINS -> "재화가 부족합니다. 소환에는 10원이 필요합니다.";
+            case INSUFFICIENT_COINS -> "골드가 부족합니다. 소환에는 10골드가 필요합니다.";
             case FULL -> "빈 배치 칸이 없습니다.";
             case INVALID_CELL -> "자기 전장의 파란 배치 칸을 선택하세요.";
             case OCCUPIED -> "이미 포탑이 있는 칸입니다.";

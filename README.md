@@ -10,7 +10,7 @@ Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-0.8.2.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-0.9.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 
@@ -38,17 +38,17 @@ mvn -B -ntp clean verify
 
 | 항목 | 규칙 |
 |---|---|
-| 준비 | 15초, 시작 100원 |
+| 준비 | 1배 기준 15초, 시작 30골드 |
 | 라운드 | 1~100, 각 30초 |
 | 출현 | 매 라운드 첫 22.5초에 분산 출현 |
 | 적 한도 | 살아 있는 적 100마리에 도달하면 패배 |
 | 보스 | 10·20·…·100라운드, 라운드 시작 15초 후 출현 |
-| 일반 적 보상 | 6원 |
-| 보스 보상 | 30원 |
+| 일반 적 보상 | R1~20: 0.1골드, 이후 구간별 증가 |
+| 보스 보상 | 해당 라운드 일반 적의 25배 |
 | 승리 | 100라운드의 마지막 출현까지 끝나고 남은 적 0마리 |
 | 최종 정리 | 100라운드 시간 종료 후 추가 60초, 남은 적이 있으면 패배 |
 
-라운드가 바뀌어도 적은 사라지지 않고 붉은 순환 경로를 계속 돕니다. 한 게임의 최대 길이는 **51분 15초**입니다. 보스 별도 시간제한은 없고 전체 적 한도·최종 정리 시간을 따릅니다.
+라운드가 바뀌어도 적은 사라지지 않고 붉은 순환 경로를 계속 돕니다. 1배에서 한 게임의 최대 길이는 **51분 15초**입니다. 보스 별도 시간제한은 없고 전체 적 한도·최종 정리 시간을 따릅니다.
 
 | 적 | 기본 체력 대비 | 속도(블록/초) | 역할 |
 |---|---:|---:|---|
@@ -61,8 +61,8 @@ mvn -B -ntp clean verify
 
 - 5라운드 주기: 보병 → 돌격 → 군집 → 중장갑 → 혼성. 중장갑은 체력이 높은 편성이며 별도의 방어력 스탯은 없습니다.
 - 기본 적 수: 12 + 2 × floor((라운드−1)/10). 군집은 +8, 중장갑은 −3. 보스는 별도 1마리.
-- 기본 체력: campaign.properties의 라운드별 health-curve 기준점을 기하 보간합니다. 정확한 기준점은 [검증 보고서](docs/simulation/REPORT.md)에 있습니다. 보스 체력은 기본 체력 × (15 + 라운드/5) × boss-health-scale이며 속도는 1.2입니다. 일반 적 압박과 보스 화력 요구량을 별도로 조정합니다.
-- 실제 100개 라운드별 편성·체력은 [waves.json](docs/simulation/waves.json)에 있습니다.
+- 기본 체력: campaign.properties의 라운드별 health-curve 기준점을 기하 보간합니다. 정확한 기준점은 [검증 보고서](docs/simulation/economy-0.9.0/REPORT.md)에 있습니다. 보스 체력은 기본 체력 × (15 + 라운드/5) × boss-health-scale이며 최종 보스는 추가 1.75배입니다. 속도는 1.2입니다. 일반 적 압박과 보스 화력 요구량을 별도로 조정합니다.
+- 실제 100개 라운드별 편성·체력은 [waves.json](docs/simulation/economy-0.9.0/waves.json)에 있습니다.
 - 공유 규칙은 src/main/resources/campaign.properties, 편성 공식은 WaveSchedule입니다. 수정 후 다시 빌드하고 시뮬레이션을 재실행해야 검증 결과를 적용할 수 있습니다.
 
 ## 아군·등급·경제
@@ -80,7 +80,7 @@ mvn -B -ntp clean verify
 
 24종 균등 추첨과 등급 추첨은 독립적입니다. 모든 등급에서 타입이 유지됩니다. 가장 멀리 진행한 적을 우선하고 다중 공격은 같은 적을 중복 타격하지 않습니다. 범위 공격은 중심 주변 적을, 근거리 광역은 120도 부채꼴을 공격합니다. 감속은 가장 강한 활성 효과만 적용합니다.
 
-**1회 소환 10원**. 확률·판매 규칙은 기존 합의와 동일합니다.
+**1회 소환 10골드**. 확률·판매 규칙은 기존 합의와 동일합니다.
 
 | 등급 | 확률 | 판매가 |
 |---|---:|---:|
@@ -106,40 +106,25 @@ mvn -B -ntp clean verify
 
 ## 시뮬레이션과 밸런스
 
-[6×6 검증 보고서](docs/simulation/REPORT.md) · [태초 2개 + 신화 5개 클리어 리플레이](docs/simulation/example-clear/replay.html)
+[30골드 시작 밸런스 보고서](docs/simulation/economy-0.9.0/REPORT.md) · [태초 2개 + 신화 7개 클리어 리플레이](docs/simulation/economy-0.9.0/example-clear/replay.html)
 
-6×6·역할별 자동 배치·해시 난수를 적용한 별도 시드 **20,000회 중 172회, 0.860%**가 클리어했습니다. 95% 신뢰구간은 **0.741–0.998%**입니다.
+0.9.0은 시작 30골드, R1~20 일반 적 처치 보상 0.1골드로 재설계했습니다. 일반~서사 피해 배율은 1.75/2.5/3.5/5/7로 상향하고 블레이즈 기본 피해는 10→12로 보정했습니다. 태초 피해 배율은 4800, 신화는 120으로 격차를 벌리면서 최종 구간 적 체력도 함께 조정했습니다. 소환 확률·비용·판매가는 유지합니다.
 
-| 기준 | 목표 | 측정 |
-|---|---:|---:|
-| 30라운드 종료 생존 | 50% | 50.165% |
-| 50라운드 종료 생존 | 30% | 30.515% |
-| 70라운드 종료 생존 | 10% | 10.015% |
-| 90라운드 종료 생존 | 5% | 4.710% |
-| 100라운드 최종 클리어 | 약 1% | 0.860% |
+라운드 생존 목표는 R30 50%, R50 30%, R70 10%, R90 5%, 최종 클리어 약 1%입니다. 실제 측정값·신뢰구간·태초 1개 제한 실험과 타입 비교는 위 보고서에 있습니다. 이전 경제의 [0.8.2 이전 보고서](docs/simulation/REPORT.md)는 과거 기록이며 새 밸런스 결과로 사용하지 않습니다.
 
-생존률은 처음 시작한 전체 시도 중 해당 라운드 마지막 틱까지 생존한 비율입니다. 라운드가 겹치므로 남은 적이 있을 수 있습니다. 최종 클리어는 시간 안에 100라운드의 모든 적을 처치해야 합니다. 숨겨진 탈락 추첨 없이 적 체력 곡선과 실제 전투로 조정했습니다.
+확률은 처음 시작한 모든 자동 플레이 판을 분모로 합니다. 자동 플레이어는 1배 게임 시간 기준 2틱마다 최대 한 번 거래·이동하고 미래 뽑기를 보지 않습니다. 빠른 자동 플레이의 결과이므로 실제 플레이어 전체의 상위 백분위를 의미하지 않습니다. 개별 배속에서 사람의 조작 시간은 별도 변수입니다.
 
-**모든 클리어가 태초 2개 이상**이었고 별도 **태초 1개 제한 실험 10,000회는 클리어 0회**였습니다. 태초 2개 + 신화 4개 이상에서는 75회 중 21회 클리어했습니다. 예시 시드 101476은 태초 2개·신화 5개로 성공하며, 두 번째 태초를 신화로 낮추면 100라운드 최종 정리 시간 초과로 패배합니다. 태초 개수를 검사하는 승패 조건은 없습니다. 태초 제한은 시뮬레이터에만 있는 반사실 실험입니다.
-
-전설/에픽/신화/태초 피해 배율 **8/24/120/2400**, 근접 단일 연타 계수 **0.06**, 모든 등급 확률·판매가를 유지했습니다. 기존 5×5 결과는 현재 밸런스 결과로 사용하지 않습니다. 새 6×6 타입 벤치마크에서는 레어 블레이즈가 같은 타입 중앙값 대비 낮아 관찰 대상으로 남았습니다. 감속 지원과 혼합 편성 시너지는 고정 DPS 비교에 포함되지 않습니다.
-
-~~~powershell
+```powershell
 mvn -B -ntp compile
-java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 20000 6100000 1 target/validation BALANCED
-java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 10000 6500000 1 target/stress BALANCED 1
-java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 5000 6100000 1 target/auto-placement AUTO_PLACE
-java -cp target/classes dev.moma.sim.SimulatorMain 1 101476 1 target/example BALANCED
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 20000 9300000 1 target/validation BALANCED
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 10000 9700000 1 target/stress BALANCED 1
+java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 2000 9300000 1 target/auto-placement AUTO_PLACE
+java -cp target/classes dev.moma.sim.SimulatorMain 1 100147 1 target/example BALANCED
 java -cp target/classes dev.moma.sim.RoleBenchmarkMain target/roles.jsonl
 java -cp target/classes dev.moma.sim.WaveExportMain target/waves.json
-java -cp target/classes dev.moma.sim.RandomAuditMain target/random-audit.json
-~~~
+```
 
-CLI 인수 순서는 실행 수, 시작 시드, 전체 체력 배율, 출력 폴더, 정책, 선택적 태초 제한, 선택적 체력 기준점 문자열, 선택적 보스 배율입니다. 기존 late-health-scale 인수는 제거했습니다.
-
-각 실행은 summary.json, runs.jsonl, 시드별 trace JSONL, 독립 replay.html을 생성합니다. 같은 시드는 같은 결과를 냅니다. 브라우저에서 재생·배속·타임라인 탐색을 사용할 수 있습니다. 서버 없이 실행하며 Minecraft 접속이 필요하지 않습니다.
-
-시뮬레이터는 20 TPS의 실제 코어를 끝까지 실행합니다. 평균 DPS로 승패를 근사하지 않습니다. 소환·판매·재배치는 실제 Arena API를 사용하며 미래 뽑기를 보지 않습니다. 사람의 조작 지연·네트워크·서버 렉은 모델에 없으므로 약 1%는 이 자동 플레이 정책의 시도당 추정치입니다.
+CLI 인수는 실행 수, 시작 시드, 체력 배율, 출력 폴더, 정책, 선택적 태초 제한, 체력 기준점 문자열, 보스 배율 순서입니다. summary.json에는 시작 골드·보상·등급 보정·자동 조작 간격을 함께 기록합니다. runs.jsonl과 시드별 trace, 독립 replay.html을 생성하며 소수 골드도 표시합니다.
 
 ## 26.3-mud 서버 최적화와 20세션 검증
 
@@ -236,3 +221,11 @@ mud-optimizations:
 ## 0.8.2 GUI 사운드 피드백
 
 로비·게임 메뉴 열기와 페이지 전환, 참가·관전 버튼, 소환 성공, 판매·일괄판매 성공, 배속 변경에 소리를 재생합니다. 전설 이상 소환은 별도 차임을 사용하고 재화 부족·빈 칸 부족·선택 없음·판매 불가 등 실패는 낮은 거절음으로 구분합니다. 2번 도구 판매에도 동일한 결과음을 적용합니다. 소리는 조작한 플레이어에게만 전달하며 중복 클릭으로 추가 재생하지 않습니다. 1틱 구매 간격은 유지합니다. 클라이언트의 주 음량이 0이면 들리지 않습니다.
+
+
+## 0.9.0 초반 경제·확률 아이콘
+
+- 시작 30골드로 3회 소환합니다. 일반 적 처치 보상은 10라운드 구간별로 0.1/0.1/0.2/0.5/1/3/6/10/15/30골드입니다. 보스는 해당 보상의 25배입니다.
+- 골드는 0.1골드 단위 정수로 누적하고 GUI와 상태 표시에는 실제 골드를 표시합니다. 하위 등급 피해량과 100라운드 적 체력을 함께 조정했습니다.
+- F GUI 왼쪽 위 확률 책에 마우스를 올리면 일반부터 태초까지 9등급의 정확한 소환 확률을 확인할 수 있습니다. 종은 각각 1/24입니다.
+- 속도·소환·로비 버튼에서 개발 설명 문구를 제거하고 필요한 조작 안내만 남겼습니다.

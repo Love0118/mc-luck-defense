@@ -28,13 +28,13 @@ class SimulationTest {
         assertTrue(interval[0] < 0.01 && interval[1] > 0.01);
         assertTrue(SimulatorMain.wilson(0, 100)[1] > 0);
     }
-    @Test void hashSeedTwoPrimordialFiveMythicRosterClearsButOnePrimordialFails() {
-        var result = Simulation.run(101_476, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
+    @Test void economySeedTwoPrimordialSevenMythicRosterClearsButOnePrimordialFails() {
+        var result = Simulation.run(100_147, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null);
         assertEquals(Arena.Outcome.VICTORY, result.outcome());
         assertEquals(100, result.round());
         assertEquals(100, result.completedRounds());
-        assertEquals(2, result.primordial()); assertEquals(5, result.mythic());
-        var replacement = Simulation.run(101_476, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null, 1);
+        assertEquals(2, result.primordial()); assertEquals(7, result.mythic());
+        var replacement = Simulation.run(100_147, CampaignRules.standard(), AutoPlayer.Strategy.BALANCED, null, 1);
         assertNotEquals(Arena.Outcome.VICTORY, replacement.outcome());
         assertEquals(1, replacement.primordial());
         assertEquals(Arena.Outcome.TIME_LIMIT, replacement.outcome());
@@ -46,5 +46,11 @@ class SimulationTest {
         assertEquals(regular.summons(), unlimited.summons());
         assertEquals(regular.primordial(), unlimited.primordial());
         assertArrayEquals(regular.damage(), unlimited.damage());
+    }
+    @Test void earlierSinglePrimordialClearCasesNowFailWithTheWiderTopGradeGap() {
+        for(long seed:new long[]{9_500_347,9_505_410,9_507_579,9_508_959}) {
+            var result=Simulation.run(seed,CampaignRules.standard(),AutoPlayer.Strategy.BALANCED,null,1);
+            assertNotEquals(Arena.Outcome.VICTORY,result.outcome(),"One-Primordial regression seed "+seed);
+        }
     }
 }

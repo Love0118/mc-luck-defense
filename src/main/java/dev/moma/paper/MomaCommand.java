@@ -57,7 +57,7 @@ final class MomaCommand implements TabExecutor {
                     if (session == null || session.arena.ended()) throw new IllegalArgumentException("진행 중인 전장에 먼저 참가하세요.");
                     session.arena.credit(amount);
                     session.assisted = true;
-                    sender.sendMessage(Component.text("개발용 재화 지급: " + amount + "원"));
+                    sender.sendMessage(Component.text("골드 지급: " + amount));
                 }
                 default -> throw new IllegalArgumentException("알 수 없는 명령입니다. /mud로 도움말을 확인하세요.");
             }

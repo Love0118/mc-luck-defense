@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 /** Observable-state-only policy: no future rolls, enemy health scaling, or seed inspection. */
 public final class AutoPlayer {
+    public static final int TRANSACTION_INTERVAL = 2;
     public enum Strategy { BALANCED, AUTO_PLACE }
     private final HashRandom random;
     private final Strategy strategy;
@@ -54,12 +55,13 @@ public final class AutoPlayer {
         };
         return p.damage() * 20 / p.intervalTicks() * best * targets;
     }
-    /** One transaction or select+move sequence per half second; movement uses legal empty cells. */
+    /** Up to ten transactions per second at 1x, below the live GUI's twenty; moves use legal empty cells. */
     public void act(Arena arena, long tick) {
-        if (arena.ended() || tick % 10 != 0) return;
+        if (arena.ended() || tick % TRANSACTION_INTERVAL != 0) return;
         List<Defender> units = arena.defenders();
         if (units.size() == arena.grid().size() * arena.grid().size()) {
-            var worst = units.stream().filter(d -> d.rarity().salePrice().isPresent()).min(Comparator.comparingDouble(this::score));
+            var worst = units.stream().filter(d -> d.rarity().salePrice().isPresent()
+                    && arena.coins() + d.rarity().salePrice().getAsInt() >= Arena.SUMMON_COST).min(Comparator.comparingDouble(this::score));
             if (worst.isPresent()) { sell(arena, worst.orElseThrow()); return; }
         }
         if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;

@@ -110,7 +110,7 @@ class ArenaTest {
         assertThrows(IllegalArgumentException.class, () -> arena.addEnemy(new Enemy(UUID.randomUUID(), "two", EnemyType.HUSK, 1, 1, 99, false)));
         arena.addEnemy(enemy); enemy.damage(15);
         assertEquals(List.of(enemy.entityId()), arena.collectDeadEnemies()); assertEquals(7, arena.coins());
-        assertTrue(arena.collectDeadEnemies().isEmpty()); assertEquals(0, enemy.claimReward()); assertEquals(7, arena.coins());
+        assertTrue(arena.collectDeadEnemies().isEmpty()); assertEquals(0, enemy.claimRewardUnits()); assertEquals(7, arena.coins());
     }
     @Test void exactEnemyLimitEndsArenaAndStopsActions() {
         var arena = arena(100);

@@ -3,7 +3,7 @@ package dev.moma.core;
 import static dev.moma.core.AttackRole.*;
 
 public enum UnitType {
-    WOLF("늑대", MELEE_SINGLE, 12, 16, 4, 0, 1),
+    WOLF("늑대", MELEE_SINGLE, 12, 18, 4, 0, 1),
     POLAR_BEAR("북극곰", MELEE_SINGLE, 25, 32, 4.2, 0, 1),
     PANDA("판다", MELEE_SINGLE, 30, 40, 4.5, 0, 1),
     RABBIT("토끼", MELEE_SINGLE, 7, 10, 3.8, 0, 1),
@@ -19,7 +19,7 @@ public enum UnitType {
     LLAMA("라마", SMALL_AREA, 10.5, 20, 7, 1.5, 1),
     SNOW_GOLEM("눈골렘", SMALL_AREA, 6.5, 14, 8, 1.4, 1),
     GUARDIAN("가디언", SMALL_AREA, 18, 40, 9, 2, 1),
-    BLAZE("블레이즈", LARGE_AREA, 10, 36, 8, 3, 1),
+    BLAZE("블레이즈", LARGE_AREA, 12, 36, 8, 3, 1),
     GHAST("가스트", LARGE_AREA, 18, 60, 10, 3.5, 1),
     WITHER_SKELETON("위더 스켈레톤", LARGE_AREA, 11.2, 28, 7, 2.8, 1),
     WARDEN("워든", LARGE_AREA, 24, 72, 9, 4, 1),

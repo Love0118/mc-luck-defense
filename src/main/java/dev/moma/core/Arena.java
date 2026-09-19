@@ -13,27 +13,27 @@ public final class Arena {
     private final int enemyLimit;
     private final LinkedHashMap<UUID, Defender> defenders = new LinkedHashMap<>();
     private final LinkedHashMap<UUID, Enemy> enemies = new LinkedHashMap<>();
-    private long coins;
+    private long coinUnits;
     private UUID selected;
     public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
     private Outcome outcome = Outcome.PLAYING;
-    private long earnedCoins;
+    private long earnedUnits;
     private final Collection<Defender> defenderView = Collections.unmodifiableCollection(defenders.values());
     private final Collection<Enemy> enemyView = Collections.unmodifiableCollection(enemies.values());
 
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit) {
         if (startingCoins < 0 || enemyLimit < 1) throw new IllegalArgumentException("Invalid arena settings");
         this.id = Objects.requireNonNull(id); this.owner = Objects.requireNonNull(owner);
-        this.grid = Objects.requireNonNull(grid); this.coins = startingCoins; this.enemyLimit = enemyLimit;
+        this.grid = Objects.requireNonNull(grid); this.coinUnits = Gold.units(startingCoins); this.enemyLimit = enemyLimit;
     }
     public String id() { return id; }
     public UUID owner() { return owner; }
     public Grid grid() { return grid; }
-    public long coins() { return coins; }
+    public double coins() { return Gold.amount(coinUnits); }
     public int enemyLimit() { return enemyLimit; }
     public boolean ended() { return outcome != Outcome.PLAYING; }
     public Outcome outcome() { return outcome; }
-    public long earnedCoins() { return earnedCoins; }
+    public double earnedCoins() { return Gold.amount(earnedUnits); }
     public void finish(Outcome result) { if (!ended() && result != Outcome.PLAYING) outcome = result; }
     public int enemyCount() { return enemies.size(); }
     public int defenderCount() { return defenders.size(); }
@@ -52,14 +52,14 @@ public final class Arena {
     public Result summon(UUID actor, SummonRoll roll, Spawner spawner) {
         Result access = access(actor);
         if (access != Result.OK) return access;
-        if (coins < SUMMON_COST) return Result.INSUFFICIENT_COINS;
+        if (coinUnits < Gold.units(SUMMON_COST)) return Result.INSUFFICIENT_COINS;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
         // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
         UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
         if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
         defenders.put(entity, new Defender(entity, owner, id, roll.type(), roll.rarity(), cell));
-        coins -= SUMMON_COST;
+        coinUnits -= Gold.units(SUMMON_COST);
         return Result.OK;
     }
     public Result select(UUID actor, UUID entity) {
@@ -107,7 +107,7 @@ public final class Arena {
     }
     public void credit(long amount) {
         if (amount < 0) throw new IllegalArgumentException("Negative credit");
-        coins = Math.addExact(coins, amount);
+        coinUnits = Math.addExact(coinUnits, Gold.units(amount));
     }
     public void addEnemy(Enemy enemy) {
         if (ended()) throw new IllegalStateException("Arena ended");
@@ -121,9 +121,9 @@ public final class Arena {
         while (iterator.hasNext()) {
             Enemy enemy = iterator.next();
             if (!enemy.alive()) {
-                long reward = enemy.claimReward();
-                credit(reward);
-                earnedCoins += reward;
+                long reward = enemy.claimRewardUnits();
+                coinUnits = Math.addExact(coinUnits, reward);
+                earnedUnits = Math.addExact(earnedUnits, reward);
                 dead.add(enemy.entityId());
                 iterator.remove();
             }

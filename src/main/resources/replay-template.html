@@ -22,7 +22,7 @@ document.querySelector('#summary').textContent=(summary.primordialCap<2147483647
 const gridSize=summary.gridSize,routeSide=(gridSize-1)*3+6;
 document.querySelector('#placement').textContent=gridSize+'×'+gridSize+' · '+(gridSize*gridSize)+'칸 · 근접은 가장자리 우선, 원거리는 안쪽 우선 · 선호 구역이 차면 나머지 빈 칸 사용';
 function point(x){return 64+(x+3)*504/routeSide}
-function render(){const i=+time.value,f=frames[i];document.querySelector('#stats').textContent='R'+f.round+'/100 · '+Math.floor(f.tick/1200)+'분 '+Math.floor(f.tick/20)%60+'초 · 재화 '+f.coins+'원 · 적 '+f.enemies+'/100 · 소환 '+f.summons+' · 판매 '+f.sales+' · 이동 '+f.moves+' · 처치 수익 '+f.earned+'원';
+function render(){const i=+time.value,f=frames[i];document.querySelector('#stats').textContent='R'+f.round+'/100 · '+Math.floor(f.tick/1200)+'분 '+Math.floor(f.tick/20)%60+'초 · 재화 '+f.coins+'골드 · 적 '+f.enemies+'/100 · 소환 '+f.summons+' · 판매 '+f.sales+' · 이동 '+f.moves+' · 처치 수익 '+f.earned+'골드';
 ctx.clearRect(0,0,640,640);ctx.strokeStyle='#b45466';ctx.lineWidth=4;ctx.strokeRect(point(-3),point(-3),504,504);
 for(let row=0;row<gridSize;row++)for(let col=0;col<gridSize;col++){ctx.fillStyle='#233e57';ctx.fillRect(point(col*3)-22,point(row*3)-22,44,44)}
 for(const e of f.mobs){ctx.fillStyle=e.boss?'#ff9b75':'#ef596d';ctx.beginPath();ctx.arc(point(e.x),point(e.z),e.boss?8:3,0,Math.PI*2);ctx.fill()}

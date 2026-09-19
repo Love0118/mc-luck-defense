@@ -11,7 +11,7 @@ public final class RoleBenchmarkMain {
         Path output = Path.of(args.length == 0 ? "target/role-benchmark.jsonl" : args[0]);
         Files.createDirectories(output.toAbsolutePath().getParent());
         var rows = new ArrayList<String>();
-        for (Rarity rarity : List.of(Rarity.RARE, Rarity.MYTHIC, Rarity.PRIMORDIAL)) {
+        for (Rarity rarity : Rarity.values()) {
             for (UnitType type : UnitType.values()) {
                 double boss = trial(type, rarity, false), crowd = trial(type, rarity, true);
                 rows.add(String.format(Locale.ROOT, "{\"unit\":\"%s\",\"role\":\"%s\",\"rarity\":\"%s\",\"bossDps\":%.5f,\"crowdDps\":%.5f}", type, type.role(), rarity, boss, crowd));

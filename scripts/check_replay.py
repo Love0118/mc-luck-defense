@@ -12,10 +12,11 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
-    page.goto((ROOT / "docs/simulation/example-clear/replay.html").as_uri())
+    page.goto((ROOT / "docs/simulation/economy-0.9.0/example-clear/replay.html").as_uri())
     assert "6×6 · 36칸" in page.locator("#placement").inner_text()
     assert page.evaluate("gridSize === 6 && routeSide === 21")
     assert page.evaluate("frames.every(f => f.units.every(u => u.column >= 0 && u.column < 6 && u.row >= 0 && u.row < 6))")
+    assert page.evaluate("summary.startingGold === 30 && summary.regularRewardsByDecade[0] === 0.1")
     page.locator("#time").evaluate("el => { el.value = el.max; el.dispatchEvent(new Event('input')); }")
     assert "R100/100" in page.locator("#stats").inner_text()
     assert page.evaluate("frames.at(-1).enemies === 0 && summary.wins === 1")

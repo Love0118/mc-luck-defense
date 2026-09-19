@@ -1,0 +1,21 @@
+{
+  "clients": 3,
+  "mixedSpeedFrames": 340,
+  "speeds": [
+    2,
+    4,
+    8,
+    1
+  ],
+  "fGuiSpeed": true,
+  "startingGold": 30,
+  "fractionalRewards": true,
+  "oddsIcon": true,
+  "saleTool": true,
+  "hotbarRestored": true,
+  "flightTransitions": true,
+  "mobScaleTypes": 24,
+  "pluginSha256": "84c83013e22a527396f305eca0c6f2dc5629bdda67c2e1470e2218212c97d934",
+  "tests": 159,
+  "testFailures": 0
+}
