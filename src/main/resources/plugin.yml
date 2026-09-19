@@ -1,0 +1,14 @@
+name: MomaDefense
+version: '${project.version}'
+main: dev.moma.paper.MomaPlugin
+api-version: '26.3'
+description: 개인 전장 운빨 디펜스
+commands:
+  moma:
+    description: 운빨 디펜스 참가 및 관리
+    usage: /moma <join|leave|list|create|spawn|coins>
+permissions:
+  moma.play:
+    default: true
+  moma.admin:
+    default: op
