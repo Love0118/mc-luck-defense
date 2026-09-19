@@ -18,7 +18,8 @@ public final class WaveExportMain {
                 enemies.add(String.format(Locale.ROOT, "{\"type\":\"%s\",\"count\":%d,\"health\":%.4f,\"speed\":%.2f,\"reward\":%.1f,\"boss\":%s}",
                         e.type(), entry.getValue(), e.health(), e.speed(), e.reward(), e.boss()));
             }
-            rows.add("{\"round\":" + wave.round() + ",\"name\":\"" + wave.name() + "\",\"enemies\":[" + String.join(",", enemies) + "]}");
+            WaveTheme theme=WaveTheme.at(wave.round());
+            rows.add("{\"round\":" + wave.round() + ",\"name\":\"" + wave.name() + "\",\"biome\":\""+theme.biome()+"\",\"stage\":\""+theme.stage()+"\",\"enemies\":[" + String.join(",", enemies) + "]}");
         }
         Files.createDirectories(output.toAbsolutePath().getParent());
         Files.writeString(output, "[\n" + String.join(",\n", rows) + "\n]\n");

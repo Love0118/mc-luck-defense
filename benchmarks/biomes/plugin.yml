@@ -1,0 +1,5 @@
+name: BiomeSmoke
+version: '1'
+main: dev.moma.benchmark.BiomeSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense]

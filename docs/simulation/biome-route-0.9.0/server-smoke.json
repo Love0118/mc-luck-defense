@@ -1,0 +1,7 @@
+{
+  "enemyTypes": 49,
+  "biomes": 67,
+  "ticks": 220,
+  "spawnMoveRemove": true,
+  "dragonPartsProtected": true
+}
