@@ -28,6 +28,7 @@ public final class Defender {
     public Point position() { return cell.point(); }
     public long nextAttackTick() { return nextAttackTick; }
     public int consecutiveHits() { return consecutiveHits; }
+    UUID lastTarget() { return lastTarget; }
     void move(Cell destination) { cell = destination; }
     void attackAt(long tick, int interval) { nextAttackTick = tick + interval; }
     int hitTarget(UUID target) {

@@ -41,6 +41,9 @@ public final class Arena {
     Collection<Enemy> enemyView() { return enemyView; }
     public List<Defender> defenders() { return List.copyOf(defenders.values()); }
     public List<Enemy> enemies() { return List.copyOf(enemies.values()); }
+    /** Read-only live views for the server thread; do not structurally mutate during iteration. */
+    public Collection<Defender> activeDefenders() { return defenderView; }
+    public Collection<Enemy> activeEnemies() { return enemyView; }
     public Optional<Defender> selected() { return Optional.ofNullable(defenders.get(selected)); }
     public boolean hasEntity(UUID id) { return defenders.containsKey(id) || enemies.containsKey(id); }
     private Result access(UUID actor) {

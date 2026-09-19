@@ -35,6 +35,7 @@ final class ArenaMaps {
             @Override public boolean shouldGenerateStructures() { return false; }
         }));
         Objects.requireNonNull(world, "Could not create arena world");
+        world.setGameRule(org.bukkit.GameRules.SPAWN_MOBS, false);
         return world;
     }
     Collection<ArenaMap> all() { return Collections.unmodifiableCollection(maps.values()); }

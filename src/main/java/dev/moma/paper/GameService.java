@@ -140,18 +140,18 @@ final class GameService {
                 session.announcedRound = session.campaign.round();
                 player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             }
-            List<CombatEngine.Hit> hits = combat.tick(session.arena, tick);
-            for (CombatEngine.Hit hit : hits) {
-                Entity target = Bukkit.getEntity(hit.enemy());
+            session.hitEffects.clear();
+            combat.tick(session.arena, tick, (defender, enemy, damage) -> session.hitEffects.add(enemy.entityId()));
+            // One visual hit marker per target/tick; damage and special effects still run for every hit.
+            for (UUID targetId : session.hitEffects) {
+                Entity target = Bukkit.getEntity(targetId);
                 if (target != null) player.spawnParticle(Particle.CRIT, target.getLocation().add(0, 0.7, 0), 2, 0.1, 0.1, 0.1, 0);
             }
             session.arena.collectDeadEnemies().forEach(entities::remove);
             session.campaign.afterCombat(session.arena);
-            boolean intact = true;
-            for (dev.moma.core.Enemy enemy : session.arena.enemies())
-                intact &= entities.move(enemy.entityId(), session.map.location(enemy.position(session.map.grid().route())));
+            boolean intact = entities.advanceAll(session.arena, session.map);
             // Anchor unusual vanilla bodies such as shulkers as well as ordinary mobs.
-            for (Defender defender : session.arena.defenders())
+            for (Defender defender : session.arena.activeDefenders())
                 intact &= entities.move(defender.entityId(), session.map.location(defender.position()));
             if (!intact) {
                 player.sendMessage(Component.text("게임 엔티티가 사라져 전장을 종료했습니다.", NamedTextColor.RED));

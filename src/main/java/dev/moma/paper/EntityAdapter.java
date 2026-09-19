@@ -14,6 +14,16 @@ import java.util.Set;
 final class EntityAdapter {
     private final NamespacedKey factionKey, arenaKey, ownerKey;
     private final Set<UUID> moving = new HashSet<>();
+    private final Entity[] batchEntities = new Entity[100];
+    private final double[] batchPositions = new double[500];
+    private java.lang.reflect.Method batchBridge;
+    private boolean batchBridgeChecked;
+    private static final ClassValue<java.util.Optional<java.lang.reflect.Method>> PRESENTATION_MOTION = new ClassValue<>() {
+        @Override protected java.util.Optional<java.lang.reflect.Method> computeValue(Class<?> type) {
+            try { return java.util.Optional.of(type.getMethod("mudMovePresentation", Location.class)); }
+            catch (NoSuchMethodException absent) { return java.util.Optional.empty(); }
+        }
+    };
     EntityAdapter(MomaPlugin plugin) {
         factionKey = new NamespacedKey(plugin, "faction"); arenaKey = new NamespacedKey(plugin, "arena"); ownerKey = new NamespacedKey(plugin, "owner");
     }
@@ -31,6 +41,8 @@ final class EntityAdapter {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {
             if (!(raw instanceof LivingEntity living)) throw new IllegalArgumentException("Expected living unit");
             living.setAI(false); living.setGravity(false); living.setInvulnerable(true); living.setSilent(true);
+            living.setNoPhysics(true);
+            living.addScoreboardTag("mud_presentation_v1");
             living.setCollidable(false); living.setPersistent(false); living.setRemoveWhenFarAway(false); living.setCanPickupItems(false);
             living.setFireTicks(0); living.customName(label); living.setCustomNameVisible(true);
             if (living.getEquipment() != null) living.getEquipment().clear();
@@ -56,9 +68,56 @@ final class EntityAdapter {
     boolean move(UUID id, Location destination) {
         Entity entity = Bukkit.getEntity(id);
         if (entity == null || !entity.isValid()) return false;
+        // Still inspect actual coordinates so external displacement is repaired immediately.
+        if (entity.getWorld().equals(destination.getWorld()) && entity.getX() == destination.getX()
+                && entity.getY() == destination.getY() && entity.getZ() == destination.getZ()
+                && entity.getYaw() == destination.getYaw() && entity.getPitch() == destination.getPitch()) return true;
         moving.add(id);
         try { return entity.teleport(destination); }
         finally { moving.remove(id); }
+    }
+    /** Continuous enemy motion may use the guarded fork bridge; manual relocation remains teleport. */
+    boolean advance(UUID id, Location destination) {
+        Entity entity = Bukkit.getEntity(id);
+        if (entity == null || !entity.isValid()) return false;
+        var bridge = PRESENTATION_MOTION.get(entity.getClass());
+        if (bridge.isPresent()) {
+            try { if ((boolean) bridge.orElseThrow().invoke(entity, destination)) return true; }
+            catch (ReflectiveOperationException exception) { throw new IllegalStateException("MUD motion bridge failed", exception); }
+        }
+        return move(id, destination);
+    }
+    boolean advanceAll(dev.moma.core.Arena arena, ArenaMap map) {
+        if (!batchBridgeChecked) {
+            batchBridgeChecked = true;
+            if (Boolean.getBoolean("mud.native.entityBatch")) {
+                try { batchBridge = Bukkit.getServer().getClass().getMethod("mudMovePresentationBatch", Entity[].class, double[].class, int.class); }
+                catch (NoSuchMethodException absent) { /* Standard Paper fallback. */ }
+            }
+        }
+        if (batchBridge != null && arena.enemyCount() <= batchEntities.length) {
+            int i = 0;
+            try {
+                for (dev.moma.core.Enemy enemy : arena.activeEnemies()) {
+                    Entity entity = Bukkit.getEntity(enemy.entityId());
+                    if (entity == null || !entity.isValid() || !entity.getWorld().equals(map.world())) return false;
+                    Point point = enemy.position(map.grid().route());
+                    batchEntities[i] = entity;
+                    batchPositions[i*5] = map.originX()+point.x()+.5;
+                    batchPositions[i*5+1] = map.floorY()+1;
+                    batchPositions[i*5+2] = map.originZ()+point.z()+.5;
+                    batchPositions[i*5+3] = 0; batchPositions[i*5+4] = 0;
+                    i++;
+                }
+                if ((boolean) batchBridge.invoke(Bukkit.getServer(), batchEntities, batchPositions, i)) return true;
+            } catch (ReflectiveOperationException error) {
+                throw new IllegalStateException("MUD JNI motion failed; no retry performed", error);
+            } finally { java.util.Arrays.fill(batchEntities, null); }
+        }
+        boolean intact = true;
+        for (dev.moma.core.Enemy enemy : arena.activeEnemies())
+            intact &= advance(enemy.entityId(), map.location(enemy.position(map.grid().route())));
+        return intact;
     }
     static NamedTextColor rarityColor(Rarity rarity) {
         return switch (rarity) {

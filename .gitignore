@@ -1,4 +1,5 @@
 target/
+native/mud-combat/target/
 .codegraph/
 .idea/
 *.iml

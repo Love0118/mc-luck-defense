@@ -1,0 +1,1 @@
+["java", "-Dmud.native.entityBatch=true", "-Dmud.native.entities.javaControl=true", "-Xms4g", "-Xmx4g", "-Dio.netty.leakDetection.level=simple", "-Dmudbench.warmup=3200", "-Dmudbench.measure=6400", "-Dmudbench.campaign=false", "-jar", "E:\\projects\\moma\\.runtime\\paper-mud-native-control.jar", "--nogui"]

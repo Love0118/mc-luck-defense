@@ -10,7 +10,7 @@ Paper **26.3 build 19 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/moma-defense-0.4.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/moma-defense-0.5.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 서버/API는 26.3.build.19-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 [Paper build 19 메타데이터](https://fill.papermc.io/v3/projects/paper/versions/26.3/builds/19) · 서버 파일 paper-26.3-19.jar · SHA-256 f623c073913db7f21c6338eef22a00b19a8d87c1ef3115c2060d2382b90f4650
 
@@ -139,6 +139,27 @@ CLI 인수 순서는 실행 수, 시작 시드, 전체 체력 배율, 출력 폴
 
 시뮬레이터는 20 TPS의 실제 코어를 끝까지 실행합니다. 평균 DPS로 승패를 근사하지 않습니다. 소환·판매·재배치는 실제 Arena API를 사용하며 미래 뽑기를 보지 않습니다. 사람의 조작 지연·네트워크·서버 렉은 모델에 없으므로 약 1%는 이 자동 플레이 정책의 시도당 추정치입니다.
 
+## 26.3-mud 서버 최적화와 20세션 검증
+
+[전용 서버 브랜치](https://github.com/Love0118/paper-pathetic-mobs-fork/tree/26.3-mud) · [성능 보고서와 원본](docs/performance/REPORT.md)
+
+20개의 실제 TCP 클라이언트와 100라운드를 실행한 최종 결과는 **314.59 TPS, 평균 2.053ms, p95 3.828ms**였습니다. 모두 100라운드까지 완료했지만 3.125ms 예산을 넘긴 틱이 13.10%라서 **320 TPS 지속 유지는 미달**입니다. 아군 720·적 1,800을 계속 유지하는 밀집 부하에서는 공식 Paper+기존 플러그인 51.73 TPS → 전용 서버+최적화 플러그인 158.21 TPS였습니다. 호스트 변동과 측정 조건은 보고서를 참고하세요.
+
+플러그인은 정지 포탑 teleport·목록 복사·중복 타격 이펙트를 줄이고 물리와 전용 월드 자연 스폰을 끕니다. 전용 서버가 있을 때만 명시적으로 표시된 MUD 엔티티의 연속 이동 경로를 사용합니다. 일반 Paper에서는 기존 이동으로 돌아갑니다. 전투·경제·뽑기 규칙은 유지됩니다.
+
+전용 서버의 config/paper-global.yml에서 아래 세 옵션을 켜고 재시작합니다. 기본값은 모두 false입니다.
+
+~~~yaml
+mud-optimizations:
+  presentation-mob-tick: true
+  retained-frames: true
+  in-place-frame-prefix: true
+~~~
+
+이 설정은 플러그인이 체력·이동·전투를 전부 관리하는 MUD 외형 엔티티를 위한 것입니다. 수동 재배치는 일반 teleport를 사용하며 연속 경로 이동만 별도 서버 경로를 사용합니다. 패킷 옵션은 프로토콜 payload를 바꾸지 않고 버퍼 복사를 줄입니다. 클라이언트 화면 렌더링·원격 네트워크·다른 패킷 플러그인과의 조합 검증은 별도입니다.
+
+**Rust 모듈도 선택적으로 제공합니다.** [FFM 전투 모듈](native/mud-combat/README.md)은 수치 배열을 처리하고, [서버 JNI 모듈](https://github.com/Love0118/paper-pathetic-mobs-fork/tree/26.3-mud/native/mud-entities)은 실제 NMS Java 객체의 위치·회전을 배치 갱신합니다. 현재 밀집 비교에서는 Java 배치 186.11 TPS, Rust JNI만 177.81 TPS, JNI+FFM 113.32 TPS로 native 경계 비용이 이득보다 컸습니다. **기본은 Java이며 현재 native 기본 활성화는 권장하지 않습니다.** 데이터 정합성과 JNI/GC 계약은 검증했으며 자세한 수치·100라운드 비교는 성능 보고서에 있습니다.
+
 ## 명령과 운영
 
 | 명령 | 권한 | 설명 |
@@ -165,4 +186,4 @@ CLI 인수 순서는 실행 수, 시작 시드, 전체 체력 배율, 출력 폴
 - scripts/summarize_simulation.py: 표준 Python만으로 측정 데이터의 보고서를 재생성합니다.
 - scripts/check_replay.py: 별도 Playwright와 Edge를 사용해 데스크톱·모바일·재생·자바스크립트 오류를 검사합니다.
 
-실제 Paper 서버와 접속 클라이언트의 플레이 검증은 별도입니다. [실서버 확인 목록](docs/manual-verification.md)을 제공합니다.
+20세션 실제 서버·프로토콜 클라이언트 자동 부하 검증을 수행했습니다. 실제 Minecraft 화면·사람의 조작 검증은 별도입니다. [실서버 확인 목록](docs/manual-verification.md)을 제공합니다.

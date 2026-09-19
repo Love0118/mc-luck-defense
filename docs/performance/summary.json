@@ -1,0 +1,1037 @@
+{
+  "final-stock-r1": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 123.722966,
+    "actualTps": 51.7285,
+    "meanMspt": 19.295879,
+    "p50Mspt": 18.8206,
+    "p95Mspt": 23.728,
+    "p99Mspt": 27.8233,
+    "maxMspt": 73.3506,
+    "ticksOverBudget": 6400,
+    "gcMillis": 66,
+    "heapDelta": 1456962016,
+    "artifactSha256": {
+      "server": "f623c073913db7f21c6338eef22a00b19a8d87c1ef3115c2060d2382b90f4650",
+      "plugin": "06298eeea91e23bd8577ea33f494a26ca9bbc34635246dc5e402175488e8aa2e",
+      "benchmarkPlugin": "c9e77d7d50095c433de588d81eda37bda7d794080f78a04ebe28869196b90c07"
+    },
+    "jfrSha256": "c400110a3f824d67322cd29a2c80dfd2ac8ecf053374a5cdffa46ba5c1bca6a7",
+    "clientPacketsDuringApproximateCapture": 5161063,
+    "clientBytesDuringApproximateCapture": 118681528,
+    "clientCaptureSeconds": 124.73258209228516,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "final-candidate-r1": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 40.451872,
+    "actualTps": 158.2127,
+    "meanMspt": 6.281614,
+    "p50Mspt": 5.9135,
+    "p95Mspt": 9.1946,
+    "p99Mspt": 11.8572,
+    "maxMspt": 53.8464,
+    "ticksOverBudget": 6400,
+    "gcMillis": 14,
+    "heapDelta": -107589160,
+    "artifactSha256": {
+      "server": "ec1dc4c6dbf9c1076bb7bc1e3efd31d32545d94648155cc59c67514bdf0a852c",
+      "plugin": "8db0220b349e0219717e2651e3d2e87decf94c66e9e83460bfa50f09cd3db444",
+      "benchmarkPlugin": "c9e77d7d50095c433de588d81eda37bda7d794080f78a04ebe28869196b90c07"
+    },
+    "jfrSha256": "5802d0b71951735702b2b8819c4bb525e3b16fa38a264fee8ae184ddeae7300c",
+    "clientPacketsDuringApproximateCapture": 5053346,
+    "clientBytesDuringApproximateCapture": 111353742,
+    "clientCaptureSeconds": 41.41513633728027,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "final-candidate-noframe": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 43.017646,
+    "actualTps": 148.7762,
+    "meanMspt": 6.680729,
+    "p50Mspt": 6.3649,
+    "p95Mspt": 9.476,
+    "p99Mspt": 12.0898,
+    "maxMspt": 29.357,
+    "ticksOverBudget": 6400,
+    "gcMillis": 14,
+    "heapDelta": 215812408,
+    "artifactSha256": {
+      "server": "ec1dc4c6dbf9c1076bb7bc1e3efd31d32545d94648155cc59c67514bdf0a852c",
+      "plugin": "8db0220b349e0219717e2651e3d2e87decf94c66e9e83460bfa50f09cd3db444",
+      "benchmarkPlugin": "c9e77d7d50095c433de588d81eda37bda7d794080f78a04ebe28869196b90c07"
+    },
+    "jfrSha256": "a616223338cecba508f440040c78e5d265868d9d983b68495491b1ed09410651",
+    "clientPacketsDuringApproximateCapture": 5100419,
+    "clientBytesDuringApproximateCapture": 112340110,
+    "clientCaptureSeconds": 44.26847314834595,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "final-campaign": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 700,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 61520,
+    "seconds": 195.55634,
+    "actualTps": 314.5896,
+    "meanMspt": 2.053046,
+    "p50Mspt": 1.8449,
+    "p95Mspt": 3.828,
+    "p99Mspt": 5.0895,
+    "maxMspt": 66.007,
+    "ticksOverBudget": 8059,
+    "gcMillis": 115,
+    "heapDelta": 535617384,
+    "artifactSha256": {
+      "server": "ec1dc4c6dbf9c1076bb7bc1e3efd31d32545d94648155cc59c67514bdf0a852c",
+      "plugin": "8db0220b349e0219717e2651e3d2e87decf94c66e9e83460bfa50f09cd3db444",
+      "benchmarkPlugin": "c9e77d7d50095c433de588d81eda37bda7d794080f78a04ebe28869196b90c07"
+    },
+    "jfrSha256": "329e7fcdd258f5c53a546f8ebf140394ee34c7dcc5c27dcf85fd350a97cfd63f",
+    "clientPacketsDuringApproximateCapture": 7830945,
+    "clientBytesDuringApproximateCapture": 240438518,
+    "clientCaptureSeconds": 196.44905829429626,
+    "workload": {
+      "mode": "campaign",
+      "peakEnemies": 700,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        }
+      ]
+    }
+  },
+  "native-java-control": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 36.586277,
+    "actualTps": 174.929,
+    "meanMspt": 5.684608,
+    "p50Mspt": 5.2851,
+    "p95Mspt": 9.1179,
+    "p99Mspt": 10.497,
+    "maxMspt": 34.8401,
+    "ticksOverBudget": 5968,
+    "gcMillis": 11,
+    "heapDelta": 380785480,
+    "artifactSha256": {
+      "server": "662e986f448b0762e5b112a227ec232d28c745bd1b18c7e7f6de165ddedfcb5d",
+      "plugin": "71818f7de87b9f3f0fcf477d1b66ea0947727661804225e0a3139d629a417a7c",
+      "benchmarkPlugin": "0bcf554026933b5e97d28199f3fcec888996bb681b6e71b3278bfa765110fae0"
+    },
+    "jfrSha256": "85a539b02b45f5808dd95c0c2c566bae1d943b5ec8b865afd77b1e4123dcb585",
+    "clientPacketsDuringApproximateCapture": 4975409,
+    "clientBytesDuringApproximateCapture": 109731036,
+    "clientCaptureSeconds": 36.77046871185303,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "native-java-batch": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 34.387492,
+    "actualTps": 186.1142,
+    "meanMspt": 5.343498,
+    "p50Mspt": 5.0461,
+    "p95Mspt": 8.5845,
+    "p99Mspt": 10.4162,
+    "maxMspt": 33.6129,
+    "ticksOverBudget": 6012,
+    "gcMillis": 13,
+    "heapDelta": -482175120,
+    "artifactSha256": {
+      "server": "75c8826ecfa4453abee6ce81ad1bef6d706365f57cd685c032611cbc86880b10",
+      "plugin": "71818f7de87b9f3f0fcf477d1b66ea0947727661804225e0a3139d629a417a7c",
+      "benchmarkPlugin": "0bcf554026933b5e97d28199f3fcec888996bb681b6e71b3278bfa765110fae0"
+    },
+    "jfrSha256": "8e649475dab99e1ba4f63facabd440f666d6cc0ab4aa42132fe1a99694e448cb",
+    "clientPacketsDuringApproximateCapture": 5008142,
+    "clientBytesDuringApproximateCapture": 110427136,
+    "clientCaptureSeconds": 34.876025438308716,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "native-jni-only": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 35.994147,
+    "actualTps": 177.8067,
+    "meanMspt": 5.59685,
+    "p50Mspt": 5.1082,
+    "p95Mspt": 9.5541,
+    "p99Mspt": 11.9732,
+    "maxMspt": 32.7586,
+    "ticksOverBudget": 6158,
+    "gcMillis": 13,
+    "heapDelta": -535311024,
+    "artifactSha256": {
+      "server": "75c8826ecfa4453abee6ce81ad1bef6d706365f57cd685c032611cbc86880b10",
+      "plugin": "71818f7de87b9f3f0fcf477d1b66ea0947727661804225e0a3139d629a417a7c",
+      "benchmarkPlugin": "0bcf554026933b5e97d28199f3fcec888996bb681b6e71b3278bfa765110fae0"
+    },
+    "jfrSha256": "21d9613ec6d981bcc19f217eb3b146bf3241a44f6b790fee317d029c14794520",
+    "clientPacketsDuringApproximateCapture": 5095783,
+    "clientBytesDuringApproximateCapture": 112240710,
+    "clientCaptureSeconds": 37.011454582214355,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "native-both-r1": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 6400,
+    "seconds": 56.477205,
+    "actualTps": 113.3201,
+    "meanMspt": 8.789262,
+    "p50Mspt": 8.7418,
+    "p95Mspt": 11.2201,
+    "p99Mspt": 13.2672,
+    "maxMspt": 40.1427,
+    "ticksOverBudget": 6399,
+    "gcMillis": 14,
+    "heapDelta": -638162384,
+    "artifactSha256": {
+      "server": "662e986f448b0762e5b112a227ec232d28c745bd1b18c7e7f6de165ddedfcb5d",
+      "plugin": "71818f7de87b9f3f0fcf477d1b66ea0947727661804225e0a3139d629a417a7c",
+      "benchmarkPlugin": "0bcf554026933b5e97d28199f3fcec888996bb681b6e71b3278bfa765110fae0"
+    },
+    "jfrSha256": "b4ab49b787420b1b1a102f3780dc22c283b0babd2175412be67f314d381c0ea0",
+    "clientPacketsDuringApproximateCapture": 5019540,
+    "clientBytesDuringApproximateCapture": 110663455,
+    "clientCaptureSeconds": 57.12535285949707,
+    "workload": {
+      "mode": "dense",
+      "peakEnemies": 1800,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        },
+        {
+          "outcome": "PLAYING",
+          "round": 0
+        }
+      ]
+    }
+  },
+  "native-campaign": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 700,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 61520,
+    "seconds": 197.072928,
+    "actualTps": 312.1687,
+    "meanMspt": 2.260452,
+    "p50Mspt": 2.0442,
+    "p95Mspt": 4.0802,
+    "p99Mspt": 5.6971,
+    "maxMspt": 125.124,
+    "ticksOverBudget": 10243,
+    "gcMillis": 233,
+    "heapDelta": -544926400,
+    "artifactSha256": {
+      "server": "75c8826ecfa4453abee6ce81ad1bef6d706365f57cd685c032611cbc86880b10",
+      "plugin": "29705b42fe4c161e589fc7f3f9f64fb5e3cf60c6295ac366da57afe9065a177f",
+      "benchmarkPlugin": "0bcf554026933b5e97d28199f3fcec888996bb681b6e71b3278bfa765110fae0"
+    },
+    "jfrSha256": "b8e488e259fe515e3c61450ec579fd3295d91984bca71803bddbf3c64148553c",
+    "clientPacketsDuringApproximateCapture": 7830850,
+    "clientBytesDuringApproximateCapture": 240437933,
+    "clientCaptureSeconds": 197.79299092292786,
+    "workload": {
+      "mode": "campaign",
+      "peakEnemies": 700,
+      "peakDefenders": 720,
+      "outcomes": [
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        },
+        {
+          "outcome": "VICTORY",
+          "round": 100
+        }
+      ]
+    }
+  }
+}

@@ -9,7 +9,8 @@ public final class AutoPlayer {
     public enum Strategy { BALANCED, AUTO_PLACE }
     private final HashRandom random;
     private final Strategy strategy;
-    private final Supplier<UUID> ids;
+    private final Arena.Spawner spawner;
+    private final java.util.function.Consumer<UUID> remove;
     private final double[][] coverage;
     private final int[] rarities = new int[Rarity.values().length];
     private int summons, sales, moves;
@@ -19,9 +20,12 @@ public final class AutoPlayer {
         this(seed, strategy, grid, ids, Integer.MAX_VALUE);
     }
     public AutoPlayer(long seed, Strategy strategy, Grid grid, Supplier<UUID> ids, int primordialCap) {
+        this(seed, strategy, grid, (type, rarity, cell) -> ids.get(), id -> {}, primordialCap);
+    }
+    public AutoPlayer(long seed, Strategy strategy, Grid grid, Arena.Spawner spawner, java.util.function.Consumer<UUID> remove, int primordialCap) {
         if (primordialCap < 0) throw new IllegalArgumentException("Negative primordial cap");
         this.primordialCap = primordialCap;
-        random = new HashRandom(seed); this.strategy = strategy; this.ids = ids;
+        random = new HashRandom(seed); this.strategy = strategy; this.spawner = spawner; this.remove = remove;
         coverage = new double[UnitType.values().length * Rarity.values().length][grid.size() * grid.size()];
         for (UnitType type : UnitType.values()) for (Rarity rarity : Rarity.values()) {
             double range = type.profile().at(rarity).range();
@@ -64,14 +68,14 @@ public final class AutoPlayer {
             // Stress-test intervention only: spend the same draw but downgrade excess Primordials.
             if (roll.rarity() == Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()] >= primordialCap)
                 roll = new SummonRoll(roll.type(), Rarity.MYTHIC);
-            if (arena.summon(arena.owner(), roll, (type, rarity, cell) -> ids.get()) == Arena.Result.OK) {
+            if (arena.summon(arena.owner(), roll, spawner) == Arena.Result.OK) {
                 summons++; rarities[roll.rarity().ordinal()]++;
             }
         }
     }
     private void sell(Arena arena, Defender d) {
         arena.select(arena.owner(), d.entityId());
-        if (arena.sellSelected(arena.owner()) == Arena.Result.OK) sales++;
+        if (arena.sellSelected(arena.owner()) == Arena.Result.OK) { sales++; remove.accept(d.entityId()); }
     }
     private boolean improvePlacement(Arena arena, List<Defender> units) {
         Set<Cell> occupied = new HashSet<>(); for (Defender d : units) occupied.add(d.cell());

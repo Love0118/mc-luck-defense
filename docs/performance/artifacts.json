@@ -1,0 +1,98 @@
+{
+  "serverCommit": "60d633037d",
+  "ciRun": "https://github.com/Love0118/paper-pathetic-mobs-fork/actions/runs/35451811288",
+  "files": {
+    "stockServer": {
+      "path": ".runtime\\paper-26.3-19.jar",
+      "sha256": "f623c073913db7f21c6338eef22a00b19a8d87c1ef3115c2060d2382b90f4650"
+    },
+    "benchmarkedLocalCandidate": {
+      "path": ".runtime\\paper-mud-motion.jar",
+      "sha256": "ec1dc4c6dbf9c1076bb7bc1e3efd31d32545d94648155cc59c67514bdf0a852c"
+    },
+    "ciServer": {
+      "path": ".runtime\\ci-server\\paper-paperclip-26.3.local-SNAPSHOT.jar",
+      "sha256": "3773c2dc02a99354d045f94e5e8ebe96590b9096fb8fe290edde63351c3c36ad"
+    },
+    "plugin": {
+      "path": "target/moma-defense-0.5.0.jar",
+      "sha256": "29705b42fe4c161e589fc7f3f9f64fb5e3cf60c6295ac366da57afe9065a177f"
+    },
+    "rustCombat": {
+      "path": "native/mud-combat/target/release/mud_combat.dll",
+      "sha256": "25d9dd7a18abeb534ada3f2e0a44428a1403a029e7b2aa309875b37b2a103df5"
+    },
+    "rustEntities": {
+      "path": "E:/projects/paper-26.3-mud/native/mud-entities/target/release/mud_entities.dll",
+      "sha256": "e9dc603d5552a303755a7d6658f1180eab87bc420eba0b5918d6b639517c22a1"
+    },
+    "nativeBenchmarkedServer": {
+      "path": ".runtime/paper-mud-native-control.jar",
+      "sha256": "75c8826ecfa4453abee6ce81ad1bef6d706365f57cd685c032611cbc86880b10"
+    }
+  },
+  "ciSmoke": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 320,
+    "measuredTicks": 640,
+    "seconds": 3.098675,
+    "actualTps": 206.5399,
+    "meanMspt": 4.801777,
+    "p50Mspt": 4.6411,
+    "p95Mspt": 6.7635,
+    "p99Mspt": 8.4496,
+    "maxMspt": 12.6722,
+    "ticksOverBudget": 616,
+    "gcMillis": 0,
+    "heapDelta": 919601152
+  },
+  "nativeServerCommit": "c4813f8c27",
+  "nativeCiRun": "https://github.com/Love0118/paper-pathetic-mobs-fork/actions/runs/35454239107",
+  "nativeCanary": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 1800,
+    "targetTps": 320,
+    "warmupTicks": 640,
+    "measuredTicks": 1280,
+    "seconds": 10.519669,
+    "actualTps": 121.6768,
+    "meanMspt": 8.170191,
+    "p50Mspt": 7.9247,
+    "p95Mspt": 10.9188,
+    "p99Mspt": 13.2129,
+    "maxMspt": 64.1394,
+    "ticksOverBudget": 1280,
+    "gcMillis": 55,
+    "heapDelta": -530617928,
+    "entityBatches": 38630,
+    "combatBatches": 38630
+  },
+  "nativeServerCiRun": "https://github.com/Love0118/paper-pathetic-mobs-fork/actions/runs/35454239079",
+  "nativeCampaign": {
+    "sessions": 20,
+    "viewers": 20,
+    "defenders": 720,
+    "enemies": 700,
+    "targetTps": 320,
+    "warmupTicks": 3200,
+    "measuredTicks": 61520,
+    "seconds": 197.072928,
+    "actualTps": 312.1687,
+    "meanMspt": 2.260452,
+    "p50Mspt": 2.0442,
+    "p95Mspt": 4.0802,
+    "p99Mspt": 5.6971,
+    "maxMspt": 125.124,
+    "ticksOverBudget": 10243,
+    "gcMillis": 233,
+    "heapDelta": -544926400,
+    "entityBatches": 1285230,
+    "combatBatches": 1034540
+  }
+}
