@@ -41,11 +41,17 @@ final class ArenaMaps {
     Collection<ArenaMap> all() { return Collections.unmodifiableCollection(maps.values()); }
     ArenaMap get(String id) { return maps.get(id); }
     boolean contains(Location location) { return maps.values().stream().anyMatch(m -> m.contains(location)); }
+    ArenaMap createNext(int size) throws IOException {
+        int number = maps.size() + 1;
+        String id;
+        do { id = "arena" + number++; } while (maps.containsKey(id));
+        return create(id, size);
+    }
     ArenaMap create(String id, int size) throws IOException {
         if (!id.matches("[a-z0-9_-]{1,24}")) throw new IllegalArgumentException("전장 이름은 영문 소문자·숫자·_·- 1~24자입니다.");
         if (maps.containsKey(id)) throw new IllegalArgumentException("이미 있는 전장입니다.");
-        int slot = maps.size();
-        ArenaMap map = new ArenaMap(id, world(), slot * 128, 64, 0, new Grid(size));
+        int originX = maps.values().stream().filter(m -> m.originZ() == 0).mapToInt(ArenaMap::originX).max().orElse(-128) + 128;
+        ArenaMap map = new ArenaMap(id, world(), originX, 64, 0, new Grid(size));
         // Never overwrite blocks, including when a different plugin created this world.
         for (int x = -6; x <= map.maxOffset(); x++) {
             for (int z = -6; z <= map.maxOffset(); z++) {

@@ -14,6 +14,9 @@ final class GameService {
     private final Lobby lobby;
     final EntityAdapter entities;
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
+    private record Watch(GameSession target, Location returnLocation, GameMode returnMode) {}
+    private final Map<UUID, Watch> spectators = new LinkedHashMap<>();
+    record SessionInfo(UUID sessionId, UUID owner, String playerName, String arena, int round, int enemies) {}
     private final CombatEngine combat = new CombatEngine();
     private long tick;
 
@@ -25,6 +28,54 @@ final class GameService {
     }
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
+    boolean watching(Player player) { return spectators.containsKey(player.getUniqueId()); }
+    List<SessionInfo> activeSessions() {
+        return sessions.values().stream().filter(s -> !s.arena.ended()).map(s -> {
+            Player owner = Bukkit.getPlayer(s.arena.owner());
+            return new SessionInfo(s.sessionId, s.arena.owner(), owner == null ? s.arena.id() : owner.getName(),
+                    s.arena.id(), s.campaign.round(), s.arena.enemyCount());
+        }).toList();
+    }
+    void spectate(Player player, UUID sessionId) {
+        if (playing(player)) throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
+        GameSession target = sessions.values().stream().filter(s -> s.sessionId.equals(sessionId) && !s.arena.ended()).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("이미 종료된 세션입니다. 관전 목록을 다시 열어주세요."));
+        Watch previous = spectators.get(player.getUniqueId());
+        Watch watch = new Watch(target, previous == null ? player.getLocation().clone() : previous.returnLocation,
+                previous == null ? player.getGameMode() : previous.returnMode);
+        if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
+        player.closeInventory(); player.setGameMode(GameMode.SPECTATOR);
+        spectators.put(player.getUniqueId(), watch);
+        if (!player.teleport(viewpoint(target))) { stopWatching(player, true); throw new IllegalArgumentException("관전 위치로 이동하지 못했습니다."); }
+        player.sendMessage(Ui.text("&b관전 시작 &7· /mud: 관전 메뉴 /mud lobby: 로비 복귀"));
+    }
+    void spectate(Player player, String playerName) {
+        SessionInfo target = activeSessions().stream().filter(s -> s.playerName.equalsIgnoreCase(playerName) || s.arena.equals(playerName)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("관전할 활성 세션이 없습니다."));
+        spectate(player, target.sessionId);
+    }
+    private Location viewpoint(GameSession target) { return target.map.entrance().add(0, 8, 0); }
+    boolean spectatorDestination(Player player, Location to) {
+        Watch watch = spectators.get(player.getUniqueId());
+        return watch == null || watch.target.map.contains(to) && to.getY() >= watch.target.map.floorY()
+                && to.getY() <= watch.target.map.floorY() + 40;
+    }
+    private void stopWatching(Player player, boolean returnToLobby) {
+        Watch watch = spectators.remove(player.getUniqueId());
+        if (watch == null) return;
+        if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
+        if (returnToLobby) {
+            if (lobby != null) lobby.send(player);
+            else { player.setGameMode(watch.returnMode); player.teleport(watch.returnLocation); }
+        }
+    }
+    private List<Player> viewers(Player owner, GameSession session) {
+        var result = new ArrayList<Player>(); result.add(owner);
+        spectators.forEach((id, watch) -> {
+            if (watch.target == session) { Player viewer = Bukkit.getPlayer(id); if (viewer != null) result.add(viewer); }
+        });
+        return result;
+    }
     boolean tracks(UUID entity) { return sessions.values().stream().anyMatch(s -> s.arena.hasEntity(entity)); }
     boolean available(String id) {
         ArenaMap map = maps.get(id);
@@ -32,8 +83,11 @@ final class GameService {
     }
     void start(Player player) {
         if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
-        String id = maps.all().stream().map(ArenaMap::id).filter(this::available).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("빈 개인 전장이 없습니다. 잠시 후 다시 시도하세요."));
+        String id = maps.all().stream().map(ArenaMap::id).filter(this::available).findFirst().orElse(null);
+        if (id == null) {
+            try { id = maps.createNext(settings.gridSize()).id(); }
+            catch (java.io.IOException error) { throw new IllegalStateException("Failed to save a new arena", error); }
+        }
         join(player, id);
     }
     void join(Player player, String id) {
@@ -42,6 +96,7 @@ final class GameService {
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
         if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
+        if (watching(player)) stopWatching(player, true);
         GameSession session = new GameSession(player, map, settings);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
             for (int z = (map.originZ() - 6) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
@@ -55,6 +110,7 @@ final class GameService {
         player.sendMessage(Component.text("100라운드 도전! 15초 후 적이 출현합니다. F: 소환·판매 / 좌클릭: 선택·이동", NamedTextColor.GREEN));
     }
     void leave(Player player) {
+        if (watching(player)) { stopWatching(player, true); return; }
         GameSession session = sessions.remove(player.getUniqueId());
         if (session == null) { if (lobby != null) lobby.send(player); return; }
         player.closeInventory();
@@ -63,10 +119,20 @@ final class GameService {
         else { player.setGameMode(session.returnMode); player.teleport(session.returnLocation); }
     }
     void disconnect(Player player) {
+        stopWatching(player, false);
         GameSession session = sessions.remove(player.getUniqueId());
         if (session != null) release(session);
     }
     private void release(GameSession session) {
+        for (UUID id : List.copyOf(spectators.keySet())) {
+            if (spectators.get(id).target != session) continue;
+            Player viewer = Bukkit.getPlayer(id);
+            if (viewer == null) spectators.remove(id);
+            else {
+                viewer.sendMessage(Ui.text("&e관전 중인 세션이 종료되어 로비로 돌아갑니다."));
+                stopWatching(viewer, true);
+            }
+        }
         session.arena.defenders().forEach(d -> entities.remove(d.entityId()));
         session.arena.enemies().forEach(e -> entities.remove(e.entityId()));
         session.tickets.forEach(c -> c.removePluginChunkTicket(plugin));
@@ -76,6 +142,9 @@ final class GameService {
             Player player = Bukkit.getPlayer(id);
             if (player != null) leave(player);
             else release(sessions.remove(id));
+        }
+        for (UUID id : List.copyOf(spectators.keySet())) {
+            Player player = Bukkit.getPlayer(id); if (player != null) stopWatching(player, true); else spectators.remove(id);
         }
     }
     void summon(Player player) {
@@ -102,6 +171,12 @@ final class GameService {
         Arena.Result result = session.arena.sellSelected(player.getUniqueId());
         if (result == Arena.Result.OK) entities.remove(selected);
         tell(player, result);
+    }
+    void sellRarity(Player player, Rarity rarity) {
+        GameSession session = session(player); if (session == null) return;
+        Arena.BulkSale sale = session.arena.sellRarity(player.getUniqueId(), rarity);
+        sale.entities().forEach(entities::remove); tell(player, sale.result());
+        if (sale.result() == Arena.Result.OK) player.sendMessage(Ui.text("&a" + rarity.label() + " " + sale.entities().size() + "마리 판매 &6+" + sale.income() + "원"));
     }
     void select(Player player, UUID entity) {
         GameSession session = session(player);
@@ -133,6 +208,14 @@ final class GameService {
     }
     void tick() {
         tick++;
+        for (var entry : List.copyOf(spectators.entrySet())) {
+            Player viewer = Bukkit.getPlayer(entry.getKey());
+            if (viewer == null) { spectators.remove(entry.getKey()); continue; }
+            GameSession target = entry.getValue().target;
+            if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
+            if (!spectatorDestination(viewer, viewer.getLocation())) viewer.teleport(viewpoint(target));
+            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &f" + target.arena.id() + " &7· &eR" + target.campaign.round() + " &7· /mud: 메뉴"));
+        }
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
             if (player == null) { sessions.remove(session.arena.owner()); release(session); continue; }
@@ -153,13 +236,9 @@ final class GameService {
                 session.announcedRound = session.campaign.round();
                 player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             }
-            session.hitEffects.clear();
-            combat.tick(session.arena, tick, (defender, enemy, damage) -> session.hitEffects.add(enemy.entityId()));
-            // One visual hit marker per target/tick; damage and special effects still run for every hit.
-            for (UUID targetId : session.hitEffects) {
-                Entity target = Bukkit.getEntity(targetId);
-                if (target != null) player.spawnParticle(Particle.CRIT, target.getLocation().add(0, 0.7, 0), 2, 0.1, 0.1, 0.1, 0);
-            }
+            session.attackEffects.clear();
+            combat.tick(session.arena, tick, (defender, enemy, damage) -> session.attackEffects.hit(defender, enemy.position(session.map.grid().route())));
+            session.attackEffects.render(session.map, viewers(player, session));
             session.arena.collectDeadEnemies().forEach(entities::remove);
             session.campaign.afterCombat(session.arena);
             if (session.arena.ended()) { finish(player, session); continue; }

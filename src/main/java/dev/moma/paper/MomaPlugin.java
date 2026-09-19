@@ -17,8 +17,9 @@ public final class MomaPlugin extends JavaPlugin {
         Lobby lobby = Lobby.load(this);
         games = new GameService(this, maps, settings, lobby);
         var shop = new ShopMenu(this, games);
-        var lobbyMenu = new LobbyMenu(this, games, maps);
+        var lobbyMenu = new LobbyMenu(this, games);
         getServer().getPluginManager().registerEvents(lobbyMenu, this);
+        getServer().getPluginManager().registerEvents(new SpectatorListener(games), this);
         if (lobby != null) {
             getServer().getPluginManager().registerEvents(new LobbyListener(lobby, games, lobbyMenu), this);
             for (var player : Bukkit.getOnlinePlayers()) lobby.send(player);
@@ -30,6 +31,7 @@ public final class MomaPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("mud")).setExecutor(command);
         Objects.requireNonNull(getCommand("mud")).setTabCompleter(command);
         getServer().getScheduler().runTaskTimer(this, games::tick, 1, 1);
+        getServer().getScheduler().runTaskTimer(this, TabStatus::update, 20, 20);
         getLogger().info("MC Luck Defense enabled. Paper 26.3.build.19-alpha; /mud; 100-round campaign.");
     }
     @Override public void onDisable() {

@@ -1,8 +1,6 @@
 package dev.moma.paper;
 
 import java.util.*;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
@@ -10,32 +8,40 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.*;
 
 final class LobbyMenu implements Listener {
+    static final int PAGE_SIZE = 45, PREVIOUS = 45, JOIN = 49, LEAVE = 50, NEXT = 53;
     private final MomaPlugin plugin;
     private final GameService games;
-    private final ArenaMaps maps;
     private static final class Holder implements InventoryHolder {
         final UUID owner;
-        final List<String> arenas;
+        final List<GameService.SessionInfo> sessions;
+        final int page, pages;
         Inventory inventory;
         boolean consumed;
-        Holder(UUID owner, List<String> arenas) { this.owner = owner; this.arenas = arenas; }
+        Holder(UUID owner, List<GameService.SessionInfo> sessions, int page, int pages) {
+            this.owner = owner; this.sessions = sessions; this.page = page; this.pages = pages;
+        }
         @Override public Inventory getInventory() { return inventory; }
     }
-    LobbyMenu(MomaPlugin plugin, GameService games, ArenaMaps maps) { this.plugin = plugin; this.games = games; this.maps = maps; }
-    void open(Player player) {
+    LobbyMenu(MomaPlugin plugin, GameService games) { this.plugin = plugin; this.games = games; }
+    void open(Player player) { open(player, 0); }
+    private void open(Player player, int requestedPage) {
         if (!player.hasPermission("moma.play") || games.playing(player)) return;
-        var holder = new Holder(player.getUniqueId(), maps.all().stream().limit(20).map(ArenaMap::id).toList());
-        holder.inventory = Bukkit.createInventory(holder, 27, Component.text("MC Luck Defense · 게임 시작"));
-        for (int slot = 0; slot < holder.arenas.size(); slot++) {
-            String id = holder.arenas.get(slot); boolean free = games.available(id);
-            holder.inventory.setItem(slot, item(free ? Material.LIME_CONCRETE : Material.GRAY_CONCRETE, id + (free ? " · 입장 가능" : " · 사용 불가")));
+        List<GameService.SessionInfo> active = games.activeSessions();
+        int pages = Math.max(1, (active.size()+PAGE_SIZE-1)/PAGE_SIZE);
+        int page = Math.max(0, Math.min(requestedPage, pages-1));
+        var holder = new Holder(player.getUniqueId(), active.subList(page*PAGE_SIZE, Math.min(active.size(), (page+1)*PAGE_SIZE)), page, pages);
+        holder.inventory = Bukkit.createInventory(holder, 54, Ui.text("&6게임 참가 &8/ &b활성 세션 관전 &8["+(page+1)+"/"+pages+"]"));
+        for (int slot = 0; slot < holder.sessions.size(); slot++) {
+            var session = holder.sessions.get(slot);
+            holder.inventory.setItem(slot, Ui.item(Material.ENDER_EYE, "&b" + session.playerName() + " &f관전",
+                    "&7전장 &f" + session.arena(), "&eR" + session.round() + " &7· 적 &c" + session.enemies(), "&7클릭하면 이 세션을 관전합니다."));
         }
-        holder.inventory.setItem(22, item(Material.NETHER_STAR, "빠른 시작 · 빈 개인 전장 자동 배정"));
+        if (active.isEmpty()) holder.inventory.setItem(22, Ui.item(Material.GRAY_DYE, "&7관전 가능한 게임이 없습니다."));
+        holder.inventory.setItem(JOIN, Ui.item(Material.NETHER_STAR, "&a&l게임 참가", "&7개인 세션과 빈 전장을 자동 배정합니다.", "&7빈 전장이 없으면 새 전장을 생성합니다."));
+        if (games.watching(player)) holder.inventory.setItem(LEAVE, Ui.item(Material.OAK_DOOR, "&e관전 종료 · 로비로"));
+        if (page > 0) holder.inventory.setItem(PREVIOUS, Ui.item(Material.ARROW, "&e이전 페이지"));
+        if (page+1 < pages) holder.inventory.setItem(NEXT, Ui.item(Material.ARROW, "&e다음 페이지"));
         player.openInventory(holder.inventory);
-    }
-    private ItemStack item(Material material, String name) {
-        var item = new ItemStack(material); var meta = item.getItemMeta();
-        meta.displayName(Component.text(name, NamedTextColor.GOLD)); item.setItemMeta(meta); return item;
     }
     @EventHandler public void click(InventoryClickEvent event) {
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
@@ -43,14 +49,19 @@ final class LobbyMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || !holder.owner.equals(player.getUniqueId())
                 || holder.consumed || event.getClick() != ClickType.LEFT || !player.hasPermission("moma.play") || games.playing(player)) return;
         int slot = event.getRawSlot();
-        if (slot != 22 && (slot < 0 || slot >= holder.arenas.size())) return;
+        boolean previous = slot == PREVIOUS && holder.page > 0, next = slot == NEXT && holder.page+1 < holder.pages;
+        if (slot != JOIN && !(slot == LEAVE && games.watching(player)) && !previous && !next && (slot < 0 || slot >= holder.sessions.size())) return;
         holder.consumed = true;
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!player.isOnline() || !player.hasPermission("moma.play") || games.playing(player)
                     || player.getOpenInventory().getTopInventory() != holder.inventory) return;
             player.closeInventory();
-            try { if (slot == 22) games.start(player); else games.join(player, holder.arenas.get(slot)); }
-            catch (IllegalArgumentException error) { player.sendMessage(Component.text(error.getMessage(), NamedTextColor.RED)); }
+            try {
+                if (previous || next) open(player, holder.page + (next ? 1 : -1));
+                else if (slot == JOIN) games.start(player);
+                else if (slot == LEAVE) games.leave(player);
+                else games.spectate(player, holder.sessions.get(slot).sessionId());
+            } catch (IllegalArgumentException error) { player.sendMessage(Ui.text("&c" + error.getMessage())); }
         });
     }
     @EventHandler public void drag(InventoryDragEvent event) {

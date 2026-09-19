@@ -19,7 +19,7 @@ final class MomaCommand implements TabExecutor {
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             if (sender instanceof Player player && menu != null && !games.playing(player)) { menu.open(player); return true; }
-            sender.sendMessage(Component.text("/mud start | list | join [전장] | lobby | leave"));
+            sender.sendMessage(Ui.text("&e/mud start | list | join [전장] | spectate <플레이어> | lobby | leave"));
             if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud create <전장> | spawn <종> [수] [boss] | coins <금액>"));
             return true;
         }
@@ -35,6 +35,7 @@ final class MomaCommand implements TabExecutor {
                     sender.sendMessage(Component.text("100라운드 전장 생성 완료: " + args[1] + " · /mud join " + args[1], NamedTextColor.GREEN));
                 }
                 case "start" -> games.start(player(sender));
+                case "spectate" -> { require(args, 2, "/mud spectate <플레이어>"); games.spectate(player(sender), args[1]); }
                 case "join" -> { if (args.length == 1) games.start(player(sender)); else games.join(player(sender), args[1]); }
                 case "leave", "lobby" -> games.leave(player(sender));
                 case "spawn" -> {
@@ -75,7 +76,8 @@ final class MomaCommand implements TabExecutor {
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> candidates = List.of();
-        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "lobby", "leave", "list", "create", "spawn", "coins") : List.of("start", "join", "lobby", "leave", "list");
+        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "spectate", "lobby", "leave", "list", "create", "spawn", "coins") : List.of("start", "join", "spectate", "lobby", "leave", "list");
+        if (args.length == 2 && args[0].equalsIgnoreCase("spectate")) candidates = games.activeSessions().stream().map(GameService.SessionInfo::playerName).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("join")) candidates = maps.all().stream().map(ArenaMap::id).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("spawn") && sender.hasPermission("moma.admin")) candidates = Arrays.stream(EnemyType.values()).map(Enum::name).toList();
         String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);

@@ -1,8 +1,6 @@
 package dev.moma.paper;
 
 import dev.moma.core.*;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
@@ -11,7 +9,8 @@ import org.bukkit.inventory.*;
 import java.util.*;
 
 final class ShopMenu implements Listener {
-    private static final int SUMMON = 11, DETAILS = 13, SELL = 15;
+    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, BULK_FIRST = 20;
+    private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
     private final GameService games;
     private final Map<UUID, Integer> nextClick = new HashMap<>();
@@ -29,21 +28,28 @@ final class ShopMenu implements Listener {
         GameSession session = games.session(player);
         if (session == null || session.arena.ended()) return;
         var holder = new Holder(player.getUniqueId(), session.arena);
-        holder.inventory = Bukkit.createInventory(holder, 27, Component.text("운빨 디펜스 · 소환과 판매"));
+        holder.inventory = Bukkit.createInventory(holder, 27, Ui.text("&6운빨 디펜스 &8· &e소환과 판매"));
         render(holder);
         player.openInventory(holder.inventory);
     }
     private void render(Holder holder) {
         Arena arena = holder.arena;
         holder.inventory.clear();
-        holder.inventory.setItem(4, item(Material.GOLD_INGOT, "보유 재화: " + arena.coins() + "원", "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenders().size())));
-        holder.inventory.setItem(SUMMON, item(Material.EGG, "무작위 소환 · 10원", "24종 × 9개 등급 독립 추첨", "근접은 가장자리 · 원거리는 안쪽 우선", "우선 영역이 차면 남은 칸 사용", "좌클릭으로 1회 소환"));
+        holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 재화: &e" + arena.coins() + "원", "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
+        holder.inventory.setItem(SUMMON, item(Material.EGG, "&a무작위 소환 &7· &610원", "24종 × 9개 등급 독립 추첨", "근접은 가장자리 · 원거리는 안쪽 우선", "우선 영역이 차면 남은 칸 사용", "좌클릭으로 1회 소환"));
+        for (int i = 0; i < SELLABLE.length; i++) {
+            Rarity rarity = SELLABLE[i];
+            long count = arena.activeDefenders().stream().filter(d -> d.rarity() == rarity).count();
+            String color = "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(rarity).value());
+            holder.inventory.setItem(BULK_FIRST+i, item(Material.EMERALD, color + rarity.label() + " &f일괄판매",
+                    "&e" + count + "마리 &7· &6+" + count*rarity.salePrice().getAsInt() + "원", "이 등급만 전부 판매합니다.", "전설 이상은 판매할 수 없습니다."));
+        }
         Optional<Defender> selected = arena.selected();
         if (selected.isPresent()) {
             Defender d = selected.orElseThrow();
             CombatProfile profile = d.type().profile().at(d.rarity());
             String sale = d.rarity().salePrice().isPresent() ? d.rarity().salePrice().getAsInt() + "원" : "판매 불가";
-            holder.inventory.setItem(DETAILS, item(Material.PAPER, "[" + d.rarity().label() + "] " + d.type().label(),
+            holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + "[" + d.rarity().label() + "] " + d.type().label(),
                     d.type().role().label(),
                     "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()) + " · 간격 " + profile.intervalTicks() + "틱",
                     "사거리 " + String.format(Locale.ROOT, "%.1f", profile.range()),
@@ -57,12 +63,7 @@ final class ShopMenu implements Listener {
         }
     }
     private ItemStack item(Material material, String title, String... lore) {
-        var item = new ItemStack(material);
-        var meta = item.getItemMeta();
-        meta.displayName(Component.text(title, NamedTextColor.GOLD));
-        meta.lore(Arrays.stream(lore).map(s -> Component.text(s, NamedTextColor.GRAY)).toList());
-        item.setItemMeta(meta);
-        return item;
+        return Ui.item(material, "&6" + title, Arrays.stream(lore).map(s -> "&7" + s).toArray(String[]::new));
     }
     @EventHandler public void click(InventoryClickEvent event) {
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
@@ -72,10 +73,12 @@ final class ShopMenu implements Listener {
         if (session == null || session.arena != holder.arena || session.arena.ended()) return;
         if (event.getClick() != ClickType.LEFT || holder.consumed || Bukkit.getCurrentTick() < nextClick.getOrDefault(holder.owner, 0)) return;
         int slot = event.getRawSlot();
-        if (slot != SUMMON && slot != SELL) return;
+        if (slot != SUMMON && slot != SELL && (slot < BULK_FIRST || slot >= BULK_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 5);
-        if (slot == SUMMON) games.summon(player); else games.sell(player);
+        if (slot == SUMMON) games.summon(player);
+        else if (slot == SELL) games.sell(player);
+        else games.sellRarity(player, SELLABLE[slot-BULK_FIRST]);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (games.session(player) == session && player.getOpenInventory().getTopInventory() == holder.inventory) {
                 render(holder); holder.consumed = false;

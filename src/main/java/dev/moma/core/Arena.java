@@ -91,6 +91,20 @@ public final class Arena {
         selected = null;
         return Result.OK;
     }
+    public record BulkSale(Result result, List<UUID> entities, long income) {}
+    /** Exactly this grade; validates the whole sale before mutating currency or units. */
+    public BulkSale sellRarity(UUID actor, Rarity rarity) {
+        Result access = access(actor);
+        if (access != Result.OK) return new BulkSale(access, List.of(), 0);
+        Objects.requireNonNull(rarity);
+        if (rarity.salePrice().isEmpty()) return new BulkSale(Result.NOT_SELLABLE, List.of(), 0);
+        var sold = defenders.values().stream().filter(d -> d.rarity() == rarity).map(Defender::entityId).toList();
+        long income = Math.multiplyExact((long) sold.size(), rarity.salePrice().getAsInt());
+        credit(income);
+        sold.forEach(defenders::remove);
+        if (selected != null && sold.contains(selected)) selected = null;
+        return new BulkSale(Result.OK, sold, income);
+    }
     public void credit(long amount) {
         if (amount < 0) throw new IllegalArgumentException("Negative credit");
         coins = Math.addExact(coins, amount);

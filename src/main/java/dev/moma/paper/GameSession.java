@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 final class GameSession {
+    final UUID sessionId = UUID.randomUUID();
     final Arena arena;
     final ArenaMap map;
     final Location returnLocation;
@@ -13,7 +14,7 @@ final class GameSession {
     final List<Chunk> tickets = new ArrayList<>();
     final Campaign campaign;
     final HashRandom random = HashRandom.secure();
-    final Set<UUID> hitEffects = new LinkedHashSet<>();
+    final AttackEffects attackEffects = new AttackEffects();
     boolean assisted;
     int announcedRound;
 

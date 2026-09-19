@@ -40,7 +40,6 @@ class LobbySessionTest {
         games.start(second);
         assertEquals("a",games.session(first).arena.id()); assertEquals("b",games.session(second).arena.id());
         assertNotSame(games.session(first).arena,games.session(second).arena);
-        assertThrows(IllegalArgumentException.class,()->games.start(third));
         games.session(first).arena.credit(777);
         games.leave(first); verify(lobby).send(first);
         assertTrue(games.playing(second));
@@ -93,7 +92,7 @@ class LobbySessionTest {
     }
     @Test void startMenuRejectsShiftBottomAndRepeatedClicksAndDefersEntry() {
         var plugin=plugin(); GameService games=mock(GameService.class); World world=mock(World.class);
-        LobbyMenu menu=new LobbyMenu(plugin,games,maps(world)); Player player=player(world);
+        LobbyMenu menu=new LobbyMenu(plugin,games); Player player=player(world);
         when(player.hasPermission("moma.play")).thenReturn(true); when(player.isOnline()).thenReturn(true);
         var inventory=mock(org.bukkit.inventory.Inventory.class); var view=mock(org.bukkit.inventory.InventoryView.class);
         when(view.getTopInventory()).thenReturn(inventory); when(player.getOpenInventory()).thenReturn(view);
@@ -101,20 +100,78 @@ class LobbySessionTest {
         var action=org.mockito.ArgumentCaptor.forClass(Runnable.class);
         try (var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
-            bukkit.when(()->Bukkit.createInventory(any(org.bukkit.inventory.InventoryHolder.class),eq(27),any(Component.class)))
+            bukkit.when(()->Bukkit.createInventory(any(org.bukkit.inventory.InventoryHolder.class),eq(54),any(Component.class)))
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try (var items=mockConstruction(org.bukkit.inventory.ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) { menu.open(player); }
             var event=mock(org.bukkit.event.inventory.InventoryClickEvent.class);
             when(event.getView()).thenReturn(view); when(event.getWhoClicked()).thenReturn(player);
-            when(event.getRawSlot()).thenReturn(22); when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.SHIFT_LEFT);
+            when(event.getRawSlot()).thenReturn(LobbyMenu.JOIN); when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.SHIFT_LEFT);
             menu.click(event); verifyNoInteractions(scheduler);
-            when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.LEFT); when(event.getRawSlot()).thenReturn(49);
+            when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.LEFT); when(event.getRawSlot()).thenReturn(76);
             menu.click(event); verifyNoInteractions(scheduler);
-            when(event.getRawSlot()).thenReturn(22); menu.click(event); menu.click(event);
+            when(event.getRawSlot()).thenReturn(LobbyMenu.JOIN); menu.click(event); menu.click(event);
             verify(scheduler,times(1)).runTask(eq(plugin),action.capture()); verify(games,never()).start(any());
             action.getValue().run(); verify(games,times(1)).start(player);
             verify(event,times(4)).setCancelled(true);
+        }
+    }
+    @Test void moreThanTwentyPlayersAllocateAdditionalArenas() throws Exception {
+        World world=mock(World.class); ArenaMaps maps=mock(ArenaMaps.class);
+        var available=new LinkedHashMap<String,ArenaMap>();
+        for(int i=0;i<20;i++) available.put("a"+i,new ArenaMap("a"+i,world,i*128,64,0,new Grid(6)));
+        when(maps.all()).thenAnswer(call->List.copyOf(available.values()));
+        when(maps.get(anyString())).thenAnswer(call->available.get(call.getArgument(0)));
+        when(maps.createNext(6)).thenAnswer(call->{
+            String id="a"+available.size(); var map=new ArenaMap(id,world,available.size()*128,64,0,new Grid(6));
+            available.put(id,map);return map;
+        });
+        when(world.getChunkAt(anyInt(),anyInt())).thenAnswer(call->mock(Chunk.class));
+        GameService games=new GameService(plugin(),maps,CampaignRules.standard());
+        for(int i=0;i<23;i++) { Player player=player(world);games.start(player);assertEquals("a"+i,games.session(player).arena.id()); }
+        verify(maps,times(3)).createNext(6);assertEquals(23,available.size());
+    }
+    @Test void spectatingDoesNotOwnArenaAndOldSessionCannotBeWatchedAfterReuse() {
+        World world=mock(World.class); Lobby lobby=mock(Lobby.class);
+        GameService games=new GameService(plugin(),maps(world),CampaignRules.standard(),lobby);
+        Player owner=player(world),viewer=player(world);games.start(owner);GameSession session=games.session(owner);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(()->Bukkit.getPlayer(owner.getUniqueId())).thenReturn(owner);
+            bukkit.when(()->Bukkit.getPlayer(viewer.getUniqueId())).thenReturn(viewer);
+            games.spectate(viewer,session.sessionId);
+            assertTrue(games.watching(viewer)); assertFalse(games.playing(viewer));assertTrue(games.available("b"));
+            verify(viewer).setGameMode(GameMode.SPECTATOR);
+            assertFalse(games.spectatorDestination(viewer,new Location(world,128,72,0)));
+            assertTrue(games.spectatorDestination(viewer,new Location(world,4,72,4)));
+            games.leave(owner);verify(lobby).send(viewer);assertFalse(games.watching(viewer));
+            games.start(owner);assertNotEquals(session.sessionId,games.session(owner).sessionId);
+            assertThrows(IllegalArgumentException.class,()->games.spectate(viewer,session.sessionId));
+        }
+    }
+    @Test void spectatorMenuPaginatesBeyondFortyFiveAndKeepsExactSessionIdentity() {
+        var plugin=plugin();GameService games=mock(GameService.class);var menu=new LobbyMenu(plugin,games);
+        Player player=player(mock(World.class));when(player.hasPermission("moma.play")).thenReturn(true);when(player.isOnline()).thenReturn(true);
+        var active=new ArrayList<GameService.SessionInfo>();
+        for(int i=0;i<50;i++)active.add(new GameService.SessionInfo(UUID.randomUUID(),UUID.randomUUID(),"player"+i,"arena"+i,1,0));
+        when(games.activeSessions()).thenReturn(active);
+        var inventory=mock(org.bukkit.inventory.Inventory.class);var view=mock(org.bukkit.inventory.InventoryView.class);
+        when(view.getTopInventory()).thenReturn(inventory);when(player.getOpenInventory()).thenReturn(view);
+        var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);var tasks=new ArrayList<Runnable>();
+        when(scheduler.runTask(eq(plugin),any(Runnable.class))).thenAnswer(call->{tasks.add(call.getArgument(1));return null;});
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+            bukkit.when(()->Bukkit.createInventory(any(org.bukkit.inventory.InventoryHolder.class),eq(54),any(Component.class)))
+                    .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
+            var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
+            try(var items=mockConstruction(org.bukkit.inventory.ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {
+                menu.open(player);verify(inventory).setItem(eq(LobbyMenu.NEXT),any());
+                var event=mock(org.bukkit.event.inventory.InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
+                when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.LEFT);when(event.getRawSlot()).thenReturn(LobbyMenu.NEXT);
+                menu.click(event);tasks.removeFirst().run();
+                verify(inventory).setItem(eq(LobbyMenu.PREVIOUS),any());
+                when(event.getRawSlot()).thenReturn(4);menu.click(event);tasks.removeFirst().run();
+                verify(games).spectate(player,active.get(49).sessionId());
+            }
         }
     }
 }

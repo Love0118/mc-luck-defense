@@ -1,0 +1,26 @@
+{
+  "blockStates": 480,
+  "clients": 3,
+  "sessionIsolation": true,
+  "defeatReturn": true,
+  "slotReuse": true,
+  "victoryReturn": true,
+  "dynamicArena": true,
+  "spectatorReturn": true,
+  "bulkSale": true,
+  "packets": {
+    "MudBench00": {
+      "tab": 17,
+      "particles": 124
+    },
+    "MudBench01": {
+      "tab": 17,
+      "particles": 0
+    },
+    "MudBench02": {
+      "tab": 17,
+      "particles": 124
+    }
+  },
+  "scope": "Three localhost protocol clients, no rendered UI; separate unit tests cover 23 sessions, particle geometry, color and GUI metadata."
+}
