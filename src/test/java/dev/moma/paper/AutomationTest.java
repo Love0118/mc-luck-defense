@@ -61,7 +61,7 @@ class AutomationTest {
         rolls.verify(()->SummonRoll.draw(any(),eq(false)),times(3));
         assertFalse(session.arena.openingBonusActive()); assertEquals(1,session.arena.defenderCount());
         assertEquals(2,session.arena.defenders().getFirst().enhancement());
-        assertEquals(6,session.arena.coins());
+        assertEquals(14,session.arena.coins());
     }
     @Test void autoSalePaysExistingAndFutureUnitsExactlyOnceAndCanBeTurnedOff() {
         games.summon(player);
@@ -115,15 +115,15 @@ class AutomationTest {
     @Test void profitableAutoSalesAreBoundedAndCancellationAndRejoinStopTheBatch() {
         draw(Rarity.NARRATIVE); games.toggleAutoSell(player,Rarity.NARRATIVE);
         games.toggleBulkBuy(player); games.processAutomation(player,session);
-        assertEquals(4,session.bulkPurchases); assertEquals(110,session.arena.coins()); assertTrue(session.bulkBuying);
+        assertEquals(4,session.bulkPurchases); assertEquals(130,session.arena.coins()); assertTrue(session.bulkBuying);
         games.toggleBulkBuy(player); games.processAutomation(player,session); assertEquals(4,session.bulkPurchases);
         games.toggleBulkBuy(player);
         GameSession replacement = new GameSession(player,session.map,CampaignRules.standard());
         doReturn(replacement).when(games).session(player);
-        games.processAutomation(player,session); assertEquals(110,session.arena.coins());
+        games.processAutomation(player,session); assertEquals(130,session.arena.coins());
         assertFalse(replacement.bulkBuying); assertFalse(replacement.autoPlacement); assertTrue(replacement.autoSell.isEmpty());
         doReturn(session).when(games).session(player); session.arena.finish(Arena.Outcome.TIME_LIMIT);
-        games.processAutomation(player,session); assertEquals(110,session.arena.coins());
+        games.processAutomation(player,session); assertEquals(130,session.arena.coins());
     }
     @Test void failedBulkSpawnDoesNotChargeAndStopsRetrying() {
         when(games.entities.spawnDefender(any(),any(),any(),any(),any())).thenThrow(new IllegalStateException("fixture"));
