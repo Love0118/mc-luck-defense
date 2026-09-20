@@ -19,6 +19,9 @@ import org.bukkit.persistence.PersistentDataType;
 
 /** Bukkit state belongs to the main thread; the bounded worker owns SQLite and all media/network IO. */
 final class BgmService implements Listener, AutoCloseable {
+    private static final int MENU_SIZE=54, PAGE_SIZE=45;
+    private static final int PREVIOUS=45, NEXT=53, BACK=49;
+    private static final int DEFAULT_TRACK=45, MODE=46, MUTE=48, UPLOAD=49, LIBRARY=53;
     private static final UUID SYSTEM=new UUID(0,0);
     private static final NamespacedKey MUTED=new NamespacedKey("momadefense","bgm_muted");
     private final MomaPlugin plugin;
@@ -144,24 +147,25 @@ final class BgmService implements Listener, AutoCloseable {
         if(!catalogLoaded){player.sendMessage(Ui.text("&eBGM 목록을 불러오는 중입니다."));return;}
         BgmPlaylist selected=playlist(session);
         List<Track> choices=library?tracks.stream().filter(t->!t.id().equals("default")).toList():selected.tracks().stream().map(this::find).filter(Objects::nonNull).toList();
-        int pages=Math.max(1,(choices.size()+8)/9);page=Math.clamp(page,0,pages-1);
-        if(library)choices=choices.subList(page*9,Math.min(choices.size(),page*9+9));
+        int pages=Math.max(1,(choices.size()+PAGE_SIZE-1)/PAGE_SIZE);page=Math.clamp(page,0,pages-1);
+        if(library)choices=choices.subList(page*PAGE_SIZE,Math.min(choices.size(),page*PAGE_SIZE+PAGE_SIZE));
         Holder holder=new Holder(player.getUniqueId(),session.sessionId,library,page,choices.stream().map(Track::id).toList());
-        holder.inventory=Bukkit.createInventory(holder,18,Ui.text(library?"&6업로드된 곡 · "+(page+1):"&6BGM 관리"));
+        holder.inventory=Bukkit.createInventory(holder,MENU_SIZE,Ui.text(library?"&6업로드된 곡 · "+(page+1)+"/"+pages:"&6내 노래 · BGM 관리"));
         for(int i=0;i<choices.size();i++) {
             Track t=choices.get(i);holder.inventory.setItem(i,Ui.item(Material.MUSIC_DISC_CAT,"&f"+t.title(),"&7업로드: "+t.uploaderName(),
                     library ? (selected.tracks().contains(t.id())?"&e클릭: 재생 목록에서 제거":"&a클릭: 재생 목록에 추가") : "&a좌클릭: 선택 · 우클릭: 목록에서 제거",
                     t.synchronizedReady()?"&7재생 가능":"&e동기화 팩 준비 중"));
         }
         if(library) {
-            holder.inventory.setItem(9,Ui.item(Material.ARROW,"&e이전 페이지"));holder.inventory.setItem(13,Ui.item(Material.BARRIER,"&e내 곡으로"));
-            if((page+1)*9<tracks.stream().filter(t->!t.id().equals("default")).count())holder.inventory.setItem(17,Ui.item(Material.ARROW,"&e다음 페이지"));
+            if(page>0)holder.inventory.setItem(PREVIOUS,Ui.item(Material.ARROW,"&e이전 페이지"));
+            holder.inventory.setItem(BACK,Ui.item(Material.BARRIER,"&e내 곡으로"));
+            if(page+1<pages)holder.inventory.setItem(NEXT,Ui.item(Material.ARROW,"&e다음 페이지"));
         } else {
-            holder.inventory.setItem(4,Ui.item(Material.MUSIC_DISC_13,"&b기본 BGM"));
-            holder.inventory.setItem(5,Ui.item(Material.REPEATER,"&b재생 모드 · &e"+(selected.mode()==BgmTimeline.Mode.SINGLE?"단일곡":"메들리"),"&7클릭: 단일곡 반복 / 순서대로 반복"));
-            holder.inventory.setItem(8,Ui.item(muted(player)?Material.GRAY_DYE:Material.LIME_DYE,muted(player)?"&7BGM OFF":"&aBGM ON"));
-            holder.inventory.setItem(13,Ui.item(Material.HOPPER,"&a노래 업로드", "&7YouTube 링크로 등록 · 최대 3곡"));
-            holder.inventory.setItem(17,Ui.item(Material.BOOK,"&e업로드된 곡 모두 보기"));
+            holder.inventory.setItem(DEFAULT_TRACK,Ui.item(Material.MUSIC_DISC_13,"&b기본 BGM"));
+            holder.inventory.setItem(MODE,Ui.item(Material.REPEATER,"&b재생 모드 · &e"+(selected.mode()==BgmTimeline.Mode.SINGLE?"단일곡":"메들리"),"&7클릭: 단일곡 반복 / 순서대로 반복"));
+            holder.inventory.setItem(MUTE,Ui.item(muted(player)?Material.GRAY_DYE:Material.LIME_DYE,muted(player)?"&7BGM OFF":"&aBGM ON"));
+            holder.inventory.setItem(UPLOAD,Ui.item(Material.HOPPER,"&a노래 업로드", "&7YouTube 링크로 등록 · 최대 3곡"));
+            holder.inventory.setItem(LIBRARY,Ui.item(Material.BOOK,"&e업로드된 곡 모두 보기"));
         }
         player.openInventory(holder.inventory);Ui.sound(player,Ui.Cue.OPEN);
     }
@@ -170,7 +174,7 @@ final class BgmService implements Listener, AutoCloseable {
         event.setCancelled(true);
         if(!(event.getWhoClicked() instanceof Player p) || !h.owner.equals(p.getUniqueId()) || (event.getClick()!=ClickType.LEFT && event.getClick()!=ClickType.RIGHT) || h.consumed)return;
         GameSession s=games.session(p);if(s==null || s.arena.ended() || !s.sessionId.equals(h.session))return;
-        int slot=event.getRawSlot();if(slot<0 || slot>=18)return;
+        int slot=event.getRawSlot();if(slot<0 || slot>=MENU_SIZE)return;
         if(clicks.getOrDefault(p.getUniqueId(),-1)==Bukkit.getCurrentTick())return;
         clicks.put(p.getUniqueId(),Bukkit.getCurrentTick());h.consumed=true;
         if(slot<h.ids.size()) {
@@ -180,17 +184,17 @@ final class BgmService implements Listener, AutoCloseable {
             } else select(p,s,h.ids.get(slot));
         }
         else if(event.getClick()!=ClickType.LEFT){h.consumed=false;return;}
-        else if(!h.library && slot==4)select(p,s,"default");
-        else if(!h.library && slot==5) {
+        else if(!h.library && slot==DEFAULT_TRACK)select(p,s,"default");
+        else if(!h.library && slot==MODE) {
             BgmPlaylist current=playlist(s);
             savePlaylist(p,s,new BgmPlaylist(current.tracks(),current.mode()==BgmTimeline.Mode.SINGLE?BgmTimeline.Mode.MEDLEY:BgmTimeline.Mode.SINGLE,current.selected()));
         }
-        else if(!h.library && slot==8){toggle(p);open(p,false,0);}
-        else if(!h.library && slot==13)promptUpload(p,s);
-        else if(!h.library && slot==17)open(p,true,0);
-        else if(h.library && slot==9)open(p,true,h.page-1);
-        else if(h.library && slot==17)open(p,true,h.page+1);
-        else if(h.library && slot==13)open(p,false,0);
+        else if(!h.library && slot==MUTE){toggle(p);open(p,false,0);}
+        else if(!h.library && slot==UPLOAD)promptUpload(p,s);
+        else if(!h.library && slot==LIBRARY)open(p,true,0);
+        else if(h.library && slot==PREVIOUS && h.page>0)open(p,true,h.page-1);
+        else if(h.library && slot==NEXT && (h.page+1)*PAGE_SIZE<tracks.stream().filter(t->!t.id().equals("default")).count())open(p,true,h.page+1);
+        else if(h.library && slot==BACK)open(p,false,0);
         else h.consumed=false;
     }
     private void select(Player player,GameSession session,String id) {
