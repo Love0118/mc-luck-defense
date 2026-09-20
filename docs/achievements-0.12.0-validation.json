@@ -1,0 +1,28 @@
+{
+  "pluginVersion": "0.12.0",
+  "server": "Paper 26.3 build26 Java-only fork",
+  "testsPassed": 210,
+  "clientVersion": "1.21.8",
+  "boots": [
+    {
+      "boot": 1,
+      "customAdvancementsReceived": 50,
+      "visibleVanillaReceived": 0,
+      "clientErrors": []
+    },
+    {
+      "boot": 2,
+      "customAdvancementsReceived": 50,
+      "visibleVanillaReceived": 0,
+      "clientErrors": []
+    }
+  ],
+  "nativeAdvancements": 50,
+  "exactlyOnce": true,
+  "vanillaBlocked": true,
+  "challengeFrames": true,
+  "persistentStats": true,
+  "persistent50Awards": true,
+  "noDuplicateCompletions": true,
+  "pluginSha256": "a1554388c378e2e2e2c19001188dfa1fa8fd5891bb2b72dd186a5bdf271318c4"
+}

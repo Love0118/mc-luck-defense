@@ -16,8 +16,8 @@ public record WaveTheme(int round, String biome, Stage stage, String name, List<
     public WaveTheme { roster=List.copyOf(roster); }
     public static List<WaveTheme> all() { return ALL; }
     public static WaveTheme at(int round) {
-        if(round<1 || round>100)throw new IllegalArgumentException("Round must be 1..100");
-        return ALL.get(round-1);
+        if(round<1)throw new IllegalArgumentException("Round must be positive");
+        return ALL.get((round-1)%100);
     }
     public String displayName() { return stage.label()+" · "+name; }
     private static List<WaveTheme> load() {

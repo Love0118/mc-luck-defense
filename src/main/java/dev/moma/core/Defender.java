@@ -7,7 +7,8 @@ public final class Defender {
     private final String arenaId;
     private final UnitType type;
     private final Rarity rarity;
-    private final CombatProfile profile;
+    private CombatProfile profile;
+    private int enhancement;
     private Cell cell;
     private long nextAttackTick;
     private UUID lastTarget;
@@ -24,6 +25,15 @@ public final class Defender {
     public UnitType type() { return type; }
     public Rarity rarity() { return rarity; }
     public CombatProfile profile() { return profile; }
+    public int enhancement() { return enhancement; }
+    public double damageMultiplier() { return 1.0+enhancement+(enhancement/5)*.5; }
+    public long saleValue() { return Math.multiplyExact((long)enhancement+1,rarity.salePrice().orElse(0)); }
+    public String label() { return type.label() + (enhancement==0?"":" +"+enhancement); }
+    void merge() {
+        enhancement=Math.incrementExact(enhancement);
+        CombatProfile base=type.profile().at(rarity);
+        profile=new CombatProfile(base.damage()*damageMultiplier(),base.intervalTicks(),base.range(),base.areaRadius(),base.targets());
+    }
     public Cell cell() { return cell; }
     public Point position() { return cell.point(); }
     public long nextAttackTick() { return nextAttackTick; }

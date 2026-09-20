@@ -50,7 +50,7 @@ public final class BiomeSmokePlugin extends JavaPlugin {
             }
             return;
         }
-        new CombatEngine(false).tick(arena,++ticks);
+        new CombatEngine().tick(arena,++ticks);
         if(!(boolean)call(adapter,"advanceAll",arena,map)) {
             for(Enemy enemy:arena.activeEnemies()) {Entity entity=Bukkit.getEntity(enemy.entityId());
                 if(entity==null || !entity.isValid())throw new AssertionError("Entity lost "+enemy.type()+" at "+ticks);}

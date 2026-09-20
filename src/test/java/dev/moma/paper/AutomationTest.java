@@ -41,7 +41,8 @@ class AutomationTest {
         games.toggleBulkBuy(player);games.processAutomation(player,session);
         rolls.verify(()->SummonRoll.draw(any(),eq(true)),times(1));
         rolls.verify(()->SummonRoll.draw(any(),eq(false)),times(3));
-        assertFalse(session.arena.openingBonusActive()); assertEquals(3,session.arena.defenderCount());
+        assertFalse(session.arena.openingBonusActive()); assertEquals(1,session.arena.defenderCount());
+        assertEquals(2,session.arena.defenders().getFirst().enhancement());
         assertEquals(6,session.arena.coins());
     }
     @Test void autoSalePaysExistingAndFutureUnitsExactlyOnceAndCanBeTurnedOff() {
@@ -58,6 +59,23 @@ class AutomationTest {
         games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
         assertEquals(6,session.arena.coins());
     }
+    @Test void legendaryAutoSalePaysSixtyAndOffRetainsFutureUnits() {
+        draw(Rarity.LEGENDARY); games.summon(player);
+        UUID sold=session.arena.defenders().getFirst().entityId();
+        games.toggleAutoSell(player,Rarity.LEGENDARY);
+        assertTrue(session.autoSell.contains(Rarity.LEGENDARY));
+        assertEquals(80,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
+        verify(games.entities).remove(sold);
+        games.summon(player);
+        assertEquals(130,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
+        verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
+        games.toggleAutoSell(player,Rarity.LEGENDARY); games.summon(player);
+        assertEquals(120,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
+        games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
+        session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
+        games.sell(player); games.sell(player);
+        assertEquals(180,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
+    }
     @Test void bulkBuyUsesRefundsAndStopsAtInsufficientFundsOrFullBoard() {
         draw(Rarity.RARE); games.toggleAutoSell(player,Rarity.RARE); games.toggleBulkBuy(player);
         games.processAutomation(player,session);
@@ -67,6 +85,8 @@ class AutomationTest {
         assertFalse(session.bulkBuying); assertEquals(0,session.arena.defenderCount());
         games.processAutomation(player,session); assertEquals(6,session.arena.coins());
         games.toggleAutoSell(player,Rarity.RARE); session.arena.credit(1000);
+        int[] drawIndex={0};
+        rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenAnswer(call->{int i=drawIndex[0]++;return new SummonRoll(UnitType.values()[i%24],Rarity.values()[(i/24)%9]);});
         games.toggleBulkBuy(player);
         games.processAutomation(player,session); assertEquals(4,session.arena.defenderCount());
         for (int i = 0; i < 20; i++) games.processAutomation(player,session);
@@ -96,7 +116,7 @@ class AutomationTest {
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
     }
     @Test void layoutRecomputesAfterSalesButOffKeepsManualPositions() {
-        games.summon(player); games.summon(player);
+        games.summon(player); draw(Rarity.RARE); games.summon(player);
         Defender first = session.arena.defenders().getFirst(), second = session.arena.defenders().getLast();
         session.arena.select(player.getUniqueId(),second.entityId());
         session.arena.moveSelected(player.getUniqueId(),new Cell(2,2));

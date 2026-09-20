@@ -43,8 +43,9 @@ final class BgmService implements Listener, AutoCloseable {
     private final Map<UUID,Integer> clicks=new HashMap<>();
     private long nextHealthCheck;
     private static final class Playback {
-        UUID session;String lastCue,currentSound;
+        UUID session;String lastCue,currentSound;boolean readyNotified;
         final Map<UUID,PackState> packs=new LinkedHashMap<>();
+        final Set<UUID> required=new HashSet<>();
     }
     private static final class PackState {
         final Track track;final long requested;boolean loaded,failed;
@@ -101,7 +102,7 @@ final class BgmService implements Listener, AutoCloseable {
         tracks.stream().filter(t->t.uploader().equals(session.arena.owner())).limit(3).forEach(t->preload.put(t.id(),t));
         selectedTracks(session).forEach(t->preload.put(t.id(),t));
         if(playlist(session).selected().equals("default") && find("default")!=null)preload.put("default",find("default"));
-        return preload.values().stream().filter(Track::synchronizedReady).toList();
+        return List.copyOf(preload.values());
     }
     private void savePlaylist(Player player,GameSession session,BgmPlaylist next) {
         UUID owner=player.getUniqueId();
@@ -126,7 +127,10 @@ final class BgmService implements Listener, AutoCloseable {
         if(value)silence(player,playback.get(player.getUniqueId())); games.tools.updateBgm(player,games.watching(player),!value);
         if(!value) {
             Playback state=playback.get(player.getUniqueId());
-            if(state!=null)for(UUID id:List.copyOf(state.packs.keySet()))if(state.packs.get(id).failed){state.packs.remove(id);player.removeResourcePack(id);}
+            if(state!=null)for(UUID id:state.required) {
+                PackState pack=state.packs.get(id);
+                if(pack!=null && pack.failed){state.packs.remove(id);player.removeResourcePack(id);}
+            }
         }
         player.sendActionBar(Ui.text(value?"&7BGM OFF":"&aBGM ON"));Ui.sound(player,Ui.Cue.CLICK);
     }
@@ -280,28 +284,36 @@ final class BgmService implements Listener, AutoCloseable {
             if(selected.mode()==BgmTimeline.Mode.SINGLE && selected.selected().equals("default") && find("default")!=null)sequence=List.of(find("default"));
             BgmTimeline timeline=timelines.computeIfAbsent(session.sessionId,id->new BgmTimeline());
             timeline.configure(sequence,selected.mode(),selected.selected());
-            Playback state=playback.get(player.getUniqueId());
-            if(state==null || !session.sessionId.equals(state.session)) {
-                stop(player);state=new Playback();state.session=session.sessionId;
-                playback.put(player.getUniqueId(),state);
+            Playback state=playback.computeIfAbsent(player.getUniqueId(),id->new Playback());
+            if(!session.sessionId.equals(state.session)) {
+                stop(player);state.session=session.sessionId;
             }
-            List<Track> preload=preloadTracks(session);Set<UUID> desired=new HashSet<>();
-            for(Track track:preload)desired.add(track.packId());
-            for(UUID id:List.copyOf(state.packs.keySet()))if(!desired.contains(id)) {state.packs.remove(id);player.removeResourcePack(id);silence(player,state);}
+            List<Track> preload=preloadTracks(session);
+            state.required.clear();
+            for(Track track:preload)if(track.synchronizedReady())state.required.add(track.packId());
             for(Track track:preload) {
+                if(!track.synchronizedReady())continue;
+                // Keep other songs applied, but retire old revisions sharing this song's sound keys.
+                for(UUID id:List.copyOf(state.packs.keySet())) {
+                    if(state.packs.get(id).track.id().equals(track.id()) && !id.equals(track.packId())) {
+                        state.packs.remove(id);player.removeResourcePack(id);silence(player,state);
+                    }
+                }
                 PackState pack=state.packs.get(track.packId());
-                if(pack==null || !pack.track.deliveryUrl().equals(track.deliveryUrl())) {
+                if(pack==null || (!pack.loaded && !pack.track.deliveryUrl().equals(track.deliveryUrl()))) {
                     state.packs.put(track.packId(),new PackState(track,now));
                     player.addResourcePack(track.packId(),track.deliveryUrl(),HexFormat.of().parseHex(track.sha1()),"세션 BGM 재생 목록을 내려받습니다.",false);
                 } else if(!pack.loaded && !pack.failed && now-pack.requested>120000) {
                     pack.failed=true;player.sendMessage(Ui.text("&eBGM 리소스팩 적용 시간이 초과되었습니다. BGM을 껐다 켜서 다시 시도하세요."));
                 }
             }
-            boolean ownerReady=player.getUniqueId().equals(session.arena.owner()) && !sequence.isEmpty()
-                    && sequence.stream().allMatch(t->t.synchronizedReady() && loaded(player,t.packId()));
+            boolean allReady=!preload.isEmpty() && preload.stream().allMatch(t->t.synchronizedReady() && loaded(player,t.packId()));
+            if(allReady && !state.readyNotified)player.sendMessage(Ui.text("&aBGM 리소스팩 적용 완료. 재생 위치에 동기화합니다."));
+            state.readyNotified=allReady;
+            boolean ownerReady=player.getUniqueId().equals(session.arena.owner()) && allReady && !sequence.isEmpty();
             if(ownerReady)timeline.start(nowNanos);
             BgmTimeline.Cue cue=timeline.at(nowNanos);
-            if(muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
+            if(!allReady || muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
             String cueId=timeline.revision()+":"+cue.identity();
             if(!cueId.equals(state.lastCue)) {
                 silence(player,state);
@@ -315,7 +327,7 @@ final class BgmService implements Listener, AutoCloseable {
     }
     private boolean loaded(Player player,UUID pack) {
         Playback state=playback.get(player.getUniqueId());PackState value=state==null?null:state.packs.get(pack);
-        return value!=null && value.loaded;
+        return value!=null && value.loaded && !value.failed;
     }
     private void silence(Player player,Playback state) {
         if(state==null)return;
@@ -323,26 +335,29 @@ final class BgmService implements Listener, AutoCloseable {
         state.currentSound=null;state.lastCue=null;
     }
     void stop(Player player) {
-        Playback state=playback.remove(player.getUniqueId());if(state==null)return;
-        silence(player,state);state.packs.keySet().forEach(player::removeResourcePack);
+        Playback state=playback.get(player.getUniqueId());if(state==null)return;
+        silence(player,state);state.session=null;state.readyNotified=false;state.required.clear();
     }
     @EventHandler public void packStatus(PlayerResourcePackStatusEvent event) {
         Playback state=playback.get(event.getPlayer().getUniqueId());PackState pack=state==null?null:state.packs.get(event.getID());if(pack==null)return;
+        boolean required=state.required.contains(event.getID());
         switch(event.getStatus()) {
-            case SUCCESSFULLY_LOADED -> {pack.loaded=true;pack.failed=false;}
+            case SUCCESSFULLY_LOADED -> {if(!pack.failed)pack.loaded=true;}
+            case ACCEPTED, DOWNLOADED -> {pack.loaded=false;if(required)silence(event.getPlayer(),state);}
             case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
-                pack.failed=true;pack.loaded=false;silence(event.getPlayer(),state);event.getPlayer().sendMessage(Ui.text("&eBGM 리소스팩을 적용하지 못했습니다. BGM을 껐다 켜서 다시 시도하세요."));
+                pack.failed=true;pack.loaded=false;
+                if(required){silence(event.getPlayer(),state);event.getPlayer().sendMessage(Ui.text("&eBGM 리소스팩을 적용하지 못했습니다. BGM을 껐다 켜서 다시 시도하세요."));}
                 if(event.getStatus()!=PlayerResourcePackStatusEvent.Status.DECLINED)nextHealthCheck=Math.min(nextHealthCheck,System.currentTimeMillis()+60000);
             }
             default -> {}
         }
     }
-    @EventHandler public void quit(PlayerQuitEvent event){prompts.remove(event.getPlayer().getUniqueId());clicks.remove(event.getPlayer().getUniqueId());stop(event.getPlayer());}
+    @EventHandler public void quit(PlayerQuitEvent event){prompts.remove(event.getPlayer().getUniqueId());clicks.remove(event.getPlayer().getUniqueId());stop(event.getPlayer());playback.remove(event.getPlayer().getUniqueId());}
     @EventHandler public void drag(InventoryDragEvent event){if(event.getView().getTopInventory().getHolder() instanceof Holder)event.setCancelled(true);}
     @EventHandler public void closeMenu(InventoryCloseEvent event){if(event.getInventory().getHolder() instanceof Holder h)h.consumed=true;}
     @Override public void close() {
         closed=true;for(Player player:Bukkit.getOnlinePlayers())stop(player);
-        prompts.clear();worker.shutdownNow();
+        playback.clear();prompts.clear();worker.shutdownNow();
         try {
             if(worker.awaitTermination(2,TimeUnit.SECONDS)) {if(store!=null)store.close();return;}
         } catch(InterruptedException e){Thread.currentThread().interrupt();}catch(Exception e){plugin.getLogger().warning("BGM database close failed");}

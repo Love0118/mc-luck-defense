@@ -21,6 +21,7 @@ class UiFeedbackTest {
                     when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call->UUID.randomUUID()));
             var rolls=mockStatic(SummonRoll.class);var bukkit=mockStatic(Bukkit.class)) {
             GameService games=spy(new GameService(plugin,mock(ArenaMaps.class),CampaignRules.standard()));
+            games.achievements=mock(AchievementService.class);
             GameSession session=new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
             doReturn(session).when(games).session(player);
             rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
@@ -29,10 +30,17 @@ class UiFeedbackTest {
             double before=session.arena.coins();games.sell(player);assertEquals(before+3,session.arena.coins());heard(player,Ui.Cue.SELL,1);
             games.sell(player);heard(player,Ui.Cue.ERROR,1);heard(player,Ui.Cue.SELL,1);
             rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
-            games.summon(player);heard(player,Ui.Cue.RARE_SUMMON,1);heard(player,Ui.Cue.SUMMON,1);
+            games.summon(player);heard(player,Ui.Cue.RARE_SUMMON,0);heard(player,Ui.Cue.SUMMON,1);
             session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
             before=session.arena.coins();games.sell(player);assertEquals(before,session.arena.coins());heard(player,Ui.Cue.ERROR,2);heard(player,Ui.Cue.SELL,1);
             games.speed(player,8);heard(player,Ui.Cue.SPEED,1);
+            verify(games.achievements).summoned(player,Rarity.COMMON);
+            verify(games.achievements).summoned(player,Rarity.PRIMORDIAL);
+            games.summon(player); // Spend the last affordable draw.
+            games.summon(player); // Insufficient gold must not count a draw.
+            verify(games.achievements,times(3)).summoned(eq(player),any());
+            session.arena.credit(10);session.assisted=true;games.summon(player);
+            verify(games.achievements,times(3)).summoned(eq(player),any());
             verifyNoInteractions(other);
         }
     }

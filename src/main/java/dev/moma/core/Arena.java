@@ -59,10 +59,14 @@ public final class Arena {
         if (coinUnits < Gold.units(SUMMON_COST)) return Result.INSUFFICIENT_COINS;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
-        // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
-        UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
-        if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
-        defenders.put(entity, new Defender(entity, owner, id, roll.type(), roll.rarity(), cell));
+        Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity()).findFirst().orElse(null);
+        if(duplicate!=null)duplicate.merge();
+        else {
+            // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
+            UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
+            if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
+            defenders.put(entity, new Defender(entity, owner, id, roll.type(), roll.rarity(), cell));
+        }
         coinUnits -= Gold.units(SUMMON_COST);
         if (openingDraws < 3) {
             openingDraws++;
@@ -94,7 +98,7 @@ public final class Arena {
         Defender defender = defenders.get(selected);
         if (defender == null) return Result.NO_SELECTION;
         if (defender.rarity().salePrice().isEmpty()) return Result.NOT_SELLABLE;
-        credit(defender.rarity().salePrice().getAsInt());
+        credit(defender.saleValue());
         defenders.remove(selected);
         selected = null;
         return Result.OK;
@@ -120,7 +124,7 @@ public final class Arena {
         Objects.requireNonNull(rarity);
         if (rarity.salePrice().isEmpty()) return new BulkSale(Result.NOT_SELLABLE, List.of(), 0);
         var sold = defenders.values().stream().filter(d -> d.rarity() == rarity).map(Defender::entityId).toList();
-        long income = Math.multiplyExact((long) sold.size(), rarity.salePrice().getAsInt());
+        long income = sold.stream().map(defenders::get).mapToLong(Defender::saleValue).reduce(0,Math::addExact);
         credit(income);
         sold.forEach(defenders::remove);
         if (selected != null && sold.contains(selected)) selected = null;

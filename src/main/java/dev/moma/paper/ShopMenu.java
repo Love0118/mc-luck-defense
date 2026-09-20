@@ -9,7 +9,7 @@ import org.bukkit.inventory.*;
 import java.util.*;
 
 final class ShopMenu implements Listener {
-    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, AUTO_SELL_FIRST = 20,
+    private static final int SUMMON = 11, DETAILS = 13, SELL = 15, AUTO_SELL_FIRST = 19,
             SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6;
     private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
@@ -63,10 +63,11 @@ final class ShopMenu implements Listener {
         Optional<Defender> selected = arena.selected();
         if (selected.isPresent()) {
             Defender d = selected.orElseThrow();
-            CombatProfile profile = d.type().profile().at(d.rarity());
-            String sale = d.rarity().salePrice().isPresent() ? d.rarity().salePrice().getAsInt() + "골드" : "판매 불가";
-            holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + "[" + d.rarity().label() + "] " + d.type().label(),
+            CombatProfile profile = d.profile();
+            String sale = d.rarity().salePrice().isPresent() ? d.saleValue() + "골드" : "판매 불가";
+            holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + "[" + d.rarity().label() + "] " + d.label(),
                     d.type().role().label(),
+                    "강화 +" + d.enhancement() + " · 기본 피해 " + (long)(100*d.damageMultiplier()) + "%",
                     "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()) + " · 간격 " + profile.intervalTicks() + "틱",
                     "사거리 " + String.format(Locale.ROOT, "%.1f", profile.range()),
                     d.rarity().abilityLevel() == 0 ? "특수효과: 전설부터 해금" : d.type().role().ability() + " · " + d.rarity().abilityLevel() + "단계",
@@ -95,7 +96,7 @@ final class ShopMenu implements Listener {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
             lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
-        lore.add("&7전설 이상은 판매할 수 없습니다.");
+        lore.add("&7태초는 판매할 수 없습니다.");
         return Ui.item(Material.KNOWLEDGE_BOOK,"&e소환 확률",lore.toArray(String[]::new));
     }
     private ItemStack item(Material material, String title, String... lore) {

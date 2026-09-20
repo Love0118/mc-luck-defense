@@ -1,0 +1,5 @@
+name: AchievementSmoke
+version: 1.0
+main: dev.moma.benchmark.AchievementSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense]

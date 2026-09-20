@@ -16,6 +16,9 @@ public final class MomaPlugin extends JavaPlugin {
         maps.load();
         Lobby lobby = Lobby.load(this);
         games = new GameService(this, maps, settings, lobby);
+        games.achievements = new AchievementService(this);
+        if(lobby!=null)try{games.leaderboard=new RoundLeaderboard(this,lobby);}
+        catch(Exception error){getLogger().log(java.util.logging.Level.SEVERE,"Leaderboard initialization failed",error);}
         try { games.bgm = new BgmService(this,games); }
         catch(Exception error) { getLogger().log(java.util.logging.Level.SEVERE,"BGM initialization failed",error); }
         for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
@@ -41,11 +44,12 @@ public final class MomaPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, games::tick, 1, 1);
         getServer().getScheduler().runTaskTimer(this, shop::refreshOpen, 5, 5);
         getServer().getScheduler().runTaskTimer(this, TabStatus::update, 20, 20);
-        getLogger().info("MC Luck Defense enabled. Paper 26.3.build.19-alpha; /mud; 100-round campaign.");
+        getLogger().info("MC Luck Defense enabled. Paper 26.3.build.19-alpha; /mud; endless campaign.");
     }
     @Override public void onDisable() {
         if (games != null && games.bgm != null) games.bgm.close();
         if (games != null) games.shutdown();
+        if (games != null && games.leaderboard != null) games.leaderboard.close();
         if (games != null) for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
     }
 }

@@ -137,11 +137,11 @@ class InteractionTest {
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {actualShop.open(player);}
             var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
-            when(event.getRawSlot()).thenReturn(21);when(event.getClick()).thenReturn(ClickType.SHIFT_LEFT);
+            when(event.getRawSlot()).thenReturn(20);when(event.getClick()).thenReturn(ClickType.SHIFT_LEFT);
             actualShop.click(event);verify(games,never()).toggleAutoSell(any(),any());
             when(event.getClick()).thenReturn(ClickType.LEFT);when(event.getRawSlot()).thenReturn(48);
             actualShop.click(event);verify(games,never()).toggleAutoSell(any(),any());
-            when(event.getRawSlot()).thenReturn(21);actualShop.click(event);actualShop.click(event);
+            when(event.getRawSlot()).thenReturn(20);actualShop.click(event);actualShop.click(event);
             verify(games,times(1)).toggleAutoSell(player,Rarity.RARE);verify(event,times(4)).setCancelled(true);
         }
     }

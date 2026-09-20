@@ -61,7 +61,7 @@ public final class AutoPlayer {
         List<Defender> units = arena.defenders();
         if (units.size() == arena.grid().size() * arena.grid().size()) {
             var worst = units.stream().filter(d -> d.rarity().salePrice().isPresent()
-                    && arena.coins() + d.rarity().salePrice().getAsInt() >= Arena.SUMMON_COST).min(Comparator.comparingDouble(this::score));
+                    && arena.coins() + d.saleValue() >= Arena.SUMMON_COST).min(Comparator.comparingDouble(this::score));
             if (worst.isPresent()) { sell(arena, worst.orElseThrow()); return; }
         }
         if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;

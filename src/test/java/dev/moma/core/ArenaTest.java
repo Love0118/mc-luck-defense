@@ -13,7 +13,8 @@ class ArenaTest {
             Arena arena = new Arena("placement", owner, new Grid(6), 370, 100);
             for (int i = 0; i < 36; i++) {
                 UUID id = UUID.randomUUID();
-                assertEquals(OK, arena.summon(owner, new SummonRoll(type, Rarity.COMMON), (t, r, cell) -> id));
+                var pool=Arrays.stream(UnitType.values()).filter(t->t.role().melee()==type.role().melee()).toList();
+                assertEquals(OK, arena.summon(owner, new SummonRoll(pool.get(i%pool.size()), Rarity.values()[i/pool.size()]), (t, r, cell) -> id));
                 Cell placed = arena.defenders().getLast().cell();
                 assertEquals(type.role().melee() ? i < 20 : i >= 16, arena.grid().perimeter(placed));
             }
@@ -59,7 +60,7 @@ class ArenaTest {
         assertEquals(INSUFFICIENT_COINS, poor.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(9, poor.coins());
         var full = arena(100);
-        for (int i = 0; i < 9; i++) summon(full, Rarity.COMMON);
+        for (Rarity rarity:Rarity.values()) summon(full, rarity);
         assertEquals(FULL, full.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(10, full.coins());
         var failure = arena(10);

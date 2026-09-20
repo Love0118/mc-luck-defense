@@ -46,6 +46,10 @@ final class EntityAdapter {
                 Component.text(boss ? "[적·보스] " + type.label() : "[적] " + type.label(), NamedTextColor.RED));
         return enemy.getUniqueId();
     }
+    void updateDefenderName(Defender defender) {
+        Entity entity=Bukkit.getEntity(defender.entityId());
+        if(entity!=null)entity.customName(Component.text("[아군] ["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity())));
+    }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {
             if (!(raw instanceof LivingEntity living)) throw new IllegalArgumentException("Expected living unit");
@@ -134,10 +138,8 @@ final class EntityAdapter {
     boolean advanceAll(dev.moma.core.Arena arena, ArenaMap map) {
         if (!batchBridgeChecked) {
             batchBridgeChecked = true;
-            if (Boolean.getBoolean("mud.native.entityBatch")) {
-                try { batchBridge = Bukkit.getServer().getClass().getMethod("mudMovePresentationBatch", Entity[].class, double[].class, int.class); }
-                catch (NoSuchMethodException absent) { /* Standard Paper fallback. */ }
-            }
+            try { batchBridge = Bukkit.getServer().getClass().getMethod("mudMovePresentationBatch", Entity[].class, double[].class, int.class); }
+            catch (NoSuchMethodException absent) { /* Standard Paper fallback. */ }
         }
         if (batchBridge != null && arena.enemyCount() <= batchEntities.length && arena.activeEnemies().stream().noneMatch(e->e.type()==EnemyType.SHULKER)) {
             int i = 0;
@@ -157,7 +159,7 @@ final class EntityAdapter {
                 }
                 if ((boolean) batchBridge.invoke(Bukkit.getServer(), batchEntities, batchPositions, i)) return true;
             } catch (ReflectiveOperationException error) {
-                throw new IllegalStateException("MUD JNI motion failed; no retry performed", error);
+                throw new IllegalStateException("MUD Java motion batch failed; no retry performed", error);
             } finally { java.util.Arrays.fill(batchEntities, null); }
         }
         boolean intact = true;

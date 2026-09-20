@@ -147,17 +147,6 @@ public final class BenchmarkPlugin extends JavaPlugin {
             missed, gcMillis()-gcBefore, usedHeap()-heapBefore, windows, mspt);
         json = json.replace("\"targetTps\":320", "\"targetTps\":" + targetTps + ",\"sessionSpeed\":" + sessionSpeed);
         Files.writeString(getDataFolder().toPath().resolve("result.json"), json);
-        if (Boolean.getBoolean("mud.native.entityBatch")) {
-            Class<?> bridge = Class.forName("io.papermc.paper.optimization.mud.MudNativeEntities");
-            long batches = (long) bridge.getMethod("completedBatches").invoke(null);
-            if (batches == 0) throw new IllegalStateException("Requested JNI backend was never executed");
-            Files.writeString(getDataFolder().toPath().resolve("native.json"), "{\"entityBatches\":"+batches+"}");
-        }
-        if (!System.getProperty("mud.native.library", "").isBlank()) {
-            long batches = ((CombatEngine) field(games,"combat")).nativeBatches();
-            if (batches == 0) throw new IllegalStateException("Requested Rust combat never executed");
-            Files.writeString(getDataFolder().toPath().resolve("native-combat.json"), "{\"combatBatches\":"+batches+"}");
-        }
         var outcomes = new ArrayList<String>();
         for (int i = 0; i < sessions; i++) outcomes.add("{\"outcome\":\""+arenas.get(i).outcome()+"\",\"round\":"+((Campaign)field(gameSessions.get(i),"campaign")).round()+"}");
         Files.writeString(getDataFolder().toPath().resolve("workload.json"), "{\"mode\":\""+(campaignMode?"campaign":"dense")+"\",\"peakEnemies\":"+peakEnemies+",\"peakDefenders\":"+peakDefenders+",\"outcomes\":["+String.join(",",outcomes)+"]}");

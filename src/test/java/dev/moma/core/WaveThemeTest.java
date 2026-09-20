@@ -19,7 +19,8 @@ class WaveThemeTest {
         assertEquals(EnemyType.ENDER_DRAGON,WaveTheme.at(90).boss());
         assertEquals(EnemyType.SHULKER,WaveTheme.at(100).boss());
         assertThrows(IllegalArgumentException.class,()->WaveTheme.at(0));
-        assertThrows(IllegalArgumentException.class,()->WaveTheme.at(101));
+        assertEquals(WaveTheme.at(1),WaveTheme.at(101));
+        assertEquals(WaveTheme.at(100),WaveTheme.at(200));
     }
     @Test void wardensAreSparseDurableAndOnlyAppearInAncientCity() {
         var waves=WaveSchedule.create(CampaignRules.standard());

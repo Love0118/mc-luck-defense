@@ -65,6 +65,29 @@ class BgmServiceTest {
                 verify(viewer,never()).removeResourcePack(any());
                 tick.invoke(service);verify(viewer,times(1)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
                 when(games.listeningSession(owner)).thenReturn(null);tick.invoke(service);verify(owner).stopSound(track.segmentSound(1),SoundCategory.RECORDS);
+                verify(owner,never()).removeResourcePack(any());
+                GameSession next=new GameSession(owner,session.map,CampaignRules.standard());
+                when(games.listeningSession(owner)).thenReturn(next);tick.invoke(service);
+                verify(owner,times(1)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                verify(owner,times(3)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                // A repaired URL with identical content must reuse the applied hash.
+                Track newUrl=new Track("default",new UUID(0,0),"server","default","","https://www.dropbox.com/repaired?dl=1",track.sha1(),110.82);
+                catalog.set(service,List.of(newUrl));tick.invoke(service);
+                verify(owner,times(1)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                Track revision=new Track("default",new UUID(0,0),"server","default","",newUrl.deliveryUrl(),"b".repeat(40),110.82);
+                catalog.set(service,List.of(revision));tick.invoke(service);
+                verify(owner).removeResourcePack(track.packId());
+                verify(owner).addResourcePack(eq(revision.packId()),anyString(),any(byte[].class),anyString(),eq(false));
+                service.packStatus(new PlayerResourcePackStatusEvent(owner,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);
+                verify(owner,times(3)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.packStatus(new PlayerResourcePackStatusEvent(owner,revision.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);
+                verify(owner,times(4)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.quit(new org.bukkit.event.player.PlayerQuitEvent(owner,net.kyori.adventure.text.Component.empty()));
+                tick.invoke(service);
+                verify(owner,times(2)).addResourcePack(eq(revision.packId()),anyString(),any(byte[].class),anyString(),eq(false));
+                verify(owner,times(4)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
             }
         }
     }
@@ -94,9 +117,31 @@ class BgmServiceTest {
                 service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(0).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                for(int i:new int[]{1,2})service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);verify(owner,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.toggle(viewer);tick.invoke(service);verify(viewer,times(4)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                for(Track track:catalog)service.packStatus(new PlayerResourcePackStatusEvent(viewer,track.packId(),PlayerResourcePackStatusEvent.Status.DOWNLOADED));
+                tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                for(int i=0;i<3;i++)service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.FAILED_RELOAD));
+                service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.toggle(viewer);service.toggle(viewer);tick.invoke(service);
+                verify(viewer,times(5)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(viewer,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                lists.set(service,Map.of(owner.getUniqueId(),new dev.moma.bgm.BgmPlaylist(List.of("track0"),dev.moma.bgm.BgmTimeline.Mode.SINGLE,"track0")));
+                tick.invoke(service);
+                verify(owner,never()).removeResourcePack(any());
+                clearInvocations(owner);
+                service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.DISCARDED));
+                verify(owner,never()).stopSound(anyString(),any(SoundCategory.class));
+                service.stop(owner);tick.invoke(service);
+                verify(owner,never()).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                verify(owner).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
             }
         }
     }

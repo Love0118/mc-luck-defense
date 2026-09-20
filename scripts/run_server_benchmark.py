@@ -59,15 +59,7 @@ generator-settings={"layers":[{"block":"minecraft:bedrock","height":1}],"biome":
     (run / "server.properties").write_text(properties)
     cmd = ["java", "-Xms4g", "-Xmx4g", "-Dio.netty.leakDetection.level=paranoid" if a.leaks else "-Dio.netty.leakDetection.level=simple",
            f"-Dmudbench.warmup={a.warmup}", f"-Dmudbench.measure={a.ticks}", f"-Dmudbench.campaign={str(a.campaign).lower()}", "-jar", str(a.server.resolve()), "--nogui"]
-    if a.native_combat:
-        cmd[1:1] = ["--enable-native-access=ALL-UNNAMED", f"-Dmud.native.library={a.native_combat.resolve()}"]
     cmd[1:1] = [f"-Dmudbench.targetTps={a.target_tps}", f"-Dmudbench.sessionSpeed={a.session_speed}"]
-    if a.native_entities:
-        cmd[1:1] = ["--enable-native-access=ALL-UNNAMED", "-Dmud.native.entityBatch=true", f"-Dmud.native.entities={a.native_entities.resolve()}"]
-    if a.check_jni:
-        cmd.insert(1, "-Xcheck:jni")
-    if a.java_batch:
-        cmd[1:1] = ["-Dmud.native.entityBatch=true", "-Dmud.native.entities.javaControl=true"]
     (run / "invocation.json").write_text(json.dumps(cmd))
     log = (run / "console.log").open("w", encoding="utf-8")
     server = subprocess.Popen(cmd, cwd=run, stdin=subprocess.PIPE, stdout=log, stderr=subprocess.STDOUT, text=True)
@@ -127,8 +119,4 @@ if __name__ == "__main__":
     p.add_argument("--campaign", action="store_true")
     p.add_argument("--target-tps", type=int, choices=[20, 320], default=320)
     p.add_argument("--session-speed", type=int, choices=[1, 2, 4, 8], default=1)
-    p.add_argument("--native-combat", type=Path)
-    p.add_argument("--native-entities", type=Path)
-    p.add_argument("--check-jni", action="store_true")
-    p.add_argument("--java-batch", action="store_true")
     main(p.parse_args())

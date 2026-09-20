@@ -117,7 +117,7 @@ class CampaignTest {
         assertThrows(IllegalStateException.class, () -> campaign.beforeCombat(arena, spec -> { throw new IllegalStateException(); }));
         campaign.beforeCombat(arena, spec -> UUID.randomUUID()); assertEquals(1, arena.enemyCount());
         while (!arena.ended()) campaign.beforeCombat(arena, spec -> UUID.randomUUID());
-        int elapsed = campaign.elapsed();
+        long elapsed = campaign.elapsed();
         campaign.beforeCombat(arena, spec -> { fail("must not spawn after defeat"); return null; });
         assertEquals(elapsed, campaign.elapsed()); assertEquals(Arena.Outcome.ENEMY_LIMIT, arena.outcome());
     }

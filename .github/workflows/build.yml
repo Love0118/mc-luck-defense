@@ -16,15 +16,8 @@ jobs:
           java-version: '25'
           cache: maven
       - run: mvn -B -ntp clean verify
-      - run: cargo test --manifest-path native/mud-combat/Cargo.toml
-      - run: cargo build --release --locked --manifest-path native/mud-combat/Cargo.toml
-      - run: mvn -B -ntp -Dmud.native.library="$PWD/native/mud-combat/target/release/libmud_combat.so" verify
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: mc-luck-defense
           path: target/mc-luck-defense-*.jar
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mud-combat-linux
-          path: native/mud-combat/target/release/libmud_combat.so

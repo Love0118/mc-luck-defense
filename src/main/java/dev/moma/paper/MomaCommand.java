@@ -37,7 +37,7 @@ final class MomaCommand implements TabExecutor {
                 case "create" -> {
                     require(args, 2, "/mud create <전장>");
                     maps.create(args[1], settings.gridSize());
-                    sender.sendMessage(Component.text("100라운드 전장 생성 완료: " + args[1] + " · /mud join " + args[1], NamedTextColor.GREEN));
+                    sender.sendMessage(Component.text("무한 라운드 전장 생성 완료: " + args[1] + " · /mud join " + args[1], NamedTextColor.GREEN));
                 }
                 case "start" -> games.start(player(sender));
                 case "spectate" -> { require(args, 2, "/mud spectate <플레이어>"); games.spectate(player(sender), args[1]); }

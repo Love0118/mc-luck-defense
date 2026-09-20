@@ -45,7 +45,7 @@ final class SessionTools {
         data.set(heldKey,PersistentDataType.INTEGER,inventory.getHeldItemSlot());
         if (!viewer && !lobby) {
         inventory.setItem(0,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 아군 선택 → 빈 배치 칸으로 이동"));
-        inventory.setItem(1,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&c전설 이상 판매 불가"));
+        inventory.setItem(1,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&c태초 판매 불가"));
         }
         if (lobby) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
         else inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));

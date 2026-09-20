@@ -8,12 +8,6 @@ public final class CombatEngine {
     private static final Comparator<Enemy> PRIORITY = Comparator.comparingDouble(Enemy::progress).reversed().thenComparing(Enemy::entityId);
     private final ArrayList<Enemy> ordered = new ArrayList<>();
     private final ArrayList<Enemy> selected = new ArrayList<>();
-    private final NativeCombat nativeCombat;
-
-    public CombatEngine() { this(true); }
-    public CombatEngine(boolean allowNative) { nativeCombat = allowNative ? NativeCombat.create() : null; }
-    public static boolean nativeAvailable() { return NativeCombat.available(); }
-    public long nativeBatches() { return nativeCombat == null ? 0 : nativeCombat.completedBatches(); }
 
     public List<Hit> tick(Arena arena, long tick) {
         var hits = new ArrayList<Hit>();
@@ -28,7 +22,6 @@ public final class CombatEngine {
         for (Defender defender : arena.defenderView()) if (tick >= defender.nextAttackTick()) { ready = true; break; }
         if (!ready || arena.enemyCount() == 0) return;
         ordered.clear(); ordered.addAll(arena.enemyView()); ordered.sort(PRIORITY);
-        if (nativeCombat != null && nativeCombat.tick(arena, tick, ordered, sink)) return;
         Route route = arena.grid().route();
         for (Defender defender : arena.defenderView()) {
             if (tick < defender.nextAttackTick()) continue;

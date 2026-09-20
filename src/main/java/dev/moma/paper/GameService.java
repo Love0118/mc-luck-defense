@@ -15,6 +15,8 @@ final class GameService {
     final EntityAdapter entities;
     final SessionTools tools;
     BgmService bgm;
+    RoundLeaderboard leaderboard;
+    AchievementService achievements;
     final SpectatorAppearance appearance = new SpectatorAppearance();
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private record Watch(GameSession target, Location returnLocation, GameMode returnMode, boolean returnAllowFlight, boolean returnFlying) {}
@@ -141,7 +143,7 @@ final class GameService {
         player.setAllowFlight(true); player.setFlying(true);
         tools.give(player);
         appearance.enter(player, false);
-        player.sendMessage(Component.text("100라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
     }
     void leave(Player player) {
         if(bgm!=null)bgm.stop(player);
@@ -219,14 +221,28 @@ final class GameService {
         }
         if (feedback) tell(player, result);
         if (result == Arena.Result.OK) {
+            if(achievements!=null && !session.assisted)achievements.summoned(player,roll.rarity());
             if (autoSell) session.arena.sellRarity(player.getUniqueId(), roll.rarity());
+            else session.arena.activeDefenders().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity() && d.enhancement()>0).findFirst().ifPresent(d->{
+                entities.updateDefenderName(d);
+                fusionEffect(player,session,d);
+                player.sendActionBar(Ui.text("&a합성 &f["+d.rarity().label()+"] "+d.label()));
+            });
             session.layoutDirty = true;
-            if (feedback || roll.rarity().abilityLevel() > 0)
+            if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
                 Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
         }
-        if (result == Arena.Result.OK && roll.rarity().abilityLevel() > 0)
-            Bukkit.broadcast(Component.text(player.getName() + " 님이 [" + roll.rarity().label() + "] " + roll.type().label() + " 획득!", EntityAdapter.rarityColor(roll.rarity())));
+        if (result == Arena.Result.OK && roll.rarity().ordinal()>=Rarity.MYTHIC.ordinal())
+            SummonAnnouncement.broadcast(player,roll);
         return result == Arena.Result.OK;
+    }
+    private void fusionEffect(Player player,GameSession session,Defender defender) {
+        Location at=session.map.location(defender.position()).add(0,1.8,0);
+        for(Player viewer:viewers(player,session)) {
+            viewer.spawnParticle(Particle.FIREWORK,at,45,.4,.6,.4,.12);
+            viewer.spawnParticle(Particle.FLASH,at,1,Color.fromRGB(EntityAdapter.rarityColor(defender.rarity()).value()));
+            viewer.playSound(at,"minecraft:entity.firework_rocket.blast",SoundCategory.PLAYERS,.6f,1.2f);
+        }
     }
     void sell(Player player) {
         GameSession session = session(player);
@@ -313,7 +329,7 @@ final class GameService {
         tell(player, result);
         if (result == Arena.Result.OK) {
             entities.selectGlow(player, entity);
-            session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.type().label() + " · " + d.type().role().label())));
+            session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.label() + " · " + d.type().role().label())));
         }
     }
     void move(Player player, org.bukkit.block.Block block) {
@@ -377,7 +393,7 @@ final class GameService {
             }
             if (tick % 10 == 0) {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
-                player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + session.speed() + "배 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
+                player.sendActionBar(Component.text("R" + session.campaign.round() + " · " + session.speed() + "배 · " + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
     }
@@ -402,7 +418,9 @@ final class GameService {
         if (session.arena.ended()) return false;
         if (session.campaign.round() != session.announcedRound) {
             session.announcedRound = session.campaign.round();
-            player.sendMessage(Component.text("라운드 " + session.announcedRound + "/100 · " + session.campaign.wave().name(), NamedTextColor.AQUA));
+            player.sendMessage(Component.text("라운드 " + session.announcedRound + " · " + session.campaign.wave().name(), NamedTextColor.AQUA));
+            if(leaderboard!=null && !session.assisted)leaderboard.record(player,session.announcedRound);
+            if(achievements!=null && !session.assisted)achievements.reached(player,session.announcedRound);
         }
         session.attackEffects.beginStep();
         combat.tick(session.arena, session.simulationTick, (defender, enemy, damage) ->
@@ -433,7 +451,7 @@ final class GameService {
             case INVALID_CELL -> "자기 전장의 파란 배치 칸을 선택하세요.";
             case OCCUPIED -> "이미 포탑이 있는 칸입니다.";
             case NO_SELECTION -> "먼저 자신의 포탑을 좌클릭하세요.";
-            case NOT_SELLABLE -> "전설 이상은 판매할 수 없습니다.";
+            case NOT_SELLABLE -> "태초는 판매할 수 없습니다.";
             case OK -> "";
         };
         player.sendMessage(Component.text(message, NamedTextColor.RED));
