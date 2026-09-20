@@ -1,0 +1,11 @@
+{
+  "version": "0.14.0",
+  "testsPassed": 223,
+  "stagedOnly": true,
+  "serverRestarted": false,
+  "pluginSha256": "41a3057e39f6194774be55b439964c0f0104a40ce1cf9a2df25efc53478d2cc2",
+  "cohort": 100000,
+  "exactSharedPrefixAudited": true,
+  "independentHoldout": false,
+  "simulatorOptimizationParityGames": 1000
+}

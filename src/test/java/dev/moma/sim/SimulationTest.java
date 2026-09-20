@@ -6,6 +6,15 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SimulationTest {
+    @Test void coverageCachePreservesSeparateGridSizesAndIndependentRuns() {
+        var rules=CampaignRules.standard();
+        var first=Simulation.run(444,rules,AutoPlayer.Strategy.BALANCED,null);
+        var small=new CampaignRules(5,rules.startingCoins(),rules.enemyLimit(),rules.preparationTicks(),rules.roundTicks(),rules.cleanupTicks(),rules.healthScale(),rules.healthCurve(),rules.bossHealthScale());
+        Simulation.run(555,small,AutoPlayer.Strategy.BALANCED,null);
+        var again=Simulation.run(444,rules,AutoPlayer.Strategy.BALANCED,null);
+        assertEquals(first.round(),again.round());assertEquals(first.summons(),again.summons());
+        assertEquals(first.sales(),again.sales());assertArrayEquals(first.damage(),again.damage());
+    }
     @Test void seededRunsAreReproducibleAndHaveLegalIncomeAndActions() {
         var rules = CampaignRules.standard();
         var trace = new ArrayList<Simulation.Snapshot>();

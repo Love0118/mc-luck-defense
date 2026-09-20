@@ -21,6 +21,6 @@ class EndlessCampaignTest {
         }
         double hp100=WaveSchedule.create(100,rules).entries().stream().filter(e->e.enemy().boss()).findFirst().orElseThrow().enemy().health();
         double hp110=WaveSchedule.create(110,rules).entries().stream().filter(e->e.enemy().boss()).findFirst().orElseThrow().enemy().health();
-        assertEquals(Math.pow(1.1,2)*17/35/1.75,hp110/hp100,1e-9);
+        assertEquals(rules.healthCurve().at(110)/rules.healthCurve().at(100)*17/35/1.75,hp110/hp100,1e-9);
     }
 }

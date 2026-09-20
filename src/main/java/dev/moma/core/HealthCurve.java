@@ -7,8 +7,8 @@ public record HealthCurve(List<Anchor> anchors) {
     public record Anchor(int round, double health) {}
     public HealthCurve {
         anchors = List.copyOf(anchors);
-        if (anchors.size() < 2 || anchors.getFirst().round() != 1 || anchors.getLast().round() != 100)
-            throw new IllegalArgumentException("Health curve must span rounds 1..100");
+        if (anchors.size() < 2 || anchors.getFirst().round() != 1 || anchors.getLast().round() < 100)
+            throw new IllegalArgumentException("Health curve must span at least rounds 1..100");
         int previousRound = 0; double previousHealth = 0;
         for (Anchor anchor : anchors) {
             if (anchor.round() <= previousRound || !Double.isFinite(anchor.health()) || anchor.health() <= 0 || anchor.health() < previousHealth)
@@ -26,7 +26,7 @@ public record HealthCurve(List<Anchor> anchors) {
         return new HealthCurve(anchors);
     }
     public double at(int round) {
-        if (round < 1 || round > 100) throw new IllegalArgumentException("Round must be 1..100");
+        if (round < 1 || round > anchors.getLast().round()) throw new IllegalArgumentException("Round outside health curve");
         for (int i = 1; i < anchors.size(); i++) {
             Anchor end = anchors.get(i), start = anchors.get(i - 1);
             if (round <= end.round()) {

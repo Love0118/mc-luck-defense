@@ -23,8 +23,9 @@ public final class WaveSchedule {
         int count = 12 + (cycleRound - 1) / 10 * 2;
         if (pattern == 2) count += 8;
         if (pattern == 3) count -= 3;
-        double growth=round<=100?1:Math.pow(round/100.0,2);
-        double base = rules.healthCurve().at(Math.min(round,100)) * rules.healthScale()*growth;
+        int lastAnchor=rules.healthCurve().anchors().getLast().round();
+        double growth=round<=lastAnchor?1:Math.pow(round/(double)lastAnchor,2);
+        double base = rules.healthCurve().at(Math.min(round,lastAnchor)) * rules.healthScale()*growth;
         var entries = new ArrayList<Wave.Entry>();
         for (int i = 0; i < count; i++) {
             EnemyType type = switch (pattern) {
