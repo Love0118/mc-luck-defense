@@ -60,6 +60,14 @@ class BgmMenuTest {
                 tick[0]++;when(event.getRawSlot()).thenReturn(52);service.click(event);
                 assertEquals(Set.of(0,45,46,48,49,51,53),slots.get(menus.getLast()).keySet());
                 tick[0]++;when(event.getRawSlot()).thenReturn(51);service.click(event);assertTrue(slots.get(menus.getLast()).containsKey(44));
+                tick[0]++;when(event.getRawSlot()).thenReturn(1);service.click(event);
+                var selected=((Map<UUID,dev.moma.bgm.BgmPlaylist>)lists.get(service)).get(owner);
+                assertEquals(dev.moma.bgm.BgmTimeline.Mode.MEDLEY,selected.mode());assertEquals("t1",selected.selected());
+                assertEquals(tracks.stream().map(Track::id).toList(),selected.tracks());
+                tick[0]++;when(event.getRawSlot()).thenReturn(46);service.click(event);
+                tick[0]++;when(event.getRawSlot()).thenReturn(2);service.click(event);
+                selected=((Map<UUID,dev.moma.bgm.BgmPlaylist>)lists.get(service)).get(owner);
+                assertEquals(dev.moma.bgm.BgmTimeline.Mode.SINGLE,selected.mode());assertEquals("t2",selected.selected());
             }
         }
     }

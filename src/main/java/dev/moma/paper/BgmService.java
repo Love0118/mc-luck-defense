@@ -207,7 +207,7 @@ final class BgmService implements Listener, AutoCloseable {
     private void select(Player player,GameSession session,String id) {
         Track t=find(id);if(t==null || !t.synchronizedReady()) {player.sendMessage(Ui.text("&e곡 배포가 준비되지 않았습니다."));open(player,false,0);return;}
         BgmPlaylist current=playlist(session);
-        savePlaylist(player,session,new BgmPlaylist(current.tracks(),BgmTimeline.Mode.SINGLE,id));
+        savePlaylist(player,session,new BgmPlaylist(current.tracks(),current.mode(),id));
     }
     private void promptUpload(Player player,GameSession session) {
         if(!dropbox.connected()){player.sendMessage(Ui.text("&e관리자가 Dropbox 연결을 완료해야 합니다."));player.closeInventory();return;}
@@ -298,7 +298,10 @@ final class BgmService implements Listener, AutoCloseable {
             if(!catalogLoaded)continue;
             BgmPlaylist selected=playlist(session);
             List<Track> sequence=new ArrayList<>(selectedTracks(session));
-            if(selected.mode()==BgmTimeline.Mode.SINGLE && selected.selected().equals("default") && find("default")!=null)sequence=List.of(find("default"));
+            if(selected.selected().equals("default") && find("default")!=null) {
+                if(selected.mode()==BgmTimeline.Mode.SINGLE)sequence=List.of(find("default"));
+                else if(sequence.stream().noneMatch(t->t.id().equals("default")))sequence.addFirst(find("default"));
+            }
             BgmTimeline timeline=timelines.computeIfAbsent(session.sessionId,id->new BgmTimeline());
             timeline.configure(sequence,selected.mode(),selected.selected());
             Playback state=playback.computeIfAbsent(player.getUniqueId(),id->new Playback());

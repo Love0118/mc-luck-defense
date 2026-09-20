@@ -20,6 +20,13 @@ public final class BgmTimeline {
     public void configure(List<Track> playlist, Mode mode, String selected) {
         List<Track> usable=playlist.stream().filter(Track::synchronizedReady).toList();
         if(mode==Mode.SINGLE) usable=usable.stream().filter(t->t.id().equals(selected)).limit(1).toList();
+        else {
+            var ordered=new ArrayList<>(usable);
+            for(int i=0;i<ordered.size();i++)if(ordered.get(i).id().equals(selected)) {
+                Collections.rotate(ordered,-i);break;
+            }
+            usable=ordered;
+        }
         String next=mode+":"+usable.stream().map(t->t.id()+":"+t.sha1()+":"+t.seconds()).toList();
         if(next.equals(signature))return;
         signature=next;tracks=List.copyOf(usable);started=false;revision++;

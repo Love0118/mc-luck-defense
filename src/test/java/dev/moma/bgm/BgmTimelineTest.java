@@ -17,6 +17,19 @@ class BgmTimelineTest {
         assertEquals("a",clock.at(9_500_000_000L).track().id());assertEquals(1,clock.at(9_500_000_000L).cycle());
         assertEquals("b",clock.at(24_500_000_000L).track().id());
     }
+    @Test void medleyStartsAtSelectionAndWrapsWithoutChangingPlaylistOrder() {
+        var playlist=List.of(track("a",4),track("b",6),track("c",2));var timeline=new BgmTimeline();
+        timeline.configure(playlist,BgmTimeline.Mode.MEDLEY,"b");timeline.start(0);
+        assertEquals("b",timeline.at(0).track().id());
+        assertEquals("c",timeline.at(6_000_000_000L).track().id());
+        assertEquals("a",timeline.at(8_000_000_000L).track().id());
+        assertEquals("b",timeline.at(12_000_000_000L).track().id());
+        long revision=timeline.revision();timeline.configure(playlist,BgmTimeline.Mode.MEDLEY,"b");
+        assertEquals(revision,timeline.revision());assertTrue(timeline.started());
+        timeline.configure(playlist,BgmTimeline.Mode.MEDLEY,"c");assertFalse(timeline.started());
+        timeline.start(20_000_000_000L);assertEquals("c",timeline.at(20_000_000_000L).track().id());
+        assertEquals(List.of("a","b","c"),playlist.stream().map(Track::id).toList());
+    }
     @Test void unchangedConfigAndLateListenerDoNotRestartOwnerClock() {
         Track a=track("a",110);var timeline=new BgmTimeline();
         timeline.configure(List.of(a),BgmTimeline.Mode.SINGLE,"a");timeline.start(0);long revision=timeline.revision();
