@@ -27,8 +27,9 @@ class BgmTimelineTest {
     }
     @Test void playlistsCanUseOthersTracksButAreDistinctAndLimitedToThree() {
         BgmPlaylist list=new BgmPlaylist(List.of("a","b"),BgmTimeline.Mode.MEDLEY,"a");
-        list=list.toggle("other_owner_track");assertEquals(3,list.tracks().size());
-        BgmPlaylist full=list;assertThrows(IllegalArgumentException.class,()->full.toggle("fourth"));
-        assertEquals(List.of("b","other_owner_track"),list.toggle("a").tracks());assertEquals("b",list.toggle("a").selected());
+        list=list.toggle("other_owner_track",3);assertEquals(3,list.tracks().size());
+        BgmPlaylist full=list;assertThrows(IllegalArgumentException.class,()->full.toggle("fourth",3));
+        assertEquals(4,list.toggle("fourth",4).tracks().size());
+        assertEquals(List.of("b","other_owner_track"),list.toggle("a",1).tracks());assertEquals("b",list.toggle("a",1).selected());
     }
 }

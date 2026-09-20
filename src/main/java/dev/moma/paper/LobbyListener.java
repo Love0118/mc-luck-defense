@@ -36,9 +36,10 @@ final class LobbyListener implements Listener {
     @EventHandler public void breakBlock(BlockBreakEvent event) { if (lobby.contains(event.getBlock().getLocation())) event.setCancelled(true); }
     @EventHandler public void placeBlock(BlockPlaceEvent event) { if (lobby.contains(event.getBlock().getLocation())) event.setCancelled(true); }
     @EventHandler public void interact(PlayerInteractEvent event) {
-        if (!lobby.contains(event.getPlayer().getLocation())) return;
+        boolean viewer=games.watching(event.getPlayer());
+        if (!viewer && !lobby.contains(event.getPlayer().getLocation())) return;
         event.setCancelled(true);
-        if (!games.active(event.getPlayer()) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+        if ((viewer || !games.active(event.getPlayer())) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
                 && games.tools.holding(event.getPlayer(), "sessions")) menu.open(event.getPlayer());
     }

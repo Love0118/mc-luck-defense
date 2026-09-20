@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
-/** Session hotbar tools with a player-persistent backup of the two replaced slots. */
+/** Session hotbar tools with a player-persistent backup of replaced slots. */
 final class SessionTools {
     private static final NamespacedKey SOUND_LEVEL = new NamespacedKey("momadefense", "attack_volume");
     private static final int[] VOLUMES = {100, 50, 25, 0};
@@ -41,14 +41,15 @@ final class SessionTools {
     private void give(Player player, boolean viewer, boolean lobby) {
         restore(player);
         var inventory=player.getInventory(); var data=player.getPersistentDataContainer();
-        data.set(backupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(new ItemStack[]{inventory.getItem(0),inventory.getItem(1),inventory.getItem(8),inventory.getItem(7),inventory.getItem(6)}));
+        data.set(backupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(new ItemStack[]{inventory.getItem(0),inventory.getItem(1),inventory.getItem(8),inventory.getItem(7),inventory.getItem(6),inventory.getItem(2)}));
         data.set(heldKey,PersistentDataType.INTEGER,inventory.getHeldItemSlot());
         if (!viewer && !lobby) {
-        inventory.setItem(0,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 아군 선택 → 빈 배치 칸으로 이동"));
-        inventory.setItem(1,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&c태초 판매 불가"));
+        inventory.setItem(0,tool(Material.NETHER_STAR,"manage","&e세션 관리","&7우클릭: 소환·판매·배속 메뉴","&7F키로도 열 수 있습니다."));
+        inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 아군 선택 → 빈 배치 칸으로 이동"));
+        inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&c태초 판매 불가"));
         }
-        if (lobby) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
-        else inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
+        if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
+        if (!lobby) inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
         if (!lobby) giveSound(player);
         if (!lobby) {
             boolean enabled=data.getOrDefault(new NamespacedKey("momadefense","bgm_muted"),PersistentDataType.BYTE,(byte)0)==0;
@@ -65,7 +66,7 @@ final class SessionTools {
                 viewer ? "&7우클릭: BGM 켜기·끄기" : "&7우클릭: 노래 선택·업로드"));
     }
     boolean holding(Player player,String id) {
-        int slot=switch(id) { case "move", "sessions" -> 0; case "sell" -> 1; case "bgm" -> 6; case "sound" -> 7; case "leave" -> 8; default -> -1; };
+        int slot=switch(id) { case "manage", "sessions" -> 0; case "move" -> 1; case "sell" -> 2; case "bgm" -> 6; case "sound" -> 7; case "leave" -> 8; default -> -1; };
         return player.getInventory().getHeldItemSlot()==slot && id.equals(id(player.getInventory().getItemInMainHand()));
     }
     boolean isTool(ItemStack item) { return id(item)!=null; }
@@ -76,13 +77,14 @@ final class SessionTools {
         var data=player.getPersistentDataContainer(); var inventory=player.getInventory();
         byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
         ItemStack[] previous=bytes==null?null:ItemStack.deserializeItemsFromBytes(bytes);
-        if(previous!=null && (previous.length<2 || previous.length>5))throw new IllegalStateException("Invalid session hotbar backup for "+player.getUniqueId());
+        if(previous!=null && (previous.length<2 || previous.length>6))throw new IllegalStateException("Invalid session hotbar backup for "+player.getUniqueId());
         for(int slot=0;slot<inventory.getSize();slot++)if(isTool(inventory.getItem(slot)))inventory.setItem(slot,null);
         if(previous!=null) {
             inventory.setItem(0,previous[0]);inventory.setItem(1,previous[1]);
             if(previous.length>=3)inventory.setItem(8,previous[2]);
             if(previous.length>=4)inventory.setItem(7,previous[3]);
             if(previous.length>=5)inventory.setItem(6,previous[4]);
+            if(previous.length>=6)inventory.setItem(2,previous[5]);
             int held=data.getOrDefault(heldKey,PersistentDataType.INTEGER,0);
             inventory.setHeldItemSlot(Math.max(0,Math.min(8,held)));
         }

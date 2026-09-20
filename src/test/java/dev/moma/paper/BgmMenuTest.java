@@ -54,6 +54,12 @@ class BgmMenuTest {
                 assertEquals(Set.of(0,45,49),slots.get(menus.getLast()).keySet());
                 tick[0]++;when(event.getRawSlot()).thenReturn(45);service.click(event);assertEquals(47,slots.get(menus.getLast()).size());
                 tick[0]++;when(event.getRawSlot()).thenReturn(49);service.click(event);assertEquals(Set.of(0,1,2,45,46,48,49,53),slots.get(menus.getLast()).keySet());
+                var lists=BgmService.class.getDeclaredField("playlists");lists.setAccessible(true);
+                lists.set(service,Map.of(owner,new dev.moma.bgm.BgmPlaylist(tracks.stream().map(Track::id).toList(),dev.moma.bgm.BgmTimeline.Mode.MEDLEY,"t0")));
+                service.open(player,false,0);assertTrue(slots.get(menus.getLast()).containsKey(44));assertTrue(slots.get(menus.getLast()).containsKey(52));
+                tick[0]++;when(event.getRawSlot()).thenReturn(52);service.click(event);
+                assertEquals(Set.of(0,45,46,48,49,51,53),slots.get(menus.getLast()).keySet());
+                tick[0]++;when(event.getRawSlot()).thenReturn(51);service.click(event);assertTrue(slots.get(menus.getLast()).containsKey(44));
             }
         }
     }

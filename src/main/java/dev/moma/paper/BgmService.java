@@ -28,6 +28,7 @@ final class BgmService implements Listener, AutoCloseable {
     private final GameService games;
     private final Path data,work;
     private final YamlConfiguration config;
+    private final BgmLimits limits;
     private final ThreadPoolExecutor worker=new ThreadPoolExecutor(1,1,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(32),r->{Thread t=new Thread(r,"mud-bgm");t.setDaemon(true);return t;});
     private final DropboxBgm dropbox;
     private final BgmMedia media;
@@ -69,14 +70,15 @@ final class BgmService implements Listener, AutoCloseable {
         Files.createDirectories(work);
         if(!Files.exists(data.resolve("bgm.yml")))plugin.saveResource("bgm.yml",false);
         config=YamlConfiguration.loadConfiguration(data.resolve("bgm.yml").toFile());
-        dropbox=new DropboxBgm(config.getString("refresh-token",""));
-        media=new BgmMedia(config.getString("yt-dlp","yt-dlp"),config.getString("ffmpeg","ffmpeg"));
+        limits=BgmSettings.limits(config);config.save(data.resolve("bgm.yml").toFile());
+        dropbox=new DropboxBgm(config.getString("refresh-token",""),limits.fileSizeBytes());
+        media=new BgmMedia(config.getString("yt-dlp","yt-dlp"),config.getString("ffmpeg","ffmpeg"),limits);
         worker.execute(()->{
             try {
                 try(var leftovers=Files.list(work)) {
                     for(Path path:leftovers.filter(Files::isDirectory).toList()) BgmMedia.cleanup(path);
                 }
-                store=new BgmStore(data.resolve("bgm.db"));tracks=store.list();playlists=store.playlists();
+                store=new BgmStore(data.resolve("bgm.db"),limits.uploadsPerPlayer());tracks=store.list();playlists=store.playlists();
                 if(tracks.stream().noneMatch(t->t.id().equals("default"))) {
                     store.save(new Track("default",SYSTEM,"서버","기본 BGM","","","",config.getDouble("default-duration-seconds",110.82)));tracks=store.list();
                 }
@@ -99,7 +101,7 @@ final class BgmService implements Listener, AutoCloseable {
     }
     private BgmPlaylist playlist(GameSession session) {
         return playlists.getOrDefault(session.arena.owner(),new BgmPlaylist(tracks.stream()
-                .filter(t->t.uploader().equals(session.arena.owner())).limit(3).map(Track::id).toList(),BgmTimeline.Mode.SINGLE,session.bgmTrack));
+                .filter(t->t.uploader().equals(session.arena.owner())).limit(limits.playlistTracks()).map(Track::id).toList(),BgmTimeline.Mode.SINGLE,session.bgmTrack));
     }
     private List<Track> selectedTracks(GameSession session) {
         List<Track> selected=playlist(session).tracks().stream().map(this::find).filter(Objects::nonNull).toList();
@@ -107,7 +109,7 @@ final class BgmService implements Listener, AutoCloseable {
     }
     private List<Track> preloadTracks(GameSession session) {
         LinkedHashMap<String,Track> preload=new LinkedHashMap<>();
-        tracks.stream().filter(t->t.uploader().equals(session.arena.owner())).limit(3).forEach(t->preload.put(t.id(),t));
+        tracks.stream().filter(t->t.uploader().equals(session.arena.owner())).limit(limits.uploadsPerPlayer()).forEach(t->preload.put(t.id(),t));
         selectedTracks(session).forEach(t->preload.put(t.id(),t));
         if(playlist(session).selected().equals("default") && find("default")!=null)preload.put("default",find("default"));
         return List.copyOf(preload.values());
@@ -148,9 +150,9 @@ final class BgmService implements Listener, AutoCloseable {
         BgmPlaylist selected=playlist(session);
         List<Track> choices=library?tracks.stream().filter(t->!t.id().equals("default")).toList():selected.tracks().stream().map(this::find).filter(Objects::nonNull).toList();
         int pages=Math.max(1,(choices.size()+PAGE_SIZE-1)/PAGE_SIZE);page=Math.clamp(page,0,pages-1);
-        if(library)choices=choices.subList(page*PAGE_SIZE,Math.min(choices.size(),page*PAGE_SIZE+PAGE_SIZE));
+        choices=choices.subList(page*PAGE_SIZE,Math.min(choices.size(),page*PAGE_SIZE+PAGE_SIZE));
         Holder holder=new Holder(player.getUniqueId(),session.sessionId,library,page,choices.stream().map(Track::id).toList());
-        holder.inventory=Bukkit.createInventory(holder,MENU_SIZE,Ui.text(library?"&6업로드된 곡 · "+(page+1)+"/"+pages:"&6내 노래 · BGM 관리"));
+        holder.inventory=Bukkit.createInventory(holder,MENU_SIZE,Ui.text(library?"&6업로드된 곡 · "+(page+1)+"/"+pages:"&6내 노래 · BGM 관리 · "+(page+1)+"/"+pages));
         for(int i=0;i<choices.size();i++) {
             Track t=choices.get(i);holder.inventory.setItem(i,Ui.item(Material.MUSIC_DISC_CAT,"&f"+t.title(),"&7업로드: "+t.uploaderName(),
                     library ? (selected.tracks().contains(t.id())?"&e클릭: 재생 목록에서 제거":"&a클릭: 재생 목록에 추가") : "&a좌클릭: 선택 · 우클릭: 목록에서 제거",
@@ -164,8 +166,11 @@ final class BgmService implements Listener, AutoCloseable {
             holder.inventory.setItem(DEFAULT_TRACK,Ui.item(Material.MUSIC_DISC_13,"&b기본 BGM"));
             holder.inventory.setItem(MODE,Ui.item(Material.REPEATER,"&b재생 모드 · &e"+(selected.mode()==BgmTimeline.Mode.SINGLE?"단일곡":"메들리"),"&7클릭: 단일곡 반복 / 순서대로 반복"));
             holder.inventory.setItem(MUTE,Ui.item(muted(player)?Material.GRAY_DYE:Material.LIME_DYE,muted(player)?"&7BGM OFF":"&aBGM ON"));
-            holder.inventory.setItem(UPLOAD,Ui.item(Material.HOPPER,"&a노래 업로드", "&7YouTube 링크로 등록 · 최대 3곡"));
+            holder.inventory.setItem(UPLOAD,Ui.item(Material.HOPPER,"&a노래 업로드", "&7YouTube 링크로 등록 · 최대 "+limits.uploadsPerPlayer()+"곡",
+                    "&7최대 "+limits.durationSeconds()+"초 · "+limits.fileSizeMb()+"MB", "&7재생 목록 최대 "+limits.playlistTracks()+"곡"));
             holder.inventory.setItem(LIBRARY,Ui.item(Material.BOOK,"&e업로드된 곡 모두 보기"));
+            if(page>0)holder.inventory.setItem(51,Ui.item(Material.ARROW,"&e이전 페이지"));
+            if(page+1<pages)holder.inventory.setItem(52,Ui.item(Material.ARROW,"&e다음 페이지"));
         }
         player.openInventory(holder.inventory);Ui.sound(player,Ui.Cue.OPEN);
     }
@@ -179,7 +184,7 @@ final class BgmService implements Listener, AutoCloseable {
         clicks.put(p.getUniqueId(),Bukkit.getCurrentTick());h.consumed=true;
         if(slot<h.ids.size()) {
             if(h.library || event.getClick()==ClickType.RIGHT) {
-                try {savePlaylist(p,s,playlist(s).toggle(h.ids.get(slot)));}
+                try {savePlaylist(p,s,playlist(s).toggle(h.ids.get(slot),limits.playlistTracks()));}
                 catch(IllegalArgumentException error){p.sendMessage(Ui.text("&e"+error.getMessage()));h.consumed=false;}
             } else select(p,s,h.ids.get(slot));
         }
@@ -192,6 +197,8 @@ final class BgmService implements Listener, AutoCloseable {
         else if(!h.library && slot==MUTE){toggle(p);open(p,false,0);}
         else if(!h.library && slot==UPLOAD)promptUpload(p,s);
         else if(!h.library && slot==LIBRARY)open(p,true,0);
+        else if(!h.library && slot==51 && h.page>0)open(p,false,h.page-1);
+        else if(!h.library && slot==52)open(p,false,h.page+1);
         else if(h.library && slot==PREVIOUS && h.page>0)open(p,true,h.page-1);
         else if(h.library && slot==NEXT && (h.page+1)*PAGE_SIZE<tracks.stream().filter(t->!t.id().equals("default")).count())open(p,true,h.page+1);
         else if(h.library && slot==BACK)open(p,false,0);
@@ -204,11 +211,11 @@ final class BgmService implements Listener, AutoCloseable {
     }
     private void promptUpload(Player player,GameSession session) {
         if(!dropbox.connected()){player.sendMessage(Ui.text("&e관리자가 Dropbox 연결을 완료해야 합니다."));player.closeInventory();return;}
-        if(tracks.stream().filter(t->t.uploader().equals(player.getUniqueId())).count()>=3 || uploading.contains(player.getUniqueId())) {
-            player.sendMessage(Ui.text("&e최대 3곡까지 등록할 수 있으며 업로드는 한 번에 하나씩 가능합니다."));player.closeInventory();return;
+        if(tracks.stream().filter(t->t.uploader().equals(player.getUniqueId())).count()>=limits.uploadsPerPlayer() || uploading.contains(player.getUniqueId())) {
+            player.sendMessage(Ui.text("&e최대 "+limits.uploadsPerPlayer()+"곡까지 등록할 수 있으며 업로드는 한 번에 하나씩 가능합니다."));player.closeInventory();return;
         }
         prompts.put(player.getUniqueId(),new Prompt(session.sessionId,false,System.currentTimeMillis()+120000));player.closeInventory();
-        player.sendMessage(Ui.text("&a채팅에 YouTube 링크를 입력하세요. &7취소: 취소 · 제한: 5분, 25MB"));
+        player.sendMessage(Ui.text("&a채팅에 YouTube 링크를 입력하세요. &7취소: 취소 · 제한: "+limits.durationSeconds()+"초, "+limits.fileSizeMb()+"MB"));
     }
     void auth(Player player) {
         if(!player.hasPermission("moma.admin"))throw new IllegalArgumentException("관리자 권한이 필요합니다.");
@@ -242,7 +249,8 @@ final class BgmService implements Listener, AutoCloseable {
         Path temp=null;
         try {
             if(store==null)throw new IllegalStateException();
-            if(store.list().stream().filter(t->t.uploader().equals(owner)).count()>=3)throw new IllegalStateException();
+            if(store.list().stream().filter(t->t.uploader().equals(owner)).count()>=limits.uploadsPerPlayer())
+                throw new BgmMedia.RejectedAudio("최대 "+limits.uploadsPerPlayer()+"곡까지 등록할 수 있습니다.");
             temp=Files.createTempDirectory(work,"upload-");BgmMedia.Audio audio=media.download(url,temp);
             Track draft=new Track(UUID.randomUUID().toString().replace("-",""),owner,name,audio.title(),url,"","",audio.seconds());
             Track ready=publish(draft,audio.file(),temp);store.save(ready);tracks=store.list();

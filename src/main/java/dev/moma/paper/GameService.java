@@ -44,6 +44,7 @@ final class GameService {
     boolean active(Player player) { return playing(player) || watching(player); }
     boolean usingLeaveTool(Player player) { return active(player) && tools.holding(player,"leave"); }
     boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
+    boolean usingManageTool(Player player) { return playing(player) && tools.holding(player,"manage"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
     boolean usingSoundTool(Player player) { return active(player) && tools.holding(player,"sound"); }
     void speed(Player player, int value) {

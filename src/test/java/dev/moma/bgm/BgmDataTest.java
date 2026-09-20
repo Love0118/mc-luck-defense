@@ -26,6 +26,33 @@ class BgmDataTest {
         assertThrows(BgmMedia.RejectedAudio.class,()->media.convert(temp.resolve("absent.ogg"),temp,"long",301));
         assertThrows(BgmMedia.RejectedAudio.class,()->media.synchronizedPack("long",temp.resolve("absent.ogg"),301,temp));
     }
+    @Test void configuredDurationAndPackSizeBoundariesAreEnforced()throws Exception {
+        var info=new com.google.gson.JsonObject();info.addProperty("duration",600);
+        assertEquals(600,BgmMedia.checkedDuration(info,600));
+        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.checkedDuration(info,599));
+        var media=new BgmMedia("must-not-launch","must-not-launch",new BgmLimits(5,5,10,1));
+        assertThrows(BgmMedia.RejectedAudio.class,()->media.convert(temp.resolve("absent"),temp,"long",11));
+        assertThrows(BgmMedia.RejectedAudio.class,()->media.synchronizedPack("long",temp.resolve("absent"),11,temp));
+        Path audio=temp.resolve("a.ogg");Files.write(audio,new byte[]{1,2,3});
+        Path zip=BgmMedia.pack("a",List.of(audio),temp,10000);long size=Files.size(zip);
+        BgmMedia.pack("a",List.of(audio),temp,size);
+        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.pack("a",List.of(audio),temp,size-1));
+    }
+    @Test void configuredUploadLimitSurvivesRestartAndLoweringStillAllowsRepair()throws Exception {
+        UUID owner=UUID.randomUUID();Path file=temp.resolve("custom.db");
+        var playlist=new BgmPlaylist(List.of("t0","t1","t2","t3","t4"),BgmTimeline.Mode.MEDLEY,"t0");
+        try(var store=new BgmStore(file,5)) {
+            for(int i=0;i<5;i++)store.save(new Track("t"+i,owner,"owner","title","","","",10));
+            assertThrows(java.sql.SQLException.class,()->store.save(new Track("t5",owner,"owner","title","","","",10)));
+            store.savePlaylist(owner,playlist);
+        }
+        try(var store=new BgmStore(file,2)) {
+            assertEquals(5,store.list().size());assertEquals(playlist,store.playlists().get(owner));
+            store.save(new Track("t0",owner,"owner","repaired","","","",10));
+            assertEquals("repaired",store.list().getFirst().title());
+            assertThrows(java.sql.SQLException.class,()->store.save(new Track("t5",owner,"owner","title","","","",10)));
+        }
+    }
     @Test void youtubeInputsAreCanonicalAndRejectOtherHostsAndPlaylistOnlyLinks() {
         for(String url:List.of("https://youtu.be/abcdefghijk?t=2","https://www.youtube.com/watch?v=abcdefghijk&list=PLtest","https://youtube.com/shorts/abcdefghijk","https://youtube.com/live/abcdefghijk"))
             assertEquals("https://www.youtube.com/watch?v=abcdefghijk",BgmMedia.youtube(url));

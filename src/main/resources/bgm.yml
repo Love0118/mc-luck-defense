@@ -4,3 +4,11 @@ yt-dlp: 'yt-dlp'
 ffmpeg: 'ffmpeg'
 default-duration-seconds: 110.82
 health-check-minutes: 30
+
+# Positive integers. Read when the plugin starts. MB uses 1024 * 1024 bytes.
+# Lowering counts does not delete existing songs or saved playlists.
+limits:
+  uploads-per-player: 3
+  playlist-tracks: 3
+  duration-seconds: 300
+  file-size-mb: 25

@@ -15,9 +15,12 @@ public final class DropboxBgm {
     public static final String APP_KEY="5jcck7diasz0rqy";
     private static final String APP_SECRET="1n9m04y2zx7bf26";
     private final HttpClient client;
+    private final long maximumBytes;
     private volatile String refreshToken;
-    public DropboxBgm(String refreshToken){this(refreshToken,HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).followRedirects(HttpClient.Redirect.NORMAL).build());}
-    DropboxBgm(String refreshToken,HttpClient client){this.refreshToken=refreshToken;this.client=client;}
+    public DropboxBgm(String refreshToken){this(refreshToken,BgmLimits.DEFAULT.fileSizeBytes());}
+    public DropboxBgm(String refreshToken,long maximumBytes){this(refreshToken,HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).followRedirects(HttpClient.Redirect.NORMAL).build(),maximumBytes);}
+    DropboxBgm(String refreshToken,HttpClient client){this(refreshToken,client,BgmLimits.DEFAULT.fileSizeBytes());}
+    DropboxBgm(String refreshToken,HttpClient client,long maximumBytes){this.refreshToken=refreshToken;this.client=client;this.maximumBytes=maximumBytes;}
     public boolean connected(){return refreshToken!=null && !refreshToken.isBlank();}
     public String authorizationUrl(String state){return "https://www.dropbox.com/oauth2/authorize?client_id="+APP_KEY+"&response_type=code&token_access_type=offline&state="+encode(state);}
     public String authorize(String code)throws Exception {
@@ -59,7 +62,7 @@ public final class DropboxBgm {
         try(var input=response.body()) {
             if(response.statusCode()!=200)return false;
             MessageDigest digest=MessageDigest.getInstance("SHA-1");byte[] buffer=new byte[8192];long total=0;int size;
-            while((size=input.read(buffer))!=-1){total+=size;if(total>BgmMedia.MAX_BYTES+1048576)return false;digest.update(buffer,0,size);}
+            while((size=input.read(buffer))!=-1){total+=size;if(total>maximumBytes)return false;digest.update(buffer,0,size);}
             return HexFormat.of().formatHex(digest.digest()).equals(expectedSha1);
         }
     }

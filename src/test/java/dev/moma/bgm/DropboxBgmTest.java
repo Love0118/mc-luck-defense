@@ -28,5 +28,7 @@ class DropboxBgmTest {
         assertEquals("https://www.dropbox.com/s/test/pack.zip?dl=1",url);assertEquals(4,requests.size());
         assertEquals("Bearer test-token",requests.get(1).headers().firstValue("Authorization").orElseThrow());
         assertEquals("POST",requests.getFirst().method());
+        assertTrue(new DropboxBgm("test-refresh",client,4).healthy(url,hash));
+        assertFalse(new DropboxBgm("test-refresh",client,3).healthy(url,hash));
     }
 }

@@ -12,25 +12,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.*;
 
 public final class BgmMedia {
-    public static final long MAX_BYTES=25*1024*1024;
-    public static final int MAX_SECONDS=300;
+    private final BgmLimits limits;
     public static final class RejectedAudio extends IOException {
         public RejectedAudio(String message){super(message);}
     }
     static double checkedDuration(JsonObject info)throws RejectedAudio {
+        return checkedDuration(info,BgmLimits.DEFAULT.durationSeconds());
+    }
+    static double checkedDuration(JsonObject info,int maximum)throws RejectedAudio {
         double duration;
         try {duration=info.has("duration") && !info.get("duration").isJsonNull()?info.get("duration").getAsDouble():0;}
         catch(RuntimeException error){throw new RejectedAudio("영상 길이를 확인할 수 없습니다.");}
         boolean live=info.has("is_live") && !info.get("is_live").isJsonNull() && info.get("is_live").getAsBoolean();
         if(live)throw new RejectedAudio("실시간 영상은 등록할 수 없습니다.");
-        validateDuration(duration);return duration;
+        validateDuration(duration,maximum);return duration;
     }
-    static void validateDuration(double seconds)throws RejectedAudio {
+    static void validateDuration(double seconds,int maximum)throws RejectedAudio {
         if(!Double.isFinite(seconds) || seconds<=0)throw new RejectedAudio("영상 길이를 확인할 수 없습니다.");
-        if(seconds>MAX_SECONDS)throw new RejectedAudio("5분을 초과하는 곡은 등록할 수 없습니다. (최대 5:00)");
+        if(seconds>maximum)throw new RejectedAudio("최대 "+maximum+"초까지 등록할 수 있습니다.");
     }
     private final String downloader,ffmpeg;
-    public BgmMedia(String downloader,String ffmpeg) { this.downloader=downloader;this.ffmpeg=ffmpeg; }
+    public BgmMedia(String downloader,String ffmpeg) { this(downloader,ffmpeg,BgmLimits.DEFAULT); }
+    public BgmMedia(String downloader,String ffmpeg,BgmLimits limits) { this.downloader=downloader;this.ffmpeg=ffmpeg;this.limits=limits; }
     public record Audio(Path file,String title,double seconds) {}
     public static String youtube(String input) {
         try {
@@ -52,22 +55,22 @@ public final class BgmMedia {
         Path metadata=workspace.resolve("metadata.json");
         run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
         JsonObject info=JsonParser.parseString(Files.readString(metadata)).getAsJsonObject();
-        double duration=checkedDuration(info);
+        double duration=checkedDuration(info,limits.durationSeconds());
         String title=info.get("title").getAsString().replaceAll("[\\p{Cntrl}]","");
         if(title.length()>160)title=title.substring(0,160);
-        run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--max-filesize","25M","--socket-timeout","20","--retries","2",
+        run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--max-filesize",Long.toString(limits.fileSizeBytes()),"--socket-timeout","20","--retries","2",
                 "-f","bestaudio","-o",workspace.resolve("source.%(ext)s").toString(),"--",url),workspace.resolve("download.log"),Duration.ofMinutes(8));
         Path source;
         try(var files=Files.list(workspace)) { source=files.filter(p->p.getFileName().toString().startsWith("source.") && !p.toString().endsWith(".part")).findFirst().orElseThrow(()->new IOException("영상 오디오를 다운로드하지 못했습니다.")); }
-        if(Files.size(source)>MAX_BYTES)throw new IOException("오디오 파일이 너무 큽니다.");
+        if(Files.size(source)>limits.fileSizeBytes())throw new RejectedAudio("오디오 파일이 "+limits.fileSizeMb()+"MB를 초과합니다.");
         return convert(source,workspace,title,duration);
     }
     public Audio convert(Path source,Path workspace,String title,double seconds) throws Exception {
-        validateDuration(seconds);
+        validateDuration(seconds,limits.durationSeconds());
         Path audio=workspace.resolve("audio.ogg");
-        run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t",Integer.toString(MAX_SECONDS),"-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
+        run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t",Integer.toString(limits.durationSeconds()),"-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
                 workspace.resolve("convert.log"),Duration.ofMinutes(5));
-        if(!Files.isRegularFile(audio)||Files.size(audio)>MAX_BYTES)throw new IOException("OGG 변환 결과가 유효하지 않습니다.");
+        if(!Files.isRegularFile(audio)||Files.size(audio)>limits.fileSizeBytes())throw new IOException("OGG 변환 결과가 없거나 "+limits.fileSizeMb()+"MB를 초과합니다.");
         return new Audio(audio,title,seconds);
     }
     static void run(List<String> command,Path output,Duration timeout) throws Exception {
@@ -78,10 +81,10 @@ public final class BgmMedia {
         } finally { if(process.isAlive()){process.descendants().forEach(ProcessHandle::destroyForcibly);process.destroyForcibly();} }
     }
     public static Path pack(String id,Path audio,Path workspace) throws IOException {
-        return pack(id,List.of(audio),workspace);
+        return pack(id,List.of(audio),workspace,BgmLimits.DEFAULT.fileSizeBytes());
     }
     public Path synchronizedPack(String id,Path audio,double seconds,Path workspace)throws Exception {
-        validateDuration(seconds);
+        validateDuration(seconds,limits.durationSeconds());
         List<Path> segments=new ArrayList<>();
         for(int i=0;i<(int)Math.ceil(seconds/2);i++) {
             Path segment=workspace.resolve("part_"+i+".ogg");
@@ -90,9 +93,9 @@ public final class BgmMedia {
                     workspace.resolve("segment.log"),Duration.ofSeconds(30));
             segments.add(segment);
         }
-        return pack(id,segments,workspace);
+        return pack(id,segments,workspace,limits.fileSizeBytes());
     }
-    static Path pack(String id,List<Path> segments,Path workspace)throws IOException {
+    static Path pack(String id,List<Path> segments,Path workspace,long maximumBytes)throws IOException {
         if(!id.matches("[a-z0-9_]+"))throw new IllegalArgumentException("Invalid track id");
         Path zip=workspace.resolve("pack.zip");
         try(var output=new ZipOutputStream(Files.newOutputStream(zip))) {
@@ -110,7 +113,7 @@ public final class BgmMedia {
             }
             entry(output,"assets/mud_bgm/sounds.json",sounds.toString().getBytes(StandardCharsets.UTF_8));
         }
-        if(Files.size(zip)>MAX_BYTES)throw new IOException("리소스팩이 25MB를 초과합니다.");
+        if(Files.size(zip)>maximumBytes)throw new RejectedAudio("리소스팩이 "+(maximumBytes/1024/1024)+"MB를 초과합니다.");
         return zip;
     }
     private static void entry(ZipOutputStream output,String name,byte[] data)throws IOException { output.putNextEntry(new ZipEntry(name));output.write(data);output.closeEntry(); }

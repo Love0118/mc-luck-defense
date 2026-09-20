@@ -7,7 +7,13 @@ import java.util.*;
 /** All access is serialized by the BGM worker. */
 public final class BgmStore implements AutoCloseable {
     private final Connection connection;
+    private final int uploadsPerPlayer;
     public BgmStore(Path path) throws Exception {
+        this(path, BgmLimits.DEFAULT.uploadsPerPlayer());
+    }
+    public BgmStore(Path path, int uploadsPerPlayer) throws Exception {
+        if(uploadsPerPlayer<1)throw new IllegalArgumentException("Invalid upload limit");
+        this.uploadsPerPlayer=uploadsPerPlayer;
         Class.forName("org.sqlite.JDBC");
         connection=DriverManager.getConnection("jdbc:sqlite:"+path.toAbsolutePath());
         try(var statement=connection.createStatement()) {
@@ -30,9 +36,10 @@ public final class BgmStore implements AutoCloseable {
     }
     public void save(Track track) throws SQLException {
         if(!track.id().equals("default")) {
-            try(var limit=connection.prepareStatement("SELECT COUNT(*) FROM tracks WHERE uploader=? AND id<>?")) {
+            // Existing tracks remain repairable even after lowering the upload limit.
+            try(var limit=connection.prepareStatement("SELECT COUNT(*) FROM tracks WHERE uploader=? AND NOT EXISTS (SELECT 1 FROM tracks WHERE id=?)")) {
                 limit.setString(1,track.uploader().toString());limit.setString(2,track.id());
-                try(var rows=limit.executeQuery()){if(rows.next() && rows.getInt(1)>=3)throw new SQLException("Uploader already has three tracks");}
+                try(var rows=limit.executeQuery()){if(rows.next() && rows.getInt(1)>=uploadsPerPlayer)throw new SQLException("Uploader reached track limit: "+uploadsPerPlayer);}
             }
         }
         try(var statement=connection.prepareStatement("INSERT INTO tracks VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,delivery_url=excluded.delivery_url,sha1=excluded.sha1,seconds=excluded.seconds,pack_version=excluded.pack_version")) {

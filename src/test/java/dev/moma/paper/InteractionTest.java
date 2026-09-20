@@ -33,6 +33,17 @@ class InteractionTest {
         doReturn(false).when(games).usingSoundTool(player);
         doReturn(false).when(games).usingBgmTool(player);
         doReturn(false).when(games).usingLeaveTool(player);
+        doReturn(false).when(games).usingManageTool(player);
+    }
+    @Test void managementItemOpensShopOncePerTickWithMainHand() {
+        doReturn(true).when(games).playing(player);doReturn(true).when(games).usingManageTool(player);
+        var event=mock(PlayerInteractEvent.class);when(event.getPlayer()).thenReturn(player);
+        when(event.getAction()).thenReturn(Action.RIGHT_CLICK_AIR);when(event.getHand()).thenReturn(EquipmentSlot.OFF_HAND);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(10);listener.interact(event);verifyNoInteractions(shop);
+            when(event.getHand()).thenReturn(EquipmentSlot.HAND);listener.interact(event);listener.interact(event);verify(shop).open(player);
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(11);listener.interact(event);verify(shop,times(2)).open(player);
+        }
     }
     @Test void swapOpensShopOnlyForParticipantsAndCancelsItemSwap() {
         var event = mock(PlayerSwapHandItemsEvent.class); when(event.getPlayer()).thenReturn(player);
