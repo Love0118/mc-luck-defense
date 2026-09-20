@@ -33,7 +33,17 @@ class AutomationTest {
         draw(Rarity.COMMON);
     }
     @AfterEach void close() { bukkit.close(); rolls.close(); adapters.close(); }
-    private void draw(Rarity rarity) { rolls.when(() -> SummonRoll.draw(any())).thenReturn(new SummonRoll(UnitType.WOLF,rarity)); }
+    private void draw(Rarity rarity) { rolls.when(() -> SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,rarity)); }
+    @Test void bulkBuyStopsOpeningBonusOnAutoSoldRelicBeforeTheNextDraw() {
+        games.toggleAutoSell(player,Rarity.RELIC);
+        rolls.when(()->SummonRoll.draw(any(),eq(true))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.RELIC));
+        rolls.when(()->SummonRoll.draw(any(),eq(false))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
+        games.toggleBulkBuy(player);games.processAutomation(player,session);
+        rolls.verify(()->SummonRoll.draw(any(),eq(true)),times(1));
+        rolls.verify(()->SummonRoll.draw(any(),eq(false)),times(3));
+        assertFalse(session.arena.openingBonusActive()); assertEquals(3,session.arena.defenderCount());
+        assertEquals(6,session.arena.coins());
+    }
     @Test void autoSalePaysExistingAndFutureUnitsExactlyOnceAndCanBeTurnedOff() {
         games.summon(player);
         UUID sold = session.arena.defenders().getFirst().entityId(); session.arena.select(player.getUniqueId(),sold);

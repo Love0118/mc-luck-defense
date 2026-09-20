@@ -40,7 +40,7 @@ final class ShopMenu implements Listener {
         holder.inventory.clear();
         holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
                 "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 1배"));
-        holder.inventory.setItem(ODDS, oddsItem());
+        holder.inventory.setItem(ODDS, oddsItem(arena));
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &610골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
         boolean buying = holder.session.bulkBuying, layout = holder.session.autoPlacement;
@@ -79,14 +79,22 @@ final class ShopMenu implements Listener {
         }
     }
     static ItemStack oddsItem() {
+        return oddsItem(null);
+    }
+    static ItemStack oddsItem(Arena arena) {
+        boolean openingBonus = arena != null && arena.openingBonusActive();
         var lore = new ArrayList<String>();
         for (Rarity rarity : Rarity.values()) {
             String color = "&#" + String.format(Locale.ROOT,"%06x",EntityAdapter.rarityColor(rarity).value());
-            String percent = java.math.BigDecimal.valueOf(rarity.weight()).multiply(java.math.BigDecimal.valueOf(100))
+            String percent = java.math.BigDecimal.valueOf(rarity.weight(openingBonus)).multiply(java.math.BigDecimal.valueOf(100))
                     .divide(java.math.BigDecimal.valueOf(Rarity.TOTAL_WEIGHT)).stripTrailingZeros().toPlainString();
             lore.add(color + rarity.label() + " &f" + percent + "%");
         }
         lore.add("&7포탑 종류: 각 1/" + UnitType.values().length);
+        if (openingBonus) {
+            lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
+            lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
+        }
         lore.add("&7전설 이상은 판매할 수 없습니다.");
         return Ui.item(Material.KNOWLEDGE_BOOK,"&e소환 확률",lore.toArray(String[]::new));
     }

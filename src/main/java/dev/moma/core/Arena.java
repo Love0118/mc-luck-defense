@@ -15,6 +15,10 @@ public final class Arena {
     private final LinkedHashMap<UUID, Enemy> enemies = new LinkedHashMap<>();
     private long coinUnits;
     private UUID selected;
+    private int openingDraws;
+    private boolean openingHit;
+    public boolean openingBonusActive() { return openingDraws < 3 && !openingHit; }
+    public int openingDrawsRemaining() { return openingBonusActive() ? 3 - openingDraws : 0; }
     public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
     private Outcome outcome = Outcome.PLAYING;
     private long earnedUnits;
@@ -60,6 +64,10 @@ public final class Arena {
         if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
         defenders.put(entity, new Defender(entity, owner, id, roll.type(), roll.rarity(), cell));
         coinUnits -= Gold.units(SUMMON_COST);
+        if (openingDraws < 3) {
+            openingDraws++;
+            openingHit |= roll.rarity() == Rarity.ANCIENT || roll.rarity() == Rarity.RELIC;
+        }
         return Result.OK;
     }
     public Result select(UUID actor, UUID entity) {

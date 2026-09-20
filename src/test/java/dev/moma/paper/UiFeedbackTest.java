@@ -23,12 +23,12 @@ class UiFeedbackTest {
             GameService games=spy(new GameService(plugin,mock(ArenaMaps.class),CampaignRules.standard()));
             GameSession session=new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
             doReturn(session).when(games).session(player);
-            rolls.when(()->SummonRoll.draw(any())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
+            rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
             games.summon(player);heard(player,Ui.Cue.SUMMON,1);heard(player,Ui.Cue.ERROR,0);
             session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
             double before=session.arena.coins();games.sell(player);assertEquals(before+3,session.arena.coins());heard(player,Ui.Cue.SELL,1);
             games.sell(player);heard(player,Ui.Cue.ERROR,1);heard(player,Ui.Cue.SELL,1);
-            rolls.when(()->SummonRoll.draw(any())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
+            rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
             games.summon(player);heard(player,Ui.Cue.RARE_SUMMON,1);heard(player,Ui.Cue.SUMMON,1);
             session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
             before=session.arena.coins();games.sell(player);assertEquals(before,session.arena.coins());heard(player,Ui.Cue.ERROR,2);heard(player,Ui.Cue.SELL,1);

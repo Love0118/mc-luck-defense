@@ -194,7 +194,7 @@ final class GameService {
         purchase(player, session, true);
     }
     private boolean purchase(Player player, GameSession session, boolean feedback) {
-        SummonRoll roll = SummonRoll.draw(session.random);
+        SummonRoll roll = SummonRoll.draw(session.random, session.arena.openingBonusActive());
         boolean autoSell = session.autoSell.contains(roll.rarity());
         Arena.Result result;
         try {

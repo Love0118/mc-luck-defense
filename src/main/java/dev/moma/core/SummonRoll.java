@@ -4,7 +4,10 @@ import java.util.random.RandomGenerator;
 
 public record SummonRoll(UnitType type, Rarity rarity) {
     public static SummonRoll draw(RandomGenerator random) {
-        Rarity rarity = Rarity.fromRoll(random.nextInt(Rarity.TOTAL_WEIGHT));
+        return draw(random, false);
+    }
+    public static SummonRoll draw(RandomGenerator random, boolean openingBonus) {
+        Rarity rarity = Rarity.fromRoll(random.nextInt(Rarity.TOTAL_WEIGHT), openingBonus);
         UnitType type = UnitType.values()[random.nextInt(UnitType.values().length)];
         return new SummonRoll(type, rarity);
     }

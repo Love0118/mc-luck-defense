@@ -25,6 +25,15 @@ public enum Rarity {
     }
     public String label() { return label; }
     public int weight() { return weight; }
+    public int weight(boolean openingBonus) {
+        if (!openingBonus) return weight;
+        return switch (this) {
+            case COMMON -> 20301;
+            case ANCIENT -> 30000;
+            case RELIC -> 15000;
+            default -> weight;
+        };
+    }
     public OptionalInt salePrice() { return salePrice < 0 ? OptionalInt.empty() : OptionalInt.of(salePrice); }
     public int abilityLevel() { return abilityLevel; }
     public double damageMultiplier() { return damageMultiplier; }
@@ -32,10 +41,13 @@ public enum Rarity {
     public double speedMultiplier() { return speedMultiplier; }
 
     public static Rarity fromRoll(int roll) {
+        return fromRoll(roll, false);
+    }
+    public static Rarity fromRoll(int roll, boolean openingBonus) {
         if (roll < 0 || roll >= TOTAL_WEIGHT) throw new IllegalArgumentException("roll outside [0,100000)");
         int boundary = 0;
         for (Rarity rarity : values()) {
-            boundary += rarity.weight;
+            boundary += rarity.weight(openingBonus);
             if (roll < boundary) return rarity;
         }
         throw new IllegalStateException("Rarity weights do not sum to 100000");
