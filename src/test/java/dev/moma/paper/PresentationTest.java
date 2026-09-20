@@ -100,7 +100,7 @@ class PresentationTest {
             bukkit.when(Bukkit::getAverageTickTime).thenReturn(2.4);
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(player));
             TabStatus.update();
-            verify(player).sendPlayerListHeaderAndFooter(Ui.text("&6&lMC Luck Defense"),Ui.text("&7TPS (1분) &a312.5 &7/ 320  &8| &7MSPT &f2.40"));
+            verify(player).sendPlayerListHeaderAndFooter(Ui.text("&#4056DE마&#3E63DD인&#3C71DC크&#3A7EDB래&#388CD9프&#3699D8트 &#32B4D6운&#30C1D5빨 &#2CDCD2디&#2AEAD1펜&#28F7D0스"),Ui.text("&7TPS (1분) &a312.5 &7/ 320  &8| &7MSPT &f2.40"));
         }
     }
     @Test void attackSoundsFollowTheActualUnitAndPlayOncePerAttackPerViewer() {
