@@ -9,12 +9,6 @@ public enum SummonTier {
     private static final int[] ADVANCED_WEIGHTS = advancedWeights();
     SummonTier(long cost) { this.cost=cost; }
     public long cost() { return cost; }
-    /** Preserve each grade's expected sale return per gold; round payouts to whole gold. */
-    public long saleValue(Rarity rarity) {
-        int base=rarity.salePrice().orElse(0);
-        if(this==NORMAL || base==0)return base;
-        return Math.round((double)base*rarity.weight()*cost/NORMAL.cost/weight(rarity,false));
-    }
     public int weight(Rarity rarity, boolean openingBonus) {
         return this==NORMAL ? rarity.weight(openingBonus) : ADVANCED_WEIGHTS[rarity.ordinal()];
     }

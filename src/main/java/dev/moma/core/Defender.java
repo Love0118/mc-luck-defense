@@ -17,12 +17,9 @@ public final class Defender {
     private int consecutiveHits;
 
     public Defender(UUID entityId, UUID ownerId, String arenaId, UnitType type, Rarity rarity, Cell cell) {
-        this(entityId,ownerId,arenaId,type,rarity,cell,SummonTier.NORMAL);
-    }
-    public Defender(UUID entityId, UUID ownerId, String arenaId, UnitType type, Rarity rarity, Cell cell, SummonTier tier) {
         this.entityId = entityId; this.ownerId = ownerId; this.arenaId = arenaId;
         this.type = type; this.rarity = rarity; this.cell = cell; this.profile = type.profile().at(rarity);
-        saleValue=tier.saleValue(rarity);
+        saleValue=rarity.salePrice().orElse(0);
     }
     public UUID entityId() { return entityId; }
     public UUID ownerId() { return ownerId; }
@@ -35,8 +32,8 @@ public final class Defender {
     public double damageMultiplier() { return 1.0+enhancement+(enhancement/5)*.5; }
     public long saleValue() { return rarity.salePrice().isEmpty()?0:saleValue; }
     public String label() { return type.label() + (enhancement==0?"":" +"+enhancement); }
-    void merge(long incomingSaleValue) {
-        saleValue=Math.addExact(saleValue,incomingSaleValue);
+    void merge() {
+        saleValue=Math.addExact(saleValue,rarity.salePrice().orElse(0));
         addEnhancement(1,0);
     }
     void absorb(Defender other) {
