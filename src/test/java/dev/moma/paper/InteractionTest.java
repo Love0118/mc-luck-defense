@@ -31,6 +31,7 @@ class InteractionTest {
         doReturn(true).when(games).usingMoveTool(player);
         doReturn(false).when(games).usingSellTool(player);
         doReturn(false).when(games).usingSoundTool(player);
+        doReturn(false).when(games).usingBgmTool(player);
         doReturn(false).when(games).usingLeaveTool(player);
     }
     @Test void swapOpensShopOnlyForParticipantsAndCancelsItemSwap() {

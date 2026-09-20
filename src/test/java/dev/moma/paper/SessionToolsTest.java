@@ -37,9 +37,9 @@ class SessionToolsTest {
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
-                assertArrayEquals(new ItemStack[]{original0,original1,other,null},call.getArgument(0));return saved;
+                assertArrayEquals(new ItemStack[]{original0,original1,other,null,null},call.getArgument(0));return saved;
             });
-            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"move"));assertFalse(tools.holding(player,"sell"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"sell"));

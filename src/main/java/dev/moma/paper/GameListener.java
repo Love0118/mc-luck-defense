@@ -62,6 +62,9 @@ final class GameListener implements Listener {
         sellTool(event.getPlayer(),event.getHand());
     }
     private void sellTool(Player player,EquipmentSlot hand) {
+        if (hand==EquipmentSlot.HAND && games.usingBgmTool(player) && beginClick(player)) {
+            games.useBgm(player); return;
+        }
         if (hand==EquipmentSlot.HAND && games.usingSoundTool(player) && beginClick(player)) {
             games.tools.cycleSound(player); Ui.sound(player, Ui.Cue.CLICK); return;
         }

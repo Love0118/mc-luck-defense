@@ -24,6 +24,7 @@ final class GameSession {
     final AutoPlacement placement;
     boolean autoPlacement, layoutDirty, bulkBuying;
     int bulkPurchases;
+    String bgmTrack = "default";
 
     int speed() { return speed; }
     void speed(int value) {

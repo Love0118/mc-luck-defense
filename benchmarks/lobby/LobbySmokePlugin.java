@@ -87,6 +87,13 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(viewer.getScoreboard()==first.getScoreboard() && viewer.getScoreboard().getEntryTeam(viewer.getName()).canSeeFriendlyInvisibles(),"Translucent teammate rule");
             require(viewer.getInventory().getItem(8).getType()==Material.RED_BED && first.getInventory().getItem(8).getType()==Material.RED_BED,"Slot nine leave beds");
             require(viewer.getAllowFlight() && viewer.isFlying(),"Spectator flight enabled");
+            require(first.getInventory().getItem(6).getType()==Material.JUKEBOX && viewer.getInventory().getItem(6).getType()==Material.JUKEBOX,"BGM tools for owner and observer");
+            Object bgm=field(games,"bgm");require(bgm!=null,"BGM initialized with SQLite");
+            call(bgm,"open",first,false,0);
+            require(first.getOpenInventory().getTopInventory().getSize()==18,"BGM manager has two rows");
+            require(first.getOpenInventory().getTopInventory().getItem(13).getType()==Material.HOPPER,"BGM upload at bottom center");
+            require(first.getOpenInventory().getTopInventory().getItem(17).getType()==Material.BOOK,"BGM library at bottom right");
+            first.closeInventory();call(bgm,"toggle",viewer);call(bgm,"toggle",viewer);
             require(first.getInventory().getItem(7).getType()==Material.NOTE_BLOCK
                     && viewer.getInventory().getItem(7).getType()==Material.NOTE_BLOCK,"Sound tools for owner and viewer");
             for(Player listener:List.of(first,viewer)) {

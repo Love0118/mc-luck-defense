@@ -28,6 +28,11 @@ final class MomaCommand implements TabExecutor {
             if (Set.of("create", "spawn", "coins").contains(action) && !sender.hasPermission("moma.admin")) throw new IllegalArgumentException("관리자 권한이 필요합니다.");
             if (!sender.hasPermission("moma.play") && !Set.of("leave", "lobby").contains(action)) throw new IllegalArgumentException("참가 권한이 없습니다.");
             switch (action) {
+                case "bgm" -> {
+                    if(games.bgm==null)throw new IllegalArgumentException("BGM 초기화에 실패했습니다. 서버 로그를 확인하세요.");
+                    if(args.length>1 && args[1].equalsIgnoreCase("auth"))games.bgm.auth(player(sender));
+                    else games.bgm.use(player(sender));
+                }
                 case "list" -> sender.sendMessage(Component.text("전장: " + String.join(", ", maps.all().stream().map(ArenaMap::id).toList())));
                 case "create" -> {
                     require(args, 2, "/mud create <전장>");
@@ -77,7 +82,8 @@ final class MomaCommand implements TabExecutor {
     }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> candidates = List.of();
-        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "spectate", "speed", "lobby", "leave", "list", "create", "spawn", "coins") : List.of("start", "join", "spectate", "speed", "lobby", "leave", "list");
+        if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "spectate", "speed", "lobby", "leave", "list", "create", "spawn", "coins", "bgm") : List.of("start", "join", "spectate", "speed", "lobby", "leave", "list", "bgm");
+        if (args.length == 2 && args[0].equalsIgnoreCase("bgm") && sender.hasPermission("moma.admin")) candidates=List.of("auth");
         if (args.length == 2 && args[0].equalsIgnoreCase("speed")) candidates = List.of("1", "2", "4", "8");
         if (args.length == 2 && args[0].equalsIgnoreCase("spectate")) candidates = games.activeSessions().stream().map(GameService.SessionInfo::playerName).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("join")) candidates = maps.all().stream().map(ArenaMap::id).toList();

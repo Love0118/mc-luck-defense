@@ -14,6 +14,7 @@ final class GameService {
     private final Lobby lobby;
     final EntityAdapter entities;
     final SessionTools tools;
+    BgmService bgm;
     final SpectatorAppearance appearance = new SpectatorAppearance();
     private final Map<UUID, GameSession> sessions = new LinkedHashMap<>();
     private record Watch(GameSession target, Location returnLocation, GameMode returnMode, boolean returnAllowFlight, boolean returnFlying) {}
@@ -32,6 +33,12 @@ final class GameService {
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
     boolean watching(Player player) { return spectators.containsKey(player.getUniqueId()); }
+    GameSession listeningSession(Player player) {
+        GameSession own=session(player);if(own!=null)return own;
+        Watch watch=spectators.get(player.getUniqueId());return watch==null?null:watch.target;
+    }
+    boolean usingBgmTool(Player player) { return active(player) && tools.holding(player,"bgm"); }
+    void useBgm(Player player) { if(bgm!=null)bgm.use(player); }
     boolean active(Player player) { return playing(player) || watching(player); }
     boolean usingLeaveTool(Player player) { return active(player) && tools.holding(player,"leave"); }
     boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
@@ -81,6 +88,7 @@ final class GameService {
                 && to.getY() <= watch.target.map.floorY() + 40;
     }
     private void stopWatching(Player player, boolean returnToLobby) {
+        if(bgm!=null)bgm.stop(player);
         Watch watch = spectators.remove(player.getUniqueId());
         if (watch == null) return;
         tools.restore(player); appearance.leave(player);
@@ -136,6 +144,7 @@ final class GameService {
         player.sendMessage(Component.text("100라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
     }
     void leave(Player player) {
+        if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);
         if (watching(player)) { stopWatching(player, true); return; }
         GameSession session = sessions.remove(player.getUniqueId());
@@ -152,6 +161,7 @@ final class GameService {
         }
     }
     void disconnect(Player player) {
+        if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);
         tools.restore(player);
         appearance.leave(player);
