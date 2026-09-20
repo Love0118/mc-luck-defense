@@ -43,7 +43,7 @@ class ProgressionTest {
             Defender d=new Defender(UUID.randomUUID(),UUID.randomUUID(),"a",UnitType.WOLF,rarity,new Cell(0,0));
             d.attackAt(100,40);UUID target=UUID.randomUUID();d.hitTarget(target);
             double previous=d.profile().damage();
-            for(int i=0;i<20;i++){d.merge();assertTrue(d.profile().damage()>=previous);previous=d.profile().damage();}
+            for(int i=0;i<20;i++){d.merge(SummonTier.NORMAL.saleValue(d.rarity()));assertTrue(d.profile().damage()>=previous);previous=d.profile().damage();}
             assertEquals(rarity==Rarity.TRUE_PRIMORDIAL?rarity:Rarity.values()[rarity.ordinal()+1],d.rarity());
             assertEquals(rarity==Rarity.TRUE_PRIMORDIAL?20:0,d.enhancement());
             assertEquals(140,d.nextAttackTick());assertEquals(1,d.consecutiveHits());

@@ -69,7 +69,7 @@ public final class Arena {
         if (cell == null) return Result.FULL;
         Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity()).findFirst().orElse(null);
         if(duplicate!=null) {
-            duplicate.merge();
+            duplicate.merge(summonTier.saleValue(roll.rarity()));
             Defender match;
             while((match=matchingOther(duplicate))!=null) {
                 duplicate.absorb(match);defenders.remove(match.entityId());mergedEntities.add(match.entityId());
@@ -81,7 +81,7 @@ public final class Arena {
             // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
             UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
             if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
-            lastSummoned=new Defender(entity, owner, id, roll.type(), roll.rarity(), cell);
+            lastSummoned=new Defender(entity, owner, id, roll.type(), roll.rarity(), cell, summonTier);
             defenders.put(entity, lastSummoned);
         }
         coinUnits -= Gold.units(summonCost());

@@ -57,7 +57,7 @@ final class ShopMenu implements Listener {
             String color = "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(rarity).value());
             holder.inventory.setItem(AUTO_SELL_FIRST+i, item(enabled ? Material.LIME_DYE : Material.GRAY_DYE,
                     color + rarity.label() + " &f자동판매 &7· " + (enabled ? "&aON" : "&cOFF"),
-                    "마리당 &6+" + rarity.salePrice().getAsInt() + "골드", "켜면 보유·소환한 이 등급을 자동판매",
+                    "현재 소환 판매가 &6+" + arena.summonTier().saleValue(rarity) + "골드", "보유 포탑은 소환 당시 판매가 합산", "켜면 보유·소환한 이 등급을 자동판매",
                     "클릭하여 " + (enabled ? "끄기" : "켜기")));
         }
         Optional<Defender> selected = arena.selected();
