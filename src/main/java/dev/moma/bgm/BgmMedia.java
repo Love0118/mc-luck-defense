@@ -62,6 +62,21 @@ public final class BgmMedia {
         } finally { if(process.isAlive()){process.descendants().forEach(ProcessHandle::destroyForcibly);process.destroyForcibly();} }
     }
     public static Path pack(String id,Path audio,Path workspace) throws IOException {
+        return pack(id,List.of(audio),workspace);
+    }
+    public Path synchronizedPack(String id,Path audio,double seconds,Path workspace)throws Exception {
+        if(!Double.isFinite(seconds) || seconds<=0 || seconds>600)throw new IOException("Invalid audio duration");
+        List<Path> segments=new ArrayList<>();
+        for(int i=0;i<(int)Math.ceil(seconds/2);i++) {
+            Path segment=workspace.resolve("part_"+i+".ogg");
+            run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-ss",Integer.toString(i*2),"-i",audio.toString(),
+                    "-t",Double.toString(Math.min(2,seconds-i*2)),"-vn","-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",segment.toString()),
+                    workspace.resolve("segment.log"),Duration.ofSeconds(30));
+            segments.add(segment);
+        }
+        return pack(id,segments,workspace);
+    }
+    static Path pack(String id,List<Path> segments,Path workspace)throws IOException {
         if(!id.matches("[a-z0-9_]+"))throw new IllegalArgumentException("Invalid track id");
         Path zip=workspace.resolve("pack.zip");
         try(var output=new ZipOutputStream(Files.newOutputStream(zip))) {
@@ -70,11 +85,16 @@ public final class BgmMedia {
             format.add("min_format",new Gson().toJsonTree(new int[]{64,0}));format.add("max_format",new Gson().toJsonTree(new int[]{97,1}));
             format.addProperty("description","MC Luck Defense BGM");metadata.add("pack",format);
             entry(output,"pack.mcmeta",metadata.toString().getBytes(StandardCharsets.UTF_8));
-            JsonObject sounds=new JsonObject(),event=new JsonObject(),sound=new JsonObject();JsonArray variants=new JsonArray();
-            sound.addProperty("name","mud_bgm:tracks/"+id);sound.addProperty("stream",true);variants.add(sound);event.add("sounds",variants);sounds.add("track_"+id,event);
+            JsonObject sounds=new JsonObject();
+            for(int i=0;i<segments.size();i++) {
+                String name=id+"_part_"+i;
+                JsonObject event=new JsonObject(),sound=new JsonObject();JsonArray variants=new JsonArray();
+                sound.addProperty("name","mud_bgm:tracks/"+name);sound.addProperty("stream",true);variants.add(sound);event.add("sounds",variants);sounds.add("track_"+name,event);
+                output.putNextEntry(new ZipEntry("assets/mud_bgm/sounds/tracks/"+name+".ogg"));Files.copy(segments.get(i),output);output.closeEntry();
+            }
             entry(output,"assets/mud_bgm/sounds.json",sounds.toString().getBytes(StandardCharsets.UTF_8));
-            output.putNextEntry(new ZipEntry("assets/mud_bgm/sounds/tracks/"+id+".ogg"));Files.copy(audio,output);output.closeEntry();
         }
+        if(Files.size(zip)>MAX_BYTES)throw new IOException("리소스팩이 25MB를 초과합니다.");
         return zip;
     }
     private static void entry(ZipOutputStream output,String name,byte[] data)throws IOException { output.putNextEntry(new ZipEntry(name));output.write(data);output.closeEntry(); }

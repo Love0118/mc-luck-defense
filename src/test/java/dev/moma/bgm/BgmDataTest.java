@@ -39,8 +39,8 @@ class BgmDataTest {
         try(var zip=new ZipFile(archive.toFile())) {
             assertEquals(3,zip.size());
             var sounds=JsonParser.parseString(new String(zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds.json")).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-            assertTrue(sounds.getAsJsonObject("track_default").getAsJsonArray("sounds").get(0).getAsJsonObject().get("stream").getAsBoolean());
-            assertArrayEquals(audio,zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds/tracks/default.ogg")).readAllBytes());
+            assertTrue(sounds.getAsJsonObject("track_default_part_0").getAsJsonArray("sounds").get(0).getAsJsonObject().get("stream").getAsBoolean());
+            assertArrayEquals(audio,zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds/tracks/default_part_0.ogg")).readAllBytes());
         }
         assertTrue(new String(audio,java.nio.charset.StandardCharsets.ISO_8859_1).contains("vorbis"));
         BgmMedia.cleanup(work);assertFalse(Files.exists(work));assertTrue(Files.exists(original));
@@ -54,5 +54,17 @@ class BgmDataTest {
             store.save(new Track("other",UUID.randomUUID(),"other","title","https://youtu.be/abcdefghijk","","",10));
             assertEquals(4,store.list().size());assertTrue(store.list().getFirst().ready());
         }
+    }
+    @Test void legacyDatabaseIsMigratedAndOwnerPlaylistsSurviveRestart()throws Exception {
+        Class.forName("org.sqlite.JDBC");Path file=temp.resolve("legacy.db");UUID owner=UUID.randomUUID();
+        try(var connection=java.sql.DriverManager.getConnection("jdbc:sqlite:"+file);var statement=connection.createStatement()) {
+            statement.execute("CREATE TABLE tracks(id TEXT PRIMARY KEY,uploader TEXT NOT NULL,uploader_name TEXT NOT NULL,title TEXT NOT NULL,youtube_url TEXT NOT NULL,delivery_url TEXT NOT NULL,sha1 TEXT NOT NULL,seconds REAL NOT NULL)");
+            statement.execute("INSERT INTO tracks VALUES('a','"+owner+"','owner','title','','https://www.dropbox.com/a?dl=1','"+"a".repeat(40)+"',10)");
+        }
+        var playlist=new BgmPlaylist(List.of("a","other"),BgmTimeline.Mode.MEDLEY,"a");
+        try(var store=new BgmStore(file)) {
+            assertTrue(store.list().getFirst().ready());assertFalse(store.list().getFirst().synchronizedReady());store.savePlaylist(owner,playlist);
+        }
+        try(var store=new BgmStore(file)){assertEquals(playlist,store.playlists().get(owner));}
     }
 }
