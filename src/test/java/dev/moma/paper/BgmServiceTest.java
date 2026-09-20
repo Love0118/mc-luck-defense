@@ -46,6 +46,7 @@ class BgmServiceTest {
                 assertFalse(((List<?>)catalog.get(service)).isEmpty());
                 Track track=new Track("default",new UUID(0,0),"server","default","","https://www.dropbox.com/a?dl=1","a".repeat(40),110.82);
                 catalog.set(service,List.of(track));
+                assertEquals("재생 대기 중",service.nowPlaying(session.sessionId));
                 var tick=BgmService.class.getDeclaredMethod("tick");tick.setAccessible(true);tick.invoke(service);
                 for(Player p:List.of(owner,viewer)) verify(p).addResourcePack(eq(track.packId()),eq(track.deliveryUrl()),any(byte[].class),anyString(),eq(false));
                 verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
@@ -53,6 +54,7 @@ class BgmServiceTest {
                 tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.packStatus(new PlayerResourcePackStatusEvent(owner,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);tick.invoke(service);
+                assertEquals("default",service.nowPlaying(session.sessionId));
                 now[0]=1_000_000_000L;
                 service.packStatus(new PlayerResourcePackStatusEvent(viewer,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);
@@ -101,7 +103,8 @@ class BgmServiceTest {
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,viewer));
-            try(var service=new BgmService(plugin,games,()->0L)) {
+            long[] now={0};
+            try(var service=new BgmService(plugin,games,()->now[0])) {
                 var initialized=BgmService.class.getDeclaredField("catalogLoaded");initialized.setAccessible(true);
                 long deadline=System.nanoTime()+5_000_000_000L;while(!(boolean)initialized.get(service) && System.nanoTime()<deadline)Thread.sleep(10);
                 assertTrue((boolean)initialized.get(service));
@@ -120,6 +123,10 @@ class BgmServiceTest {
                 tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 for(int i:new int[]{1,2})service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);verify(owner,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                assertEquals("song0",service.nowPlaying(session.sessionId));
+                now[0]=10_000_000_000L;
+                assertEquals("song3",service.nowPlaying(session.sessionId));
+                now[0]=0;
                 verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.toggle(viewer);tick.invoke(service);verify(viewer,times(4)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
                 for(Track track:catalog)service.packStatus(new PlayerResourcePackStatusEvent(viewer,track.packId(),PlayerResourcePackStatusEvent.Status.DOWNLOADED));

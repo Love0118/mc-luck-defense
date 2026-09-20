@@ -89,6 +89,11 @@ final class BgmService implements Listener, AutoCloseable {
         Bukkit.getScheduler().runTaskTimer(plugin,this::tick,1,1);
     }
     private Track find(String id){return tracks.stream().filter(t->t.id().equals(id)).findFirst().orElse(null);}
+    String nowPlaying(UUID session) {
+        BgmTimeline timeline=timelines.get(session);
+        BgmTimeline.Cue cue=timeline==null?null:timeline.at(clock.getAsLong());
+        return cue==null?"재생 대기 중":cue.track().title();
+    }
     private BgmPlaylist playlist(GameSession session) {
         return playlists.getOrDefault(session.arena.owner(),new BgmPlaylist(tracks.stream()
                 .filter(t->t.uploader().equals(session.arena.owner())).limit(3).map(Track::id).toList(),BgmTimeline.Mode.SINGLE,session.bgmTrack));
