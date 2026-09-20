@@ -27,6 +27,7 @@ final class GameService {
     }
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings, Lobby lobby) {
         this.plugin = plugin; this.maps = maps; this.settings = settings; this.lobby = lobby; entities = new EntityAdapter(plugin); tools = new SessionTools(plugin);
+        if (lobby != null) lobby.tools = tools;
     }
     GameSession session(Player player) { return sessions.get(player.getUniqueId()); }
     boolean playing(Player player) { return session(player) != null; }
@@ -35,6 +36,7 @@ final class GameService {
     boolean usingLeaveTool(Player player) { return active(player) && tools.holding(player,"leave"); }
     boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
+    boolean usingSoundTool(Player player) { return active(player) && tools.holding(player,"sound"); }
     void speed(Player player, int value) {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) throw new IllegalArgumentException("자신의 진행 중인 게임에서만 배속을 변경할 수 있습니다.");
@@ -337,13 +339,13 @@ final class GameService {
             if (viewer == null) { spectators.remove(entry.getKey()); continue; }
             GameSession target = entry.getValue().target;
             if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
-            if (!spectatorDestination(viewer, viewer.getLocation())) viewer.teleport(viewpoint(target));
+            recoverPosition(viewer, target.map, true);
             if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &f" + target.arena.id() + " &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· /mud: 메뉴"));
         }
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
             if (player == null) { sessions.remove(session.arena.owner()); release(session); continue; }
-            if (!session.map.contains(player.getLocation()) || player.getY() < session.map.floorY()) player.teleport(session.map.entrance());
+            recoverPosition(player, session.map, false);
             if (session.arena.ended()) {
                 finish(player, session);
                 continue;
@@ -367,6 +369,15 @@ final class GameService {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
                 player.sendActionBar(Component.text("R" + session.campaign.round() + "/100 · " + session.speed() + "배 · " + (session.campaign.cleanup() ? "정리 " : "") + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
+        }
+    }
+    private void recoverPosition(Player player, ArenaMap map, boolean spectator) {
+        Location destination = map.recovery(player.getLocation(), spectator);
+        if (destination == null) return;
+        boolean flying = player.isFlying();
+        if (player.teleport(destination)) {
+            player.setFallDistance(0);
+            if (flying && player.getAllowFlight()) player.setFlying(true);
         }
     }
     private boolean step(Player player, GameSession session) {

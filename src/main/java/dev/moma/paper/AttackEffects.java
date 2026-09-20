@@ -32,7 +32,8 @@ final class AttackEffects {
             Location source = map.location(defender.position()).add(0, .8, 0);
             for (Player viewer : viewers) {
                 Location audibleSource = soundLocation(source, viewer.getEyeLocation());
-                if (audibleSource != null) viewer.playSound(audibleSource, sound.key(), SoundCategory.PLAYERS, sound.volume(), 1f);
+                float volume=sound.volume()*SessionTools.soundVolume(viewer);
+                if (audibleSource != null && volume>0) viewer.playSound(audibleSource, sound.key(), SoundCategory.PLAYERS, volume, 1f);
             }
             Particle.DustOptions dust = COLORS[defender.rarity().ordinal()];
             emit(map, viewers, trace(defender, attack.getValue()), 1.65, dust);

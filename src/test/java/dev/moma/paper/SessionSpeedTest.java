@@ -62,6 +62,8 @@ class SessionSpeedTest {
             GameService games=games(world); Player player=player(world);
             bukkit.when(()->Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
             games.join(player,"a"); GameSession session=games.session(player);
+            when(player.getLocation()).thenReturn(new Location(world,21.99,90,10,135,-30));
+            clearInvocations(player);
             session.arena.credit(1000);
             for(UnitType type:UnitType.values()) session.arena.summon(player.getUniqueId(),new SummonRoll(type,Rarity.LEGENDARY),
                     (t,r,c)->new UUID(0,t.ordinal()+1));
@@ -69,6 +71,7 @@ class SessionSpeedTest {
             durable.slow(.5,40); session.arena.addEnemy(durable);
             for(int speed:frameSpeeds) { games.speed(player,speed); games.tick(); }
             assertTrue(games.playing(player)); assertTrue(session.arena.earnedCoins()>0,"Actual kill rewards must occur");
+            verify(player,never()).teleport(any(Location.class));
             assertTrue(session.arena.defenders().stream().anyMatch(d->d.nextAttackTick()>0));
             List<Object> state=new ArrayList<>();
             state.add(session.simulationTick); state.add(session.campaign.elapsed()); state.add(session.campaign.round());
@@ -80,10 +83,10 @@ class SessionSpeedTest {
         }
     }
     @Test void acceleratedAndChangingSpeedsMatchEveryCombatAndWaveStepAtEqualGameTime() {
-        int[] normal=new int[800]; Arrays.fill(normal,1);
-        int[] fast=new int[100]; Arrays.fill(fast,8);
-        int[] changed=new int[275];
-        Arrays.fill(changed,0,100,4); Arrays.fill(changed,100,125,8); Arrays.fill(changed,125,175,2); Arrays.fill(changed,175,275,1);
+        int[] normal=new int[1600]; Arrays.fill(normal,1);
+        int[] fast=new int[200]; Arrays.fill(fast,8);
+        int[] changed=new int[550];
+        Arrays.fill(changed,0,200,4); Arrays.fill(changed,200,250,8); Arrays.fill(changed,250,350,2); Arrays.fill(changed,350,550,1);
         assertEquals(runCombat(normal),runCombat(fast));
         assertEquals(runCombat(normal),runCombat(changed));
     }

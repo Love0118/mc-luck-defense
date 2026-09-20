@@ -12,6 +12,23 @@ record ArenaMap(String id, World world, int originX, int floorY, int originZ, Gr
         return world.equals(location.getWorld()) && location.getX() >= originX - 6 && location.getX() < originX + maxOffset() + 1
                 && location.getZ() >= originZ - 6 && location.getZ() < originZ + maxOffset() + 1;
     }
+    /** Stay near the crossed edge instead of resetting the player's viewpoint to the entrance. */
+    Location recovery(Location current, boolean spectator) {
+        if (!world.equals(current.getWorld())) {
+            Location destination = spectator ? entrance().add(0, 8, 0) : entrance();
+            destination.setYaw(current.getYaw()); destination.setPitch(current.getPitch());
+            return destination;
+        }
+        boolean belowFloor = current.getY() < floorY;
+        boolean aboveCeiling = spectator && current.getY() > floorY + 40;
+        if (contains(current) && !belowFloor && !aboveCeiling) return null;
+        Location destination = current.clone();
+        destination.setX(Math.clamp(current.getX(), originX - 5.5, originX + maxOffset() + .5));
+        destination.setZ(Math.clamp(current.getZ(), originZ - 5.5, originZ + maxOffset() + .5));
+        if (belowFloor) destination.setY(floorY + 2);
+        else if (aboveCeiling) destination.setY(floorY + 40);
+        return destination;
+    }
     Cell cellAt(Block block) {
         if (block == null || !world.equals(block.getWorld()) || block.getY() != floorY) return null;
         int x = block.getX() - originX, z = block.getZ() - originZ;

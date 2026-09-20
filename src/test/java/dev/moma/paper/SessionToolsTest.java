@@ -37,17 +37,24 @@ class SessionToolsTest {
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
-                assertArrayEquals(new ItemStack[]{original0,original1,other},call.getArgument(0));return saved;
+                assertArrayEquals(new ItemStack[]{original0,original1,other,null},call.getArgument(0));return saved;
             });
-            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"move"));assertFalse(tools.holding(player,"sell"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"sell"));
             inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"leave"));
+            inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));
+            assertEquals(1f,SessionTools.soundVolume(player));
+            for(float level:new float[]{.5f,.25f,0f,1f}) { tools.cycleSound(player); assertEquals(level,SessionTools.soundVolume(player)); }
             slots[10]=slots[1]; // A stale copied session item must not survive cleanup.
             new SessionTools(plugin).restore(player);
             assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
+            tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            tools.give(player); assertTrue(tools.holding(player,"move"));
+            tools.restore(player); assertSame(original0,slots[0]); assertSame(other,slots[8]);
         }
     }
 }

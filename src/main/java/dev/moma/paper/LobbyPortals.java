@@ -12,13 +12,16 @@ import org.bukkit.util.BoundingBox;
 
 /** Opening is edge-triggered: closing the menu inside a portal never traps the player. */
 final class LobbyPortals implements Listener, Runnable {
+    static final long MENU_DELAY_TICKS = 10;
     private final Lobby lobby;
     private final GameService games;
     private final LobbyMenu menu;
+    private final MomaPlugin plugin;
+    private final Set<UUID> pending = new HashSet<>();
     private final Set<UUID> inside = new HashSet<>();
     private final Map<UUID, Integer> clicked = new HashMap<>();
-    LobbyPortals(Lobby lobby, GameService games, LobbyMenu menu) {
-        this.lobby = lobby; this.games = games; this.menu = menu;
+    LobbyPortals(MomaPlugin plugin, Lobby lobby, GameService games, LobbyMenu menu) {
+        this.plugin = plugin; this.lobby = lobby; this.games = games; this.menu = menu;
     }
     private boolean eligible(Player player) {
         return lobby.contains(player.getLocation()) && !games.active(player) && player.hasPermission("moma.play");
@@ -28,9 +31,18 @@ final class LobbyPortals implements Listener, Runnable {
         for (Player player : Bukkit.getOnlinePlayers()) {
             UUID id = player.getUniqueId(); online.add(id);
             if (!eligible(player) || !touchesPortal(player)) { inside.remove(id); continue; }
-            if (inside.add(id)) menu.open(player);
+            if (inside.add(id)) openFromSpawn(player);
         }
         inside.retainAll(online); clicked.keySet().retainAll(online);
+    }
+    private void openFromSpawn(Player player) {
+        UUID id=player.getUniqueId();
+        if (!pending.add(id)) return;
+        if (!player.teleport(lobby.spawn())) { pending.remove(id); return; }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!pending.remove(id) || !player.isOnline() || !eligible(player) || touchesPortal(player)) return;
+            menu.open(player);
+        }, MENU_DELAY_TICKS);
     }
     static boolean touchesPortal(Player player) {
         BoundingBox box = player.getBoundingBox();
@@ -49,9 +61,9 @@ final class LobbyPortals implements Listener, Runnable {
         if (clicked.getOrDefault(player.getUniqueId(), -1) == tick) return;
         clicked.put(player.getUniqueId(), tick);
         if (touchesPortal(player)) inside.add(player.getUniqueId());
-        menu.open(player);
+        openFromSpawn(player);
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
-        inside.remove(event.getPlayer().getUniqueId()); clicked.remove(event.getPlayer().getUniqueId());
+        inside.remove(event.getPlayer().getUniqueId()); clicked.remove(event.getPlayer().getUniqueId()); pending.remove(event.getPlayer().getUniqueId());
     }
 }

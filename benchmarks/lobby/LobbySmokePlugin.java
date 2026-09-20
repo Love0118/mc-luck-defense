@@ -20,6 +20,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
     private long firstTick, secondTick;
     private int expectedSpeed = 2, speedChecks;
     private boolean fractionalGold;
+    private Location edgeRecoveryExpected;
     private int portalPhase, portalWait;
     private org.bukkit.block.Block portalBlock;
     private org.bukkit.block.data.BlockData portalOriginal;
@@ -56,6 +57,11 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(first.getWorld().equals(world)&&second.getWorld().equals(world),"Login must enter lobby");
             require(first.getLocation().distance(world.getSpawnLocation())<1,"Login must use configured spawn");
             require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight(),"Lobby flight disabled");
+            require(first.getInventory().getItem(0).getType()==Material.COMPASS,"Lobby session compass granted");
+            first.getInventory().setHeldItemSlot(0); sellClick();
+            require(first.getOpenInventory().getTopInventory().getSize()==54,"Compass opens session menu");
+            first.closeInventory();
+            call(field(games,"tools"),"restore",first);
             first.getInventory().setItem(0,new org.bukkit.inventory.ItemStack(Material.DIAMOND,3));
             first.getInventory().setItem(1,new org.bukkit.inventory.ItemStack(Material.GOLD_INGOT,4));
             call(games,"start",first); call(games,"start",second);
@@ -81,6 +87,15 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(viewer.getScoreboard()==first.getScoreboard() && viewer.getScoreboard().getEntryTeam(viewer.getName()).canSeeFriendlyInvisibles(),"Translucent teammate rule");
             require(viewer.getInventory().getItem(8).getType()==Material.RED_BED && first.getInventory().getItem(8).getType()==Material.RED_BED,"Slot nine leave beds");
             require(viewer.getAllowFlight() && viewer.isFlying(),"Spectator flight enabled");
+            require(first.getInventory().getItem(7).getType()==Material.NOTE_BLOCK
+                    && viewer.getInventory().getItem(7).getType()==Material.NOTE_BLOCK,"Sound tools for owner and viewer");
+            for(Player listener:List.of(first,viewer)) {
+                for(int percent:new int[]{50,25,0,100}) {
+                    call(field(games,"tools"),"cycleSound",listener);
+                    String label=net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(listener.getInventory().getItem(7).getItemMeta().displayName());
+                    require(label.contains(percent==0 ? "음소거" : percent+"%"),"Volume item updates");
+                }
+            }
             Object adapter=field(games,"entities"),map=field(firstSession,"map");
             verifyAllBodies(adapter,map);
             arena(firstSession).credit(100);
@@ -175,6 +190,33 @@ public final class LobbySmokePlugin extends JavaPlugin {
             }
             if(waitTicks==155) { menuClick(6); require(!(boolean)field(firstSession,"autoPlacement"),"GUI layout off"); }
             if(waitTicks==160) { menuClick(20); require(((Set<?>)field(firstSession,"autoSell")).isEmpty(),"GUI auto-sale off"); }
+            if(waitTicks==170) {
+                Object map=field(firstSession,"map");
+                int x=(int)call(map,"originX"), z=(int)call(map,"originZ");
+                int edge=(int)call(map,"maxOffset");
+                Location outside=new Location(first.getWorld(),x+edge+1.1,88,z+10,123,-24);
+                Object handle=first.getClass().getMethod("getHandle").invoke(first);
+                handle.getClass().getMethod("setPos",double.class,double.class,double.class).invoke(handle,outside.getX(),outside.getY(),outside.getZ());
+                first.setRotation(123,-24);
+                first.setAllowFlight(true); first.setFlying(true);
+                edgeRecoveryExpected=new Location(first.getWorld(),x+edge+.5,88,z+10,123,-24);
+            }
+            if(waitTicks==171) {
+                require(first.getLocation().distance(edgeRecoveryExpected)<.01,"Recover at nearest edge instead of entrance");
+                require(Math.abs(first.getYaw()-123)<.01 && Math.abs(first.getPitch()+24)<.01,"Keep recovery facing");
+                require(first.isFlying(),"Keep recovery flight");
+            }
+            if(waitTicks==180) {
+                Object map=field(firstSession,"map");int x=(int)call(map,"originX"),z=(int)call(map,"originZ");
+                Object handle=viewer.getClass().getMethod("getHandle").invoke(viewer);
+                handle.getClass().getMethod("setPos",double.class,double.class,double.class).invoke(handle,x-6.1,90d,z+10d);
+                viewer.setRotation(111,-20);viewer.setFlying(true);
+                edgeRecoveryExpected=new Location(viewer.getWorld(),x-5.5,90,z+10,111,-20);
+            }
+            if(waitTicks==181) {
+                require(viewer.getLocation().distance(edgeRecoveryExpected)<.01,"Observer recovers near edge instead of entrance");
+                require(viewer.isFlying() && Math.abs(viewer.getYaw()-111)<.01,"Observer keeps flight and facing");
+            }
             if (++waitTicks<340) return;
             require(arena(secondSession).enemyCount()>0,"Waves must spawn actual enemies");
             arena(firstSession).finish(Arena.Outcome.ENEMY_LIMIT); stage=2;return;
@@ -185,6 +227,8 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(!viewer.isInvisible(),"Observer visibility restored");
             require(viewer.getWorld().equals(world) && !(boolean)call(games,"watching",viewer),"Spectator auto return");
             require(!first.getAllowFlight() && !first.isFlying() && !viewer.getAllowFlight() && !viewer.isFlying(),"Defeat removes player and spectator flight");
+            require(first.getInventory().getItem(0).getType()==Material.COMPASS,"Lobby compass restored after defeat");
+            call(field(games,"tools"),"restore",first);
             require(first.getInventory().getItem(0).equals(new org.bukkit.inventory.ItemStack(Material.DIAMOND,3))
                     && first.getInventory().getItem(1).equals(new org.bukkit.inventory.ItemStack(Material.GOLD_INGOT,4)),"Original hotbar restored");
             require(call(games,"session",second)==secondSession,"Other session must continue");
@@ -208,6 +252,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(!first.getAllowFlight() && !second.getAllowFlight(),"Timeout and victory remove flight");
             require(facedTypes==24 && checkedAttackDirections>0,"Actual entity facing must be exercised");
             require(fractionalGold,"Live fractional kill rewards");
+            Files.writeString(Path.of("recovery-smoke-passed.json"),"{\"nearestEdge\":true,\"altitudePreserved\":true,\"facingPreserved\":true,\"flightPreserved\":true}");
             Files.writeString(Path.of("lobby-smoke-passed.json"),"{\"blockStates\":"+samples.size()+",\"clients\":3,\"sessionIsolation\":true,\"defeatReturn\":true,\"slotReuse\":true,\"victoryReturn\":true,\"dynamicArena\":true,\"spectatorReturn\":true,\"bulkSale\":true,\"facedMobTypes\":"+facedTypes+",\"actualAttackDirections\":"+checkedAttackDirections+",\"selectedEntityId\":"+selectedEntityId+",\"secondSelectedEntityId\":"+glowClearEntityId+"}");
             Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"startingGold\":30,\"fractionalRewards\":"+fractionalGold+",\"oddsIcon\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
@@ -223,9 +268,10 @@ public final class LobbySmokePlugin extends JavaPlugin {
             portalPhase=1;return false;
         }
         if (portalPhase == 4) return true;
-        if (++portalWait < 10) return false;
+        if (++portalWait < 20) return false;
         portalWait=0;
         if (portalPhase == 1) {
+            require(first.getLocation().distance(world.getSpawnLocation())<1,"Portal returns to spawn before menu");
             require(first.getOpenInventory().getTopInventory().getSize()==54,"Portal opens session menu");
             require(first.getOpenInventory().getTopInventory().getItem(49).getType()==Material.NETHER_STAR,"Portal join button");
             first.closeInventory();portalPhase=2;return false;

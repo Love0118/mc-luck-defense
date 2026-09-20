@@ -158,4 +158,15 @@ class PresentationTest {
         assertNull(AttackEffects.soundLocation(new Location(world,64,95,0),new Location(world,0,95,0)));
         assertNull(AttackEffects.soundLocation(tower,new Location(mock(World.class),0,65,0)));
     }
+    @Test void mutedViewerGetsParticlesButNoAttackSound() {
+        World world=mock(World.class);Player viewer=mock(Player.class);
+        when(viewer.getEyeLocation()).thenReturn(new Location(world,0,75,0));
+        var data=mock(org.bukkit.persistence.PersistentDataContainer.class);
+        when(viewer.getPersistentDataContainer()).thenReturn(data);
+        when(data.get(any(NamespacedKey.class),eq(org.bukkit.persistence.PersistentDataType.INTEGER))).thenReturn(3);
+        var effects=new AttackEffects(); effects.hit(unit(UnitType.WOLF),new Point(3,0));
+        effects.render(new ArenaMap("a",world,0,64,0,new Grid(6)),List.of(viewer));
+        verify(viewer,never()).playSound(any(Location.class),anyString(),any(SoundCategory.class),anyFloat(),anyFloat());
+        verify(viewer,atLeastOnce()).spawnParticle(eq(Particle.DUST),anyDouble(),anyDouble(),anyDouble(),eq(1),eq(0d),eq(0d),eq(0d),eq(0d),any(Particle.DustOptions.class));
+    }
 }

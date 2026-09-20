@@ -35,7 +35,19 @@ final class LobbyListener implements Listener {
     }
     @EventHandler public void breakBlock(BlockBreakEvent event) { if (lobby.contains(event.getBlock().getLocation())) event.setCancelled(true); }
     @EventHandler public void placeBlock(BlockPlaceEvent event) { if (lobby.contains(event.getBlock().getLocation())) event.setCancelled(true); }
-    @EventHandler public void interact(PlayerInteractEvent event) { if (lobby.contains(event.getPlayer().getLocation())) event.setCancelled(true); }
+    @EventHandler public void interact(PlayerInteractEvent event) {
+        if (!lobby.contains(event.getPlayer().getLocation())) return;
+        event.setCancelled(true);
+        if (!games.active(event.getPlayer()) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
+                && games.tools.holding(event.getPlayer(), "sessions")) menu.open(event.getPlayer());
+    }
+    @EventHandler public void inventory(org.bukkit.event.inventory.InventoryClickEvent event) {
+        if (lobby.contains(event.getWhoClicked().getLocation())) event.setCancelled(true);
+    }
+    @EventHandler public void drag(org.bukkit.event.inventory.InventoryDragEvent event) {
+        if (lobby.contains(event.getWhoClicked().getLocation())) event.setCancelled(true);
+    }
     @EventHandler public void interactEntity(PlayerInteractEntityEvent event) { if (lobby.contains(event.getPlayer().getLocation())) event.setCancelled(true); }
     @EventHandler public void drop(PlayerDropItemEvent event) { if (lobby.contains(event.getPlayer().getLocation())) event.setCancelled(true); }
     @EventHandler public void pickup(EntityPickupItemEvent event) { if (lobby.contains(event.getEntity().getLocation())) event.setCancelled(true); }

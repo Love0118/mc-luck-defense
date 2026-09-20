@@ -30,6 +30,7 @@ class InteractionTest {
         player = mock(Player.class); when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         doReturn(true).when(games).usingMoveTool(player);
         doReturn(false).when(games).usingSellTool(player);
+        doReturn(false).when(games).usingSoundTool(player);
         doReturn(false).when(games).usingLeaveTool(player);
     }
     @Test void swapOpensShopOnlyForParticipantsAndCancelsItemSwap() {

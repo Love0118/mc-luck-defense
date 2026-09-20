@@ -11,6 +11,7 @@ import org.bukkit.generator.ChunkGenerator;
 final class Lobby {
     private final Location spawn;
     private final double halfSize;
+    SessionTools tools;
 
     Lobby(Location spawn, double halfSize) { this.spawn = spawn.clone(); this.halfSize = halfSize; }
     static Lobby load(MomaPlugin plugin) {
@@ -56,6 +57,7 @@ final class Lobby {
         player.setFallDistance(0); player.setFireTicks(0); player.setFoodLevel(20);
         player.setGameMode(GameMode.ADVENTURE);
         player.setFlying(false); player.setAllowFlight(false);
+        if (tools != null) tools.giveLobby(player);
     }
     void send(Player player) {
         prepare(player);

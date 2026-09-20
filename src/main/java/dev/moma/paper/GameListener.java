@@ -62,6 +62,9 @@ final class GameListener implements Listener {
         sellTool(event.getPlayer(),event.getHand());
     }
     private void sellTool(Player player,EquipmentSlot hand) {
+        if (hand==EquipmentSlot.HAND && games.usingSoundTool(player) && beginClick(player)) {
+            games.tools.cycleSound(player); Ui.sound(player, Ui.Cue.CLICK); return;
+        }
         if (hand==EquipmentSlot.HAND && games.usingLeaveTool(player) && beginClick(player)) {
             Ui.sound(player, Ui.Cue.CLICK); games.leave(player); return;
         }
@@ -73,7 +76,7 @@ final class GameListener implements Listener {
     @EventHandler public void inventoryDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
         if(event.getWhoClicked() instanceof Player player && games.active(player))event.setCancelled(true);
     }
-    @EventHandler public void join(PlayerJoinEvent event) { games.tools.restore(event.getPlayer()); }
+    @EventHandler(priority = EventPriority.LOWEST) public void join(PlayerJoinEvent event) { games.tools.restore(event.getPlayer()); }
     @EventHandler(priority = EventPriority.HIGHEST) public void damage(EntityDamageEvent event) {
         if (games.entities.managed(event.getEntity()) || event.getEntity() instanceof Player p && games.active(p)) event.setCancelled(true);
     }
