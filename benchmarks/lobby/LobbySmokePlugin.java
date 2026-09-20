@@ -61,6 +61,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             first.getInventory().setHeldItemSlot(0); sellClick();
             require(first.getOpenInventory().getTopInventory().getSize()==54,"Compass opens session menu");
             first.closeInventory();
+            if(Bukkit.getPluginManager().getPlugin("KAKC")!=null)checkKakcInput();
             call(field(games,"tools"),"restore",first);
             first.getInventory().setItem(0,new org.bukkit.inventory.ItemStack(Material.DIAMOND,3));
             first.getInventory().setItem(1,new org.bukkit.inventory.ItemStack(Material.GOLD_INGOT,4));
@@ -292,6 +293,30 @@ public final class LobbySmokePlugin extends JavaPlugin {
         try { Files.writeString(Path.of("portal-smoke-passed.json"),"{\"entryOpensMenu\":true,\"noRepeatWhileInside\":true,\"staysInLobby\":true,\"joinButton\":true}"); }
         catch(java.io.IOException error) { throw new RuntimeException(error); }
         return true;
+    }
+    @SuppressWarnings({"deprecation","unchecked"})
+    private void checkKakcInput()throws Exception {
+        var kakc=Bukkit.getPluginManager().getPlugin("KAKC");
+        Map<String,Integer> modes=(Map<String,Integer>)field(kakc,"changingMod");Integer previous=modes.put(first.getName(),2);
+        Map<UUID,java.util.function.Consumer<String>> pending=new HashMap<>();List<String> captured=new ArrayList<>();
+        Class<?> type=Class.forName("dev.moma.paper.BgmChatInput");var ctor=type.getDeclaredConstructor(java.util.function.Function.class);ctor.setAccessible(true);
+        var listener=(org.bukkit.event.Listener)ctor.newInstance((java.util.function.Function<UUID,java.util.function.Consumer<String>>)pending::remove);
+        Bukkit.getPluginManager().registerEvents(listener,this);
+        try {
+            for(String raw:List.of("https://www.youtube.com/watch?v=AbCdEf123_-&t=2","OAuth_AbCd-123")) {
+                pending.put(first.getUniqueId(),captured::add);
+                var event=new org.bukkit.event.player.AsyncPlayerChatEvent(false,first,raw,new HashSet<>(List.of(first,second,viewer)));
+                Bukkit.getPluginManager().callEvent(event);
+                require(captured.getLast().equals(raw),"KAKC raw private input preserved");
+                require(event.isCancelled() && event.getMessage().isEmpty() && event.getRecipients().isEmpty(),"Private input never published");
+            }
+            var normal=new org.bukkit.event.player.AsyncPlayerChatEvent(false,first,"rksk",new HashSet<>(List.of(first,second)));
+            Bukkit.getPluginManager().callEvent(normal);
+            require(!normal.getMessage().equals("rksk"),"Ordinary KAKC conversion retained");require(modes.get(first.getName())==2,"Player KAKC mode untouched");
+            Files.writeString(Path.of("kakc-input-smoke-passed.json"),"{\"rawUrlPreserved\":true,\"authCodePrivate\":true,\"normalChatConverts\":true,\"modeUnchanged\":true}");
+        } finally {
+            org.bukkit.event.HandlerList.unregisterAll(listener);if(previous==null)modes.remove(first.getName());else modes.put(first.getName(),previous);
+        }
     }
     private void menuClick(int slot) {
         var swap=new org.bukkit.event.player.PlayerSwapHandItemsEvent(first,first.getInventory().getItemInOffHand(),first.getInventory().getItemInMainHand());

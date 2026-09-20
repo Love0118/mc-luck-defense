@@ -1,7 +1,6 @@
 package dev.moma.paper;
 
 import dev.moma.bgm.*;
-import io.papermc.paper.event.player.AsyncChatEvent;
 import java.nio.file.*;
 import java.time.*;
 import java.util.*;
@@ -9,7 +8,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -83,6 +81,10 @@ final class BgmService implements Listener, AutoCloseable {
             } catch(Exception e){plugin.getLogger().warning("BGM initialization: "+e.getClass().getSimpleName());}
         });
         Bukkit.getPluginManager().registerEvents(this,plugin);
+        Bukkit.getPluginManager().registerEvents(new BgmChatInput(id->{
+            Prompt prompt=prompts.remove(id);
+            return prompt==null?null:input->receiveInput(id,prompt,input);
+        }),plugin);
         Bukkit.getScheduler().runTaskTimer(plugin,this::tick,1,1);
     }
     private Track find(String id){return tracks.stream().filter(t->t.id().equals(id)).findFirst().orElse(null);}
@@ -193,7 +195,7 @@ final class BgmService implements Listener, AutoCloseable {
             player.sendMessage(Ui.text("&e최대 3곡까지 등록할 수 있으며 업로드는 한 번에 하나씩 가능합니다."));player.closeInventory();return;
         }
         prompts.put(player.getUniqueId(),new Prompt(session.sessionId,false,System.currentTimeMillis()+120000));player.closeInventory();
-        player.sendMessage(Ui.text("&a채팅에 YouTube 링크를 입력하세요. &7취소: 취소 · 제한: 10분, 25MB"));
+        player.sendMessage(Ui.text("&a채팅에 YouTube 링크를 입력하세요. &7취소: 취소 · 제한: 5분, 25MB"));
     }
     void auth(Player player) {
         if(!player.hasPermission("moma.admin"))throw new IllegalArgumentException("관리자 권한이 필요합니다.");
@@ -201,10 +203,7 @@ final class BgmService implements Listener, AutoCloseable {
         player.sendMessage(Ui.text("&a[Dropbox 계정 연결]").clickEvent(ClickEvent.openUrl(dropbox.authorizationUrl(UUID.randomUUID().toString()))));
         player.sendMessage(Ui.text("&7인증 화면의 코드를 채팅으로 입력하세요. 코드는 다른 플레이어에게 전송되지 않습니다. 취소: 취소"));
     }
-    @EventHandler(priority=EventPriority.LOWEST) public void chat(AsyncChatEvent event) {
-        UUID id=event.getPlayer().getUniqueId();Prompt prompt=prompts.remove(id);if(prompt==null)return;
-        event.setCancelled(true);
-        String input=PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+    private void receiveInput(UUID id,Prompt prompt,String input) {
         main(()->{
             Player p=Bukkit.getPlayer(id);if(p==null)return;
             if(input.equals("취소") || input.equalsIgnoreCase("cancel")){p.sendMessage(Ui.text("&7취소했습니다."));return;}
@@ -235,7 +234,8 @@ final class BgmService implements Listener, AutoCloseable {
             Track draft=new Track(UUID.randomUUID().toString().replace("-",""),owner,name,audio.title(),url,"","",audio.seconds());
             Track ready=publish(draft,audio.file(),temp);store.save(ready);tracks=store.list();
             message(owner,"&aBGM 등록 완료: &f"+audio.title());
-        } catch(Exception e) {message(owner,"&cBGM 등록 실패: 영상 접근·외부 도구·Dropbox 연결을 확인하세요.");plugin.getLogger().warning("BGM upload failed: "+e.getClass().getSimpleName());}
+        } catch(BgmMedia.RejectedAudio e) {message(owner,"&e"+e.getMessage());}
+        catch(Exception e) {message(owner,"&cBGM 등록 실패: 영상 접근·외부 도구·Dropbox 연결을 확인하세요.");plugin.getLogger().warning("BGM upload failed: "+e.getClass().getSimpleName());}
         finally {cleanup(temp);uploading.remove(owner);}
     }
     private Track publish(Track track,Path audio,Path temp)throws Exception {

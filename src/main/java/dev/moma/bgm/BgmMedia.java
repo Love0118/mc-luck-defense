@@ -13,6 +13,22 @@ import java.util.zip.*;
 
 public final class BgmMedia {
     public static final long MAX_BYTES=25*1024*1024;
+    public static final int MAX_SECONDS=300;
+    public static final class RejectedAudio extends IOException {
+        public RejectedAudio(String message){super(message);}
+    }
+    static double checkedDuration(JsonObject info)throws RejectedAudio {
+        double duration;
+        try {duration=info.has("duration") && !info.get("duration").isJsonNull()?info.get("duration").getAsDouble():0;}
+        catch(RuntimeException error){throw new RejectedAudio("영상 길이를 확인할 수 없습니다.");}
+        boolean live=info.has("is_live") && !info.get("is_live").isJsonNull() && info.get("is_live").getAsBoolean();
+        if(live)throw new RejectedAudio("실시간 영상은 등록할 수 없습니다.");
+        validateDuration(duration);return duration;
+    }
+    static void validateDuration(double seconds)throws RejectedAudio {
+        if(!Double.isFinite(seconds) || seconds<=0)throw new RejectedAudio("영상 길이를 확인할 수 없습니다.");
+        if(seconds>MAX_SECONDS)throw new RejectedAudio("5분을 초과하는 곡은 등록할 수 없습니다. (최대 5:00)");
+    }
     private final String downloader,ffmpeg;
     public BgmMedia(String downloader,String ffmpeg) { this.downloader=downloader;this.ffmpeg=ffmpeg; }
     public record Audio(Path file,String title,double seconds) {}
@@ -36,8 +52,7 @@ public final class BgmMedia {
         Path metadata=workspace.resolve("metadata.json");
         run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
         JsonObject info=JsonParser.parseString(Files.readString(metadata)).getAsJsonObject();
-        double duration=info.has("duration") && !info.get("duration").isJsonNull()?info.get("duration").getAsDouble():0;
-        if(duration<=0 || duration>600 || info.has("is_live") && info.get("is_live").getAsBoolean()) throw new IOException("10분 이하의 일반 영상만 등록할 수 있습니다.");
+        double duration=checkedDuration(info);
         String title=info.get("title").getAsString().replaceAll("[\\p{Cntrl}]","");
         if(title.length()>160)title=title.substring(0,160);
         run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--max-filesize","25M","--socket-timeout","20","--retries","2",
@@ -48,8 +63,9 @@ public final class BgmMedia {
         return convert(source,workspace,title,duration);
     }
     public Audio convert(Path source,Path workspace,String title,double seconds) throws Exception {
+        validateDuration(seconds);
         Path audio=workspace.resolve("audio.ogg");
-        run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t","600","-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
+        run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t",Integer.toString(MAX_SECONDS),"-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
                 workspace.resolve("convert.log"),Duration.ofMinutes(5));
         if(!Files.isRegularFile(audio)||Files.size(audio)>MAX_BYTES)throw new IOException("OGG 변환 결과가 유효하지 않습니다.");
         return new Audio(audio,title,seconds);
@@ -65,7 +81,7 @@ public final class BgmMedia {
         return pack(id,List.of(audio),workspace);
     }
     public Path synchronizedPack(String id,Path audio,double seconds,Path workspace)throws Exception {
-        if(!Double.isFinite(seconds) || seconds<=0 || seconds>600)throw new IOException("Invalid audio duration");
+        validateDuration(seconds);
         List<Path> segments=new ArrayList<>();
         for(int i=0;i<(int)Math.ceil(seconds/2);i++) {
             Path segment=workspace.resolve("part_"+i+".ogg");

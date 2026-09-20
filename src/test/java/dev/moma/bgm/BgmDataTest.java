@@ -10,6 +10,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class BgmDataTest {
     @TempDir Path temp;
+    @Test void fiveMinuteBoundaryIsInclusiveAndInvalidDurationsAreRejectedBeforeProcessing()throws Exception {
+        for(double seconds:new double[]{.1,299.99,300}) {
+            var info=new com.google.gson.JsonObject();info.addProperty("duration",seconds);
+            assertEquals(seconds,BgmMedia.checkedDuration(info));
+        }
+        for(double seconds:new double[]{300.001,301,600,0,-1,Double.NaN,Double.POSITIVE_INFINITY}) {
+            var info=new com.google.gson.JsonObject();info.addProperty("duration",seconds);
+            assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.checkedDuration(info));
+        }
+        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.checkedDuration(new com.google.gson.JsonObject()));
+        var live=new com.google.gson.JsonObject();live.addProperty("duration",30);live.addProperty("is_live",true);
+        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.checkedDuration(live));
+        var media=new BgmMedia("must-not-launch","must-not-launch");
+        assertThrows(BgmMedia.RejectedAudio.class,()->media.convert(temp.resolve("absent.ogg"),temp,"long",301));
+        assertThrows(BgmMedia.RejectedAudio.class,()->media.synchronizedPack("long",temp.resolve("absent.ogg"),301,temp));
+    }
     @Test void youtubeInputsAreCanonicalAndRejectOtherHostsAndPlaylistOnlyLinks() {
         for(String url:List.of("https://youtu.be/abcdefghijk?t=2","https://www.youtube.com/watch?v=abcdefghijk&list=PLtest","https://youtube.com/shorts/abcdefghijk","https://youtube.com/live/abcdefghijk"))
             assertEquals("https://www.youtube.com/watch?v=abcdefghijk",BgmMedia.youtube(url));
