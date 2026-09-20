@@ -17,7 +17,15 @@ public final class Arena {
     private UUID selected;
     private int openingDraws;
     private boolean openingHit;
-    public boolean openingBonusActive() { return openingDraws < 3 && !openingHit; }
+    private SummonTier summonTier=SummonTier.NORMAL;
+    private Defender lastSummoned;
+    private final List<UUID> mergedEntities=new ArrayList<>();
+    public SummonTier summonTier() { return summonTier; }
+    public long summonCost() { return summonTier.cost(); }
+    public void reachedRound(int round) { if(round>100)summonTier=SummonTier.ADVANCED; }
+    public Defender lastSummoned() { return lastSummoned; }
+    public List<UUID> collectMergedEntities() { var result=List.copyOf(mergedEntities);mergedEntities.clear();return result; }
+    public boolean openingBonusActive() { return summonTier==SummonTier.NORMAL && openingDraws < 3 && !openingHit; }
     public int openingDrawsRemaining() { return openingBonusActive() ? 3 - openingDraws : 0; }
     public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
     private Outcome outcome = Outcome.PLAYING;
@@ -56,23 +64,35 @@ public final class Arena {
     public Result summon(UUID actor, SummonRoll roll, Spawner spawner) {
         Result access = access(actor);
         if (access != Result.OK) return access;
-        if (coinUnits < Gold.units(SUMMON_COST)) return Result.INSUFFICIENT_COINS;
+        if (coinUnits < Gold.units(summonCost())) return Result.INSUFFICIENT_COINS;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
         Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity()).findFirst().orElse(null);
-        if(duplicate!=null)duplicate.merge();
+        if(duplicate!=null) {
+            duplicate.merge();
+            Defender match;
+            while((match=matchingOther(duplicate))!=null) {
+                duplicate.absorb(match);defenders.remove(match.entityId());mergedEntities.add(match.entityId());
+                if(match.entityId().equals(selected))selected=duplicate.entityId();
+            }
+            lastSummoned=duplicate;
+        }
         else {
             // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
             UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
             if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
-            defenders.put(entity, new Defender(entity, owner, id, roll.type(), roll.rarity(), cell));
+            lastSummoned=new Defender(entity, owner, id, roll.type(), roll.rarity(), cell);
+            defenders.put(entity, lastSummoned);
         }
-        coinUnits -= Gold.units(SUMMON_COST);
+        coinUnits -= Gold.units(summonCost());
         if (openingDraws < 3) {
             openingDraws++;
             openingHit |= roll.rarity() == Rarity.ANCIENT || roll.rarity() == Rarity.RELIC;
         }
         return Result.OK;
+    }
+    private Defender matchingOther(Defender unit) {
+        return defenders.values().stream().filter(d->d!=unit && d.type()==unit.type() && d.rarity()==unit.rarity()).findFirst().orElse(null);
     }
     public Result select(UUID actor, UUID entity) {
         Result access = access(actor);

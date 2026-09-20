@@ -7,7 +7,10 @@ public record SummonRoll(UnitType type, Rarity rarity) {
         return draw(random, false);
     }
     public static SummonRoll draw(RandomGenerator random, boolean openingBonus) {
-        Rarity rarity = Rarity.fromRoll(random.nextInt(Rarity.TOTAL_WEIGHT), openingBonus);
+        return draw(random, openingBonus, SummonTier.NORMAL);
+    }
+    public static SummonRoll draw(RandomGenerator random, boolean openingBonus, SummonTier tier) {
+        Rarity rarity = tier.rarity(random.nextInt(Rarity.TOTAL_WEIGHT), openingBonus);
         UnitType type = UnitType.values()[random.nextInt(UnitType.values().length)];
         return new SummonRoll(type, rarity);
     }

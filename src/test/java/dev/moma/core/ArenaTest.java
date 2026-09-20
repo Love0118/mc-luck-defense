@@ -60,7 +60,7 @@ class ArenaTest {
         assertEquals(INSUFFICIENT_COINS, poor.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(9, poor.coins());
         var full = arena(100);
-        for (Rarity rarity:Rarity.values()) summon(full, rarity);
+        for (Rarity rarity:Rarity.values()) if(rarity.weight()>0) summon(full, rarity);
         assertEquals(FULL, full.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(10, full.coins());
         var failure = arena(10);

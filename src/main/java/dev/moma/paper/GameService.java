@@ -206,7 +206,7 @@ final class GameService {
         purchase(player, session, true);
     }
     private boolean purchase(Player player, GameSession session, boolean feedback) {
-        SummonRoll roll = SummonRoll.draw(session.random, session.arena.openingBonusActive());
+        SummonRoll roll = session.arena.summonTier()==SummonTier.NORMAL ? SummonRoll.draw(session.random, session.arena.openingBonusActive()) : SummonRoll.draw(session.random,false,session.arena.summonTier());
         boolean autoSell = session.autoSell.contains(roll.rarity());
         Arena.Result result;
         try {
@@ -222,12 +222,18 @@ final class GameService {
         if (feedback) tell(player, result);
         if (result == Arena.Result.OK) {
             if(achievements!=null && !session.assisted)achievements.summoned(player,roll.rarity());
+            session.arena.collectMergedEntities().forEach(entities::remove);
+            Defender d=session.arena.lastSummoned();
             if (autoSell) session.arena.sellRarity(player.getUniqueId(), roll.rarity());
-            else session.arena.activeDefenders().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity() && d.enhancement()>0).findFirst().ifPresent(d->{
+            else {
                 entities.updateDefenderName(d);
-                fusionEffect(player,session,d);
-                player.sendActionBar(Ui.text("&a합성 &f["+d.rarity().label()+"] "+d.label()));
-            });
+                if(d.enhancement()>0 || d.rarity()!=roll.rarity()) {
+                    fusionEffect(player,session,d);
+                    player.sendActionBar(Ui.text("&a"+(d.rarity()!=roll.rarity()?"승급":"합성")+" &f["+d.rarity().label()+"] "+d.label()));
+                }
+                if(session.autoSell.contains(d.rarity()))session.arena.sellRarity(player.getUniqueId(),d.rarity()).entities().forEach(entities::remove);
+            }
+            entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
             session.layoutDirty = true;
             if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
                 Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
@@ -288,14 +294,14 @@ final class GameService {
         if (session == null || session.arena.ended()) return;
         if (session.bulkBuying) { stopBulkBuy(player, session); return; }
         if (!canBuy(session)) {
-            tell(player, session.arena.coins() < Arena.SUMMON_COST ? Arena.Result.INSUFFICIENT_COINS : Arena.Result.FULL);
+            tell(player, session.arena.coins() < session.arena.summonCost() ? Arena.Result.INSUFFICIENT_COINS : Arena.Result.FULL);
             return;
         }
         session.bulkBuying = true; session.bulkPurchases = 0;
         Ui.sound(player, Ui.Cue.CLICK);
     }
     private boolean canBuy(GameSession session) {
-        return !session.arena.ended() && session.arena.coins() >= Arena.SUMMON_COST
+        return !session.arena.ended() && session.arena.coins() >= session.arena.summonCost()
                 && session.arena.defenderCount() < session.map.grid().placementOrder().size();
     }
     private void stopBulkBuy(Player player, GameSession session) {
@@ -446,12 +452,12 @@ final class GameService {
         String message = switch (result) {
             case NOT_OWNER -> "자신의 포탑만 선택할 수 있습니다.";
             case ENDED -> "이미 종료된 전장입니다.";
-            case INSUFFICIENT_COINS -> "골드가 부족합니다. 소환에는 10골드가 필요합니다.";
+            case INSUFFICIENT_COINS -> "골드가 부족합니다. 소환 비용을 확인하세요.";
             case FULL -> "빈 배치 칸이 없습니다.";
             case INVALID_CELL -> "자기 전장의 파란 배치 칸을 선택하세요.";
             case OCCUPIED -> "이미 포탑이 있는 칸입니다.";
             case NO_SELECTION -> "먼저 자신의 포탑을 좌클릭하세요.";
-            case NOT_SELLABLE -> "태초는 판매할 수 없습니다.";
+            case NOT_SELLABLE -> "태초·진 태초는 판매할 수 없습니다.";
             case OK -> "";
         };
         player.sendMessage(Component.text(message, NamedTextColor.RED));

@@ -42,10 +42,10 @@ final class ShopMenu implements Listener {
                 "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 1배"));
         holder.inventory.setItem(ODDS, oddsItem(arena));
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
-        holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &610골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
+        holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &6" + arena.summonCost() + "골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
         boolean buying = holder.session.bulkBuying, layout = holder.session.autoPlacement;
         holder.inventory.setItem(BULK_BUY, item(buying ? Material.BARRIER : Material.DRAGON_EGG,
-                buying ? "&e일괄구매 중 &7· &f클릭하여 중지" : "&a일괄구매 &7· &610골드/회",
+                buying ? "&e일괄구매 중 &7· &f클릭하여 중지" : "&a일괄구매 &7· &6" + arena.summonCost() + "골드/회",
                 buying ? "&e" + holder.session.bulkPurchases + "회 소환" : "골드와 빈 칸이 허용하는 만큼 소환",
                 "자동판매로 얻은 골드도 사용합니다."));
         holder.inventory.setItem(AUTO_LAYOUT, item(layout ? Material.LIME_DYE : Material.GRAY_DYE,
@@ -65,9 +65,9 @@ final class ShopMenu implements Listener {
             Defender d = selected.orElseThrow();
             CombatProfile profile = d.profile();
             String sale = d.rarity().salePrice().isPresent() ? d.saleValue() + "골드" : "판매 불가";
-            holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + "[" + d.rarity().label() + "] " + d.label(),
+            holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"&l":"") + "[" + d.rarity().label() + "] " + d.label(),
                     d.type().role().label(),
-                    "강화 +" + d.enhancement() + " · 기본 피해 " + (long)(100*d.damageMultiplier()) + "%",
+                    "강화 +" + d.enhancement() + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"":" · +20 달성 시 다음 등급"),
                     "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()) + " · 간격 " + profile.intervalTicks() + "틱",
                     "사거리 " + String.format(Locale.ROOT, "%.1f", profile.range()),
                     d.rarity().abilityLevel() == 0 ? "특수효과: 전설부터 해금" : d.type().role().ability() + " · " + d.rarity().abilityLevel() + "단계",
@@ -86,8 +86,9 @@ final class ShopMenu implements Listener {
         boolean openingBonus = arena != null && arena.openingBonusActive();
         var lore = new ArrayList<String>();
         for (Rarity rarity : Rarity.values()) {
+            if(rarity.weight()==0)continue;
             String color = "&#" + String.format(Locale.ROOT,"%06x",EntityAdapter.rarityColor(rarity).value());
-            String percent = java.math.BigDecimal.valueOf(rarity.weight(openingBonus)).multiply(java.math.BigDecimal.valueOf(100))
+            String percent = java.math.BigDecimal.valueOf((arena==null?SummonTier.NORMAL:arena.summonTier()).weight(rarity,openingBonus)).multiply(java.math.BigDecimal.valueOf(100))
                     .divide(java.math.BigDecimal.valueOf(Rarity.TOTAL_WEIGHT)).stripTrailingZeros().toPlainString();
             lore.add(color + rarity.label() + " &f" + percent + "%");
         }
@@ -96,7 +97,9 @@ final class ShopMenu implements Listener {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
             lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
-        lore.add("&7태초는 판매할 수 없습니다.");
+        lore.add("&7101라운드부터 100골드 소환");
+        lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
+        lore.add("&7태초·진 태초는 판매할 수 없습니다.");
         return Ui.item(Material.KNOWLEDGE_BOOK,"&e소환 확률",lore.toArray(String[]::new));
     }
     private ItemStack item(Material material, String title, String... lore) {

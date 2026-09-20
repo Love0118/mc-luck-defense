@@ -9,7 +9,7 @@ public final class WaveSchedule {
     private static final double[] REWARDS = {.1,.1,.2,.5,1,3,6,10,15,30};
     public static double reward(int round) {
         if (round < 1) throw new IllegalArgumentException("Round must be positive");
-        return REWARDS[Math.min(9,(round-1)/10)];
+        return round<=100?REWARDS[(round-1)/10]:30+((round-100)/10)*2L;
     }
     private WaveSchedule() {}
     public static List<Wave> create(CampaignRules rules) {
@@ -18,11 +18,12 @@ public final class WaveSchedule {
         return List.copyOf(waves);
     }
     public static Wave create(int round, CampaignRules rules) {
-        int pattern = (round - 1) % 5;
-        int count = 12 + (Math.min(round,100) - 1) / 10 * 2;
+        int cycleRound=(round-1)%100+1;
+        int pattern = (cycleRound - 1) % 5;
+        int count = 12 + (cycleRound - 1) / 10 * 2;
         if (pattern == 2) count += 8;
         if (pattern == 3) count -= 3;
-        double growth=round<=100?1:Math.exp(Math.min(400,(round-100)*Math.log(1.08)));
+        double growth=round<=100?1:Math.pow(round/100.0,2);
         double base = rules.healthCurve().at(Math.min(round,100)) * rules.healthScale()*growth;
         var entries = new ArrayList<Wave.Entry>();
         for (int i = 0; i < count; i++) {
@@ -56,7 +57,7 @@ public final class WaveSchedule {
         }
         if (round % 10 == 0) entries.add(new Wave.Entry(rules.roundTicks() / 2,
                 new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK,
-                        base * (15 + Math.min(round,100) / 5.0) * rules.bossHealthScale() * (round >= 100 ? FINAL_BOSS_HEALTH_MULTIPLIER : 1), 1.2, reward(round)*25, true)));
+                        base * (15 + cycleRound / 5.0) * rules.bossHealthScale() * (cycleRound == 100 ? FINAL_BOSS_HEALTH_MULTIPLIER : 1), 1.2, reward(round)*25, true)));
         entries.sort(Comparator.comparingInt(Wave.Entry::offsetTick));
         return themed(round, entries);
     }

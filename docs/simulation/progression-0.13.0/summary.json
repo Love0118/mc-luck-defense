@@ -1,0 +1,232 @@
+{
+  "runs": 2000,
+  "seedStart": 13000000,
+  "checkpoints": [
+    {
+      "round": 26,
+      "reached": 2000,
+      "total": 2000,
+      "rate": 1.0,
+      "ci95": [
+        0.9980828823994873,
+        1
+      ],
+      "baselineReached": 1962
+    },
+    {
+      "round": 30,
+      "reached": 1992,
+      "total": 2000,
+      "rate": 0.996,
+      "ci95": [
+        0.9921264415501131,
+        0.9979717777901781
+      ],
+      "baselineReached": 1386
+    },
+    {
+      "round": 60,
+      "reached": 1981,
+      "total": 2000,
+      "rate": 0.9905,
+      "ci95": [
+        0.9852094988443749,
+        0.993909808789522
+      ],
+      "baselineReached": 856
+    },
+    {
+      "round": 100,
+      "reached": 1981,
+      "total": 2000,
+      "rate": 0.9905,
+      "ci95": [
+        0.9852094988443749,
+        0.993909808789522
+      ],
+      "baselineReached": 275
+    },
+    {
+      "round": 101,
+      "reached": 1981,
+      "total": 2000,
+      "rate": 0.9905,
+      "ci95": [
+        0.9852094988443749,
+        0.993909808789522
+      ],
+      "baselineReached": null
+    },
+    {
+      "round": 200,
+      "reached": 1139,
+      "total": 2000,
+      "rate": 0.5695,
+      "ci95": [
+        0.5476864237138591,
+        0.5910470969396696
+      ],
+      "baselineReached": null
+    },
+    {
+      "round": 500,
+      "reached": 1136,
+      "total": 2000,
+      "rate": 0.568,
+      "ci95": [
+        0.5461801997929928,
+        0.5895590722133374
+      ],
+      "baselineReached": null
+    },
+    {
+      "round": 1000,
+      "reached": 1136,
+      "total": 2000,
+      "rate": 0.568,
+      "ci95": [
+        0.5461801997929928,
+        0.5895590722133374
+      ],
+      "baselineReached": null
+    },
+    {
+      "round": 1500,
+      "reached": 1136,
+      "total": 2000,
+      "rate": 0.568,
+      "ci95": [
+        0.5461801997929928,
+        0.5895590722133374
+      ],
+      "baselineReached": null
+    },
+    {
+      "round": 2000,
+      "reached": 1136,
+      "total": 2000,
+      "rate": 0.568,
+      "ci95": [
+        0.5461801997929928,
+        0.5895590722133374
+      ],
+      "baselineReached": null
+    }
+  ],
+  "maxRound": 2000,
+  "meanRound": 1184.542,
+  "cappedRuns": 1136,
+  "truePrimordialRuns": 26,
+  "examples": [
+    {
+      "seed": 13000000,
+      "round": 2000,
+      "completedRounds": 2000,
+      "maxGrade": "PRIMORDIAL",
+      "at100": {
+        "round": 100,
+        "summons": 3295,
+        "sales": 2220,
+        "earned": 18604.5,
+        "coins": 823.5,
+        "truePrimordial": 0
+      },
+      "at2000": {
+        "round": 2000,
+        "summons": 122731,
+        "sales": 109575,
+        "earned": 10272634.5,
+        "coins": 2443.5,
+        "truePrimordial": 0
+      }
+    },
+    {
+      "seed": 13000004,
+      "round": 2000,
+      "completedRounds": 2000,
+      "maxGrade": "PRIMORDIAL",
+      "at100": {
+        "round": 100,
+        "summons": 3205,
+        "sales": 2027,
+        "earned": 18904.5,
+        "coins": 431.5,
+        "truePrimordial": 0
+      },
+      "at2000": {
+        "round": 2000,
+        "summons": 122902,
+        "sales": 109847,
+        "earned": 10272634.5,
+        "coins": 5986.5,
+        "truePrimordial": 0
+      }
+    },
+    {
+      "seed": 13000005,
+      "round": 2000,
+      "completedRounds": 2000,
+      "maxGrade": "PRIMORDIAL",
+      "at100": {
+        "round": 100,
+        "summons": 3436,
+        "sales": 2431,
+        "earned": 18874.5,
+        "coins": 1163.5,
+        "truePrimordial": 0
+      },
+      "at2000": {
+        "round": 2000,
+        "summons": 123173,
+        "sales": 109452,
+        "earned": 10272634.5,
+        "coins": 3448.5,
+        "truePrimordial": 0
+      }
+    },
+    {
+      "seed": 13000006,
+      "round": 2000,
+      "completedRounds": 2000,
+      "maxGrade": "PRIMORDIAL",
+      "at100": {
+        "round": 100,
+        "summons": 3204,
+        "sales": 2040,
+        "earned": 18934.5,
+        "coins": 1344.5,
+        "truePrimordial": 0
+      },
+      "at2000": {
+        "round": 2000,
+        "summons": 122701,
+        "sales": 108918,
+        "earned": 10272634.5,
+        "coins": 3543.5,
+        "truePrimordial": 0
+      }
+    },
+    {
+      "seed": 13000007,
+      "round": 2000,
+      "completedRounds": 2000,
+      "maxGrade": "PRIMORDIAL",
+      "at100": {
+        "round": 100,
+        "summons": 3163,
+        "sales": 1911,
+        "earned": 18814.5,
+        "coins": 21.5,
+        "truePrimordial": 0
+      },
+      "at2000": {
+        "round": 2000,
+        "summons": 122715,
+        "sales": 107702,
+        "earned": 10272634.5,
+        "coins": 285.5,
+        "truePrimordial": 0
+      }
+    }
+  ]
+}

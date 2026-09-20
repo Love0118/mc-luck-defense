@@ -61,17 +61,17 @@ public final class AutoPlayer {
         List<Defender> units = arena.defenders();
         if (units.size() == arena.grid().size() * arena.grid().size()) {
             var worst = units.stream().filter(d -> d.rarity().salePrice().isPresent()
-                    && arena.coins() + d.saleValue() >= Arena.SUMMON_COST).min(Comparator.comparingDouble(this::score));
+                    && arena.coins() + d.saleValue() >= arena.summonCost()).min(Comparator.comparingDouble(this::score));
             if (worst.isPresent()) { sell(arena, worst.orElseThrow()); return; }
         }
         if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;
-        if (arena.coins() >= Arena.SUMMON_COST && units.size() < arena.grid().size() * arena.grid().size()) {
-            SummonRoll roll = SummonRoll.draw(random, arena.openingBonusActive());
+        if (arena.coins() >= arena.summonCost() && units.size() < arena.grid().size() * arena.grid().size()) {
+            SummonRoll roll = SummonRoll.draw(random, arena.openingBonusActive(),arena.summonTier());
             // Stress-test intervention only: spend the same draw but downgrade excess Primordials.
             if (roll.rarity() == Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()] >= primordialCap)
                 roll = new SummonRoll(roll.type(), Rarity.MYTHIC);
             if (arena.summon(arena.owner(), roll, spawner) == Arena.Result.OK) {
-                summons++; rarities[roll.rarity().ordinal()]++;
+                summons++; rarities[roll.rarity().ordinal()]++; arena.collectMergedEntities().forEach(remove);
             }
         }
     }

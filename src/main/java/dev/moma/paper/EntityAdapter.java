@@ -48,7 +48,8 @@ final class EntityAdapter {
     }
     void updateDefenderName(Defender defender) {
         Entity entity=Bukkit.getEntity(defender.entityId());
-        if(entity!=null)entity.customName(Component.text("[아군] ["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity())));
+        if(entity!=null)entity.customName(Component.text("[아군] ["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity()))
+                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD,defender.rarity()==Rarity.TRUE_PRIMORDIAL));
     }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {
@@ -186,6 +187,7 @@ final class EntityAdapter {
             case EPIC -> NamedTextColor.DARK_PURPLE;
             case MYTHIC -> NamedTextColor.RED;
             case PRIMORDIAL -> NamedTextColor.YELLOW;
+            case TRUE_PRIMORDIAL -> NamedTextColor.DARK_RED;
         };
     }
 }

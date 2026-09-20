@@ -1,0 +1,10 @@
+{
+  "tests": 220,
+  "version": "0.13.0",
+  "serverRestarted": false,
+  "simulationRuns": 2000,
+  "reached2000": 1136,
+  "capRound": 2000,
+  "stagedOnly": true,
+  "sha256": "c5266b3ec81f99a3d48c356cfd28d50aafbe1ae7cfea23656f11debe3eb0774b"
+}

@@ -1,0 +1,5 @@
+name: ProgressionSmoke
+version: 1.0
+main: dev.moma.benchmark.ProgressionSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense]

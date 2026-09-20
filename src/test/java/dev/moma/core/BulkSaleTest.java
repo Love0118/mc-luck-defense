@@ -14,7 +14,7 @@ class BulkSaleTest {
         var sale=arena.sellRarity(owner,Rarity.RARE);
         assertEquals(Arena.Result.OK,sale.result()); assertEquals(1,sale.entities().size());
         assertEquals(12,sale.income()); assertEquals(before+12,arena.coins());
-        assertTrue(arena.selected().isEmpty()); assertEquals(8,arena.defenderCount());
+        assertTrue(arena.selected().isEmpty()); assertEquals(Rarity.values().length-1,arena.defenderCount());
         assertTrue(arena.activeDefenders().stream().noneMatch(d->d.rarity()==Rarity.RARE));
         var repeat=arena.sellRarity(owner,Rarity.RARE);
         assertEquals(0,repeat.income()); assertTrue(repeat.entities().isEmpty()); assertEquals(before+12,arena.coins());

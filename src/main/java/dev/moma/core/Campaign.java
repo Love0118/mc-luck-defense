@@ -29,7 +29,7 @@ public final class Campaign {
         elapsed++;
         if (elapsed < rules.preparationTicks() || cleanup()) return;
         int current = (int)Math.min(endless?Integer.MAX_VALUE:CampaignRules.ROUNDS, (elapsed - rules.preparationTicks()) / rules.roundTicks() + 1);
-        if (current != round) { round = current; spawnedInRound = 0;wave=WaveSchedule.create(round,rules); }
+        if (current != round) { round = current; arena.reachedRound(round); spawnedInRound = 0;wave=WaveSchedule.create(round,rules); }
         int offset = (int)((elapsed - rules.preparationTicks()) % rules.roundTicks());
         List<Wave.Entry> entries = wave().entries();
         while (spawnedInRound < entries.size() && entries.get(spawnedInRound).offsetTick() <= offset && !arena.ended()) {

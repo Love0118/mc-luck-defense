@@ -27,6 +27,7 @@ class RosterTest {
     @Test void independentDrawsCanProduceEverySpeciesAtEveryRarity() {
         int boundary = 0;
         for (Rarity rarity : Rarity.values()) {
+            if(rarity.weight()==0)continue;
             for (UnitType type : UnitType.values()) {
                 int roll = boundary;
                 var random = new java.util.random.RandomGenerator() {
