@@ -4,10 +4,11 @@ import java.util.*;
 
 /** Stable IDs and thresholds; counters are exact-grade lifetime counts, not inventory totals. */
 public final class AchievementCatalog {
-    public enum Metric { ROUND, EPIC, MYTHIC, PRIMORDIAL }
+    public enum Metric { ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL }
     public record Entry(String id, Metric metric, long target, String title, boolean challenge) {
         public String description() {
             return metric == Metric.ROUND ? target + "라운드 도달"
+                    : metric == Metric.TRUE_PRIMORDIAL ? "누적 진 태초 " + target + "회 승급"
                     : "누적 " + Rarity.valueOf(metric.name()).label() + " " + target + "회 소환";
         }
     }
@@ -22,6 +23,8 @@ public final class AchievementCatalog {
                 new String[]{"신화의 시작","세 편의 신화","신화 원정대","신화 수집가","신화의 계보","신화의 전당","백 가지 신화","신화의 서고","신화의 주인","천 년의 신화"},10);
         add(entries, Metric.PRIMORDIAL, new long[]{1,2,3,5,10,20,30,50,75,100},
                 new String[]{"태초의 순간","두 개의 기원","삼중의 기적","태초의 손길","기원의 수집가","스무 번의 탄생","태초의 별자리","기원의 지배자","세상 이전의 기록","백 번의 태초"},1);
+        add(entries, Metric.TRUE_PRIMORDIAL, new long[]{1,2,3,5,10,20,30,50,75,100},
+                new String[]{"기원을 넘어","두 번의 초월","진정한 삼위","초월의 손길","진 태초 수집가","기원 너머의 군단","초월의 별자리","진 태초의 지배자","시작 이전의 힘","백 번의 초월"},1);
         ALL = List.copyOf(entries);
     }
     private static void add(List<Entry> entries, Metric metric, long[] targets, String[] titles, long hardFrom) {

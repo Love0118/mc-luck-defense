@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AchievementTest {
-    @Test void fiftyStableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
-        assertEquals(50,AchievementCatalog.ALL.size());
-        assertEquals(50,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
+    @Test void sixtyStableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
+        assertEquals(60,AchievementCatalog.ALL.size());
+        assertEquals(60,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
         for(Metric metric:Metric.values()) {
             var entries=AchievementCatalog.ALL.stream().filter(e->e.metric()==metric).toList();
             assertEquals(metric==Metric.ROUND?20:10,entries.size());
@@ -28,6 +28,7 @@ class AchievementTest {
             }
         }
         assertTrue(AchievementCatalog.ALL.stream().filter(e->e.metric()==Metric.PRIMORDIAL).allMatch(Entry::challenge));
+        assertTrue(AchievementCatalog.ALL.stream().filter(e->e.metric()==Metric.TRUE_PRIMORDIAL).allMatch(e->e.challenge() && e.description().contains("승급")));
     }
     @Test void persistentCountersAreIndependentAndRoundNeverDecreases() {
         var values=new HashMap<NamespacedKey,Long>();var data=mock(PersistentDataContainer.class);
@@ -35,6 +36,8 @@ class AchievementTest {
         doAnswer(c->{values.put(c.getArgument(0),c.getArgument(2));return null;}).when(data).set(any(),eq(PersistentDataType.LONG),anyLong());
         assertEquals(1,AchievementStats.summoned(data,Metric.MYTHIC));
         assertEquals(2,AchievementStats.summoned(data,Metric.MYTHIC));
+        assertEquals(0,AchievementStats.get(data,Metric.PRIMORDIAL));
+        assertEquals(1,AchievementStats.summoned(data,Metric.TRUE_PRIMORDIAL));
         assertEquals(0,AchievementStats.get(data,Metric.PRIMORDIAL));
         assertEquals(1,AchievementStats.summoned(data,Metric.EPIC));
         assertEquals(1000,AchievementStats.reached(data,1000));assertEquals(1000,AchievementStats.reached(data,1));
@@ -56,11 +59,12 @@ class AchievementTest {
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,viewer));
             for(Rarity rarity:Rarity.values())SummonAnnouncement.broadcast(owner,new SummonRoll(UnitType.WOLF,rarity));
-            bukkit.verify(()->Bukkit.broadcast(any(net.kyori.adventure.text.Component.class)),times(2));
+            bukkit.verify(()->Bukkit.broadcast(any(net.kyori.adventure.text.Component.class)),times(3));
             for(Player player:List.of(owner,viewer)) {
                 Location at=player.getLocation();
                 verify(player).playSound(at,"minecraft:block.amethyst_block.chime",SoundCategory.MASTER,.7f,1.15f);
                 verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.7f,1f);
+                verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.7f,.8f);
             }
         }
     }

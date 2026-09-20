@@ -224,6 +224,8 @@ final class GameService {
             if(achievements!=null && !session.assisted)achievements.summoned(player,roll.rarity());
             session.arena.collectMergedEntities().forEach(entities::remove);
             Defender d=session.arena.lastSummoned();
+            if(d.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL && achievements!=null && !session.assisted)
+                achievements.truePrimordialPromoted(player);
             if (autoSell) session.arena.sellRarity(player.getUniqueId(), roll.rarity());
             else {
                 entities.updateDefenderName(d);
@@ -238,8 +240,12 @@ final class GameService {
             if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
                 Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
         }
-        if (result == Arena.Result.OK && roll.rarity().ordinal()>=Rarity.MYTHIC.ordinal())
-            SummonAnnouncement.broadcast(player,roll);
+        if (result == Arena.Result.OK) {
+            Defender summoned=session.arena.lastSummoned();
+            if(summoned.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL)
+                SummonAnnouncement.broadcast(player,new SummonRoll(summoned.type(),Rarity.TRUE_PRIMORDIAL));
+            else if(SummonAnnouncement.global(roll.rarity()))SummonAnnouncement.broadcast(player,roll);
+        }
         return result == Arena.Result.OK;
     }
     private void fusionEffect(Player player,GameSession session,Defender defender) {

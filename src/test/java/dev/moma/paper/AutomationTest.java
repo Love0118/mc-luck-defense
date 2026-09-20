@@ -34,6 +34,24 @@ class AutomationTest {
     }
     @AfterEach void close() { bukkit.close(); rolls.close(); adapters.close(); }
     private void draw(Rarity rarity) { rolls.when(() -> SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,rarity)); }
+    @Test void truePrimordialPromotionAwardsOnceAndBroadcastsFinalGrade() {
+        session.arena.credit(1000);games.achievements=mock(AchievementService.class);
+        for(int i=0;i<20;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL),(t,r,c)->UUID.randomUUID());
+        draw(Rarity.PRIMORDIAL);
+        try(var announcement=mockStatic(SummonAnnouncement.class)) {
+            games.summon(player);
+            assertEquals(Rarity.TRUE_PRIMORDIAL,session.arena.lastSummoned().rarity());
+            verify(games.achievements).truePrimordialPromoted(player);
+            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL)),times(1));
+            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL)),never());
+            games.summon(player);
+            verify(games.achievements,times(1)).truePrimordialPromoted(player);
+            session.arena.credit(1000);session.assisted=true;
+            for(int i=0;i<20;i++)games.summon(player);
+            verify(games.achievements,times(1)).truePrimordialPromoted(player);
+            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL)),times(2));
+        }
+    }
     @Test void bulkBuyStopsOpeningBonusOnAutoSoldRelicBeforeTheNextDraw() {
         games.toggleAutoSell(player,Rarity.RELIC);
         rolls.when(()->SummonRoll.draw(any(),eq(true))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.RELIC));

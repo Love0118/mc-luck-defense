@@ -35,7 +35,7 @@ final class AchievementService implements Listener {
     static String definition(Entry entry,String parent) {
         JsonObject json=new JsonObject(),display=new JsonObject(),icon=new JsonObject(),criterion=new JsonObject(),criteria=new JsonObject();
         if(parent!=null)json.addProperty("parent","mcluckdefense:"+parent);
-        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";});
+        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";case TRUE_PRIMORDIAL->"minecraft:end_crystal";});
         display.add("icon",icon);display.addProperty("title",entry.title());display.addProperty("description",entry.description());
         display.addProperty("frame",entry.challenge()?"challenge":"task");
         display.addProperty("show_toast",true);display.addProperty("announce_to_chat",true);display.addProperty("hidden",false);
@@ -48,6 +48,9 @@ final class AchievementService implements Listener {
         if(metric!=null)award(player,metric,AchievementStats.summoned(player.getPersistentDataContainer(),metric));
     }
     void reached(Player player,int round) { award(player,Metric.ROUND,AchievementStats.reached(player.getPersistentDataContainer(),round)); }
+    void truePrimordialPromoted(Player player) {
+        award(player,Metric.TRUE_PRIMORDIAL,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.TRUE_PRIMORDIAL));
+    }
     private void award(Player player,Metric metric,long value) {
         for(Entry entry:AchievementCatalog.ALL)if(entry.metric()==metric && value>=entry.target()) {
             var progress=player.getAdvancementProgress(advancements.get(entry.id()));

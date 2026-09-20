@@ -6,12 +6,14 @@ import org.bukkit.*;
 import org.bukkit.entity.Player;
 
 final class SummonAnnouncement {
-    static boolean global(Rarity rarity) { return rarity==Rarity.MYTHIC || rarity==Rarity.PRIMORDIAL; }
+    static boolean global(Rarity rarity) { return rarity==Rarity.MYTHIC || rarity==Rarity.PRIMORDIAL || rarity==Rarity.TRUE_PRIMORDIAL; }
     static void broadcast(Player owner, SummonRoll roll) {
         if(!global(roll.rarity()))return;
-        Bukkit.broadcast(Component.text(owner.getName()+" 님이 ["+roll.rarity().label()+"] "+roll.type().label()+" 획득!",EntityAdapter.rarityColor(roll.rarity())));
+        boolean ascended=roll.rarity()==Rarity.TRUE_PRIMORDIAL;
+        Bukkit.broadcast(Component.text(owner.getName()+" 님이 ["+roll.rarity().label()+"] "+roll.type().label()+(ascended?" 승급!":" 획득!"),EntityAdapter.rarityColor(roll.rarity()))
+                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD,ascended));
         for(Player player:Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(),
-                roll.rarity()==Rarity.PRIMORDIAL?"minecraft:ui.toast.challenge_complete":"minecraft:block.amethyst_block.chime",
-                SoundCategory.MASTER,.7f,roll.rarity()==Rarity.PRIMORDIAL?1f:1.15f);
+                roll.rarity()==Rarity.MYTHIC?"minecraft:block.amethyst_block.chime":"minecraft:ui.toast.challenge_complete",
+                SoundCategory.MASTER,.7f,ascended?.8f:roll.rarity()==Rarity.PRIMORDIAL?1f:1.15f);
     }
 }
