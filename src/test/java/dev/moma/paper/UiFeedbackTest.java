@@ -27,7 +27,7 @@ class UiFeedbackTest {
             rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
             games.summon(player);heard(player,Ui.Cue.SUMMON,1);heard(player,Ui.Cue.ERROR,0);
             session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
-            double before=session.arena.coins();games.sell(player);assertEquals(before+3,session.arena.coins());heard(player,Ui.Cue.SELL,1);
+            double before=session.arena.coins();games.sell(player);assertEquals(before+1,session.arena.coins());heard(player,Ui.Cue.SELL,1);
             games.sell(player);heard(player,Ui.Cue.ERROR,1);heard(player,Ui.Cue.SELL,1);
             rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
             games.summon(player);heard(player,Ui.Cue.RARE_SUMMON,0);heard(player,Ui.Cue.SUMMON,1);

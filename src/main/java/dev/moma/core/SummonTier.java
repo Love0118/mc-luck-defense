@@ -1,6 +1,6 @@
 package dev.moma.core;
 
-/** Advanced odds balance sale recovery with shared prices and capped Narrative/Legendary yield. */
+/** Advanced draws start at Relic; Epic, Mythic and Primordial retain tenfold normal odds. */
 public enum SummonTier {
     NORMAL(10), ADVANCED(100);
     private final long cost;
@@ -9,13 +9,12 @@ public enum SummonTier {
     public int weight(Rarity rarity, boolean openingBonus) {
         if(this==NORMAL)return rarity.weight(openingBonus);
         return switch(rarity) {
-            case COMMON -> 5000;
-            case RARE -> 10000;
-            case ANCIENT -> 20000;
-            case RELIC -> 41810;
-            case NARRATIVE, LEGENDARY -> 5000;
-            case EPIC -> 9000;
-            case MYTHIC -> 4000;
+            case COMMON, RARE, ANCIENT -> 0;
+            case RELIC -> 32010;
+            case NARRATIVE -> 35000;
+            case LEGENDARY -> 30000;
+            case EPIC -> 2000;
+            case MYTHIC -> 800;
             case PRIMORDIAL -> 190;
             case TRUE_PRIMORDIAL -> 0;
         };

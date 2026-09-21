@@ -10,10 +10,10 @@ class SummonEconomyTest {
         for(int roll=0;roll<Rarity.TOTAL_WEIGHT;roll++)total+=tier.rarity(roll,false).salePrice().orElse(0);
         return (double)total/Rarity.TOTAL_WEIGHT;
     }
-    @Test void exhaustiveSaleRecoveryIsSimilarAndBelowCostForBothTiers() {
-        assertEquals(7.40803,mean(SummonTier.NORMAL),1e-9);
-        assertEquals(74.3344,mean(SummonTier.ADVANCED),1e-9);
-        assertEquals(mean(SummonTier.NORMAL)/10,mean(SummonTier.ADVANCED)/100,0.005);
+    @Test void exhaustiveSaleRecoveryMatchesRelicFloorAndSharedPrices() {
+        assertEquals(5.00701,mean(SummonTier.NORMAL),1e-9);
+        assertEquals(mean(SummonTier.NORMAL)/10,mean(SummonTier.ADVANCED)/100,0.002);
+        assertEquals(49.9324,mean(SummonTier.ADVANCED),1e-9);
         for(SummonTier tier:SummonTier.values())assertTrue(mean(tier)<tier.cost());
     }
     @Test void bothTiersUseSamePricesAndSalesCannotPayTwice() {

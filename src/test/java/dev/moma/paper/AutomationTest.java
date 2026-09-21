@@ -67,15 +67,15 @@ class AutomationTest {
         games.summon(player);
         UUID sold = session.arena.defenders().getFirst().entityId(); session.arena.select(player.getUniqueId(),sold);
         games.toggleAutoSell(player,Rarity.COMMON);
-        assertTrue(session.autoSell.contains(Rarity.COMMON)); assertEquals(23,session.arena.coins());
+        assertTrue(session.autoSell.contains(Rarity.COMMON)); assertEquals(21,session.arena.coins());
         assertEquals(0,session.arena.defenderCount()); assertTrue(session.arena.selected().isEmpty());
         verify(games.entities).remove(sold);
-        games.summon(player); assertEquals(16,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
+        games.summon(player); assertEquals(12,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
         games.toggleAutoSell(player,Rarity.COMMON); games.summon(player);
-        assertEquals(6,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
+        assertEquals(2,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
         games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
-        assertEquals(6,session.arena.coins());
+        assertEquals(2,session.arena.coins());
     }
     @Test void legendaryAutoSalePaysSixtyAndOffRetainsFutureUnits() {
         draw(Rarity.LEGENDARY); games.summon(player);
@@ -97,18 +97,18 @@ class AutomationTest {
     @Test void bulkBuyUsesRefundsAndStopsAtInsufficientFundsOrFullBoard() {
         draw(Rarity.RARE); games.toggleAutoSell(player,Rarity.RARE); games.toggleBulkBuy(player);
         games.processAutomation(player,session);
-        assertEquals(4,session.bulkPurchases); assertEquals(14,session.arena.coins());
-        assertTrue(session.bulkBuying); games.processAutomation(player,session);
-        assertEquals(6,session.bulkPurchases); assertEquals(6,session.arena.coins());
+        assertEquals(3,session.bulkPurchases); assertEquals(9,session.arena.coins());
+        assertFalse(session.bulkBuying); games.processAutomation(player,session);
+        assertEquals(3,session.bulkPurchases); assertEquals(9,session.arena.coins());
         assertFalse(session.bulkBuying); assertEquals(0,session.arena.defenderCount());
-        games.processAutomation(player,session); assertEquals(6,session.arena.coins());
+        games.processAutomation(player,session); assertEquals(9,session.arena.coins());
         games.toggleAutoSell(player,Rarity.RARE); session.arena.credit(1000);
         int[] drawIndex={0};
         rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenAnswer(call->{int i=drawIndex[0]++;return new SummonRoll(UnitType.values()[i%24],Rarity.values()[(i/24)%9]);});
         games.toggleBulkBuy(player);
         games.processAutomation(player,session); assertEquals(4,session.arena.defenderCount());
         for (int i = 0; i < 20; i++) games.processAutomation(player,session);
-        assertEquals(36,session.arena.defenderCount()); assertEquals(646,session.arena.coins());
+        assertEquals(36,session.arena.defenderCount()); assertEquals(649,session.arena.coins());
         assertFalse(session.bulkBuying);
         games.toggleBulkBuy(player); assertFalse(session.bulkBuying);
     }

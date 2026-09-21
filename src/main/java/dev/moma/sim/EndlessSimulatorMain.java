@@ -19,14 +19,20 @@ public final class EndlessSimulatorMain {
         if(seeds!=null && seeds.stream().anyMatch(seed->seed<first || seed>=first+runs))throw new IllegalArgumentException("Filtered seed outside cohort");
         int scheduled=seeds==null?runs:seeds.size();
         List<String> rows=Collections.synchronizedList(new ArrayList<>());
-        var checkpointCounts=new java.util.concurrent.atomic.AtomicIntegerArray(7);
-        int[] reportedRounds={30,60,100,300,500,1000,2000};
+        int[] reportedRounds={30,60,100,200,300,400,500,1000,2000};
+        var checkpointCounts=new java.util.concurrent.atomic.AtomicIntegerArray(reportedRounds.length);
         Path partial=output.resolve("partial.jsonl");
         java.io.BufferedWriter progress=Files.newBufferedWriter(partial);
         long start=System.nanoTime();
         var done=new java.util.concurrent.atomic.AtomicInteger();
         Files.writeString(output.resolve("rules.json"),String.format(Locale.ROOT,
                 "{\"runs\":%d,\"cap\":%d,\"seedStart\":%d,\"healthScale\":%.8f,\"healthCurve\":\"%s\",\"bossScale\":%.8f,\"policy\":\"BALANCED\"}",runs,cap,first,rules.healthScale(),rules.healthCurve().specification(),rules.bossHealthScale()));
+        Files.writeString(output.resolve("economy.json"),String.format(Locale.ROOT,
+                "{\"normalCost\":%d,\"advancedCost\":%d,\"normalWeights\":%s,\"advancedWeights\":%s,\"salePrices\":%s}",
+                SummonTier.NORMAL.cost(),SummonTier.ADVANCED.cost(),
+                Arrays.toString(Arrays.stream(Rarity.values()).mapToInt(r->SummonTier.NORMAL.weight(r,false)).toArray()),
+                Arrays.toString(Arrays.stream(Rarity.values()).mapToInt(r->SummonTier.ADVANCED.weight(r,false)).toArray()),
+                Arrays.toString(Arrays.stream(Rarity.values()).mapToInt(r->r.salePrice().orElse(-1)).toArray())));
         try(progress; var executor=Executors.newFixedThreadPool(Math.min(8,Runtime.getRuntime().availableProcessors()))) {
             var jobs=new ArrayList<Future<?>>();
             for(int i=0;i<runs;i++) {final long seed=first+i;if(seeds!=null&&!seeds.contains(seed))continue;jobs.add(executor.submit(()->{
@@ -36,7 +42,7 @@ public final class EndlessSimulatorMain {
                 for(int c=0;c<reportedRounds.length;c++)if(reached>=reportedRounds[c])checkpointCounts.incrementAndGet(c);
                 int count=done.incrementAndGet();if(count%1000==0) {
                     synchronized(progress) {try {progress.flush();} catch(java.io.IOException error){throw new java.io.UncheckedIOException(error);} }
-                    System.out.printf("Completed %d/%d; reaches30/60/100/300/500/1000/2000 %s%n",count,scheduled,checkpointCounts);
+                    System.out.printf("Completed %d/%d; reaches30/60/100/200/300/400/500/1000/2000 %s%n",count,scheduled,checkpointCounts);
                 }
             }));}
             for(var job:jobs)job.get();
@@ -49,7 +55,7 @@ public final class EndlessSimulatorMain {
         Arena arena=new Arena("endless",owner,new Grid(rules.gridSize()),rules.startingCoins(),rules.enemyLimit());
         Campaign campaign=new Campaign(rules,true);CombatEngine combat=new CombatEngine();
         AutoPlayer bot=new AutoPlayer(seed,AutoPlayer.Strategy.BALANCED,arena.grid(),ids);
-        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,300,500,750,1000,1500,2000};
+        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,300,350,400,450,500,750,1000,1500,2000};
         var snapshots=new ArrayList<String>();int last=0,maxGrade=0,previousSummons=0;
         long tick=0,limit=rules.preparationTicks()+(long)rules.roundTicks()*cap;
         while(tick<limit && !arena.ended()) {

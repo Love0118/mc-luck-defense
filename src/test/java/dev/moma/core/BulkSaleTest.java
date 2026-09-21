@@ -13,11 +13,11 @@ class BulkSaleTest {
         arena.select(owner,selected); double before=arena.coins();
         var sale=arena.sellRarity(owner,Rarity.RARE);
         assertEquals(Arena.Result.OK,sale.result()); assertEquals(1,sale.entities().size());
-        assertEquals(12,sale.income()); assertEquals(before+12,arena.coins());
+        assertEquals(6,sale.income()); assertEquals(before+6,arena.coins());
         assertTrue(arena.selected().isEmpty()); assertEquals(Rarity.values().length-1,arena.defenderCount());
         assertTrue(arena.activeDefenders().stream().noneMatch(d->d.rarity()==Rarity.RARE));
         var repeat=arena.sellRarity(owner,Rarity.RARE);
-        assertEquals(0,repeat.income()); assertTrue(repeat.entities().isEmpty()); assertEquals(before+12,arena.coins());
+        assertEquals(0,repeat.income()); assertTrue(repeat.entities().isEmpty()); assertEquals(before+6,arena.coins());
         assertEquals(Arena.Result.OK,arena.summon(owner,new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID()));
     }
     @Test void foreignEndedAndUnsellableRequestsDoNotMutateAnything() {

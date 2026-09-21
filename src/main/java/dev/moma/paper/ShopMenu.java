@@ -84,11 +84,14 @@ final class ShopMenu implements Listener {
     }
     static ItemStack oddsItem(Arena arena) {
         boolean openingBonus = arena != null && arena.openingBonusActive();
+        SummonTier tier=arena==null?SummonTier.NORMAL:arena.summonTier();
+        boolean advanced=tier==SummonTier.ADVANCED;
         var lore = new ArrayList<String>();
         for (Rarity rarity : Rarity.values()) {
-            if(rarity.weight()==0)continue;
+            int weight=tier.weight(rarity,openingBonus);
+            if(weight==0)continue;
             String color = "&#" + String.format(Locale.ROOT,"%06x",EntityAdapter.rarityColor(rarity).value());
-            String percent = java.math.BigDecimal.valueOf((arena==null?SummonTier.NORMAL:arena.summonTier()).weight(rarity,openingBonus)).multiply(java.math.BigDecimal.valueOf(100))
+            String percent = java.math.BigDecimal.valueOf(weight).multiply(java.math.BigDecimal.valueOf(100))
                     .divide(java.math.BigDecimal.valueOf(Rarity.TOTAL_WEIGHT)).stripTrailingZeros().toPlainString();
             lore.add(color + rarity.label() + " &f" + percent + "%");
         }
@@ -97,10 +100,11 @@ final class ShopMenu implements Listener {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
             lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
-        lore.add("&7101라운드부터 100골드 소환");
+        lore.add(advanced?"&d유물 이상만 등장 · 1회 100골드":"&7101라운드부터 100골드 소환");
         lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
         lore.add("&7태초·진 태초는 판매할 수 없습니다.");
-        return Ui.item(Material.KNOWLEDGE_BOOK,"&e소환 확률",lore.toArray(String[]::new));
+        return Ui.item(advanced?Material.ENCHANTED_BOOK:Material.KNOWLEDGE_BOOK,
+                advanced?"&d&l후반 소환 확률 · 100골드":"&a소환 확률 · 10골드",lore.toArray(String[]::new));
     }
     private ItemStack item(Material material, String title, String... lore) {
         return Ui.item(material, "&6" + title, Arrays.stream(lore).map(s -> "&7" + s).toArray(String[]::new));

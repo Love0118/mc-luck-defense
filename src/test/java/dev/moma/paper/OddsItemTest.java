@@ -11,6 +11,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class OddsItemTest {
+    @Test void round101ChangesBookAppearanceAndShowsOnlyAdvancedPool() {
+        var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100);
+        var materials=new java.util.ArrayList<org.bukkit.Material>();var metas=new java.util.ArrayList<ItemMeta>();
+        try(var items=mockConstruction(ItemStack.class,(item,context)->{
+            materials.add((org.bukkit.Material)context.arguments().getFirst());
+            ItemMeta meta=mock(ItemMeta.class);metas.add(meta);when(item.getItemMeta()).thenReturn(meta);
+        })) {
+            arena.reachedRound(100);ShopMenu.oddsItem(arena);
+            arena.reachedRound(101);ShopMenu.oddsItem(arena);
+            assertEquals(List.of(org.bukkit.Material.KNOWLEDGE_BOOK,org.bukkit.Material.ENCHANTED_BOOK),materials);
+            var name=org.mockito.ArgumentCaptor.forClass(Component.class);verify(metas.getLast()).displayName(name.capture());
+            assertTrue(LegacyComponentSerializer.legacyAmpersand().serialize(name.getValue()).contains("&d&l후반 소환 확률"));
+            var lore=org.mockito.ArgumentCaptor.forClass(List.class);verify(metas.getLast()).lore(lore.capture());
+            String text=lore.getValue().toString();
+            for(String expected:List.of("32.01%","35%","30%","2%","0.8%","0.19%","100골드"))assertTrue(text.contains(expected));
+            for(String absent:List.of("일반","레어","고대","초반 보정"))assertFalse(text.contains(absent));
+        }
+    }
     @Test void openingIconShowsBoostAndReturnsToNormalAfterHit() {
         var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100);
         ItemMeta meta=mock(ItemMeta.class);

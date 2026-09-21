@@ -18,8 +18,8 @@ class ProgressionTest {
             }
         }
     }
-    @Test void advancedWeightsMatchTableAndLimitNarrativeAndLegendaryYieldPerGold() {
-        int[] advanced={5000,10000,20000,41810,5000,5000,9000,4000,190,0};
+    @Test void advancedWeightsStartAtRelicAndPreserveTopThreeYieldPerGold() {
+        int[] advanced={0,0,0,32010,35000,30000,2000,800,190,0};
         for(SummonTier tier:SummonTier.values()) {
             int[] counts=new int[Rarity.values().length];
             for(int i=0;i<Rarity.TOTAL_WEIGHT;i++)counts[tier.rarity(i,false).ordinal()]++;
@@ -28,8 +28,8 @@ class ProgressionTest {
             assertEquals(0,counts[Rarity.TRUE_PRIMORDIAL.ordinal()]);
             if(tier==SummonTier.ADVANCED)assertArrayEquals(advanced,counts);
         }
-        for(Rarity rarity:List.of(Rarity.NARRATIVE,Rarity.LEGENDARY))
-            assertTrue(SummonTier.ADVANCED.weight(rarity,false)<=rarity.weight()*10);
+        for(Rarity rarity:List.of(Rarity.EPIC,Rarity.MYTHIC,Rarity.PRIMORDIAL))
+            assertEquals(rarity.weight()*10,SummonTier.ADVANCED.weight(rarity,false));
         assertEquals(Rarity.PRIMORDIAL.weight()*10,SummonTier.ADVANCED.weight(Rarity.PRIMORDIAL,false));
         for(Rarity rarity:Rarity.values())assertEquals(SummonTier.ADVANCED.weight(rarity,false),SummonTier.ADVANCED.weight(rarity,true));
         assertThrows(IllegalArgumentException.class,()->SummonTier.ADVANCED.rarity(-1,false));
@@ -72,6 +72,6 @@ class ProgressionTest {
         Defender result=arena.lastSummoned();assertEquals(Rarity.RARE,result.rarity());assertEquals(1,result.enhancement());
         assertEquals(1,arena.defenderCount());assertSame(result,arena.selected().orElseThrow());assertEquals(110,result.nextAttackTick());
         assertEquals(List.of(existing.entityId()),arena.collectMergedEntities());assertTrue(arena.collectMergedEntities().isEmpty());
-        assertEquals(69,result.saleValue());
+        assertEquals(24,result.saleValue());
     }
 }
