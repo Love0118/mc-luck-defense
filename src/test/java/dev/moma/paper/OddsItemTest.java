@@ -11,6 +11,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class OddsItemTest {
+    @Test void openingTraitOddsMatchDrawTableAndDisappearAfterTargetHit() {
+        var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100,
+                new TraitLoadout(List.of("session_1000")),new HashRandom(1));
+        ItemMeta meta=mock(ItemMeta.class);
+        try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {
+            ShopMenu.oddsItem(arena);
+            arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.MYTHIC),(t,r,c)->java.util.UUID.randomUUID());
+            ShopMenu.oddsItem(arena);
+            var lore=org.mockito.ArgumentCaptor.forClass(List.class);verify(meta,times(2)).lore(lore.capture());
+            String first=lore.getAllValues().getFirst().toString(),last=lore.getAllValues().getLast().toString();
+            assertTrue(first.contains("4%"));assertTrue(first.contains("16.381%"));assertTrue(first.contains("인연 보정"));
+            assertTrue(last.contains("0.08%"));assertFalse(last.contains("인연 보정"));
+        }
+    }
     @Test void round101ChangesBookAppearanceAndShowsOnlyAdvancedPool() {
         var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100);
         var materials=new java.util.ArrayList<org.bukkit.Material>();var metas=new java.util.ArrayList<ItemMeta>();

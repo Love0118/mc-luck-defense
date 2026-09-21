@@ -26,7 +26,7 @@ class AutomationTest {
         when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
         adapters = mockConstruction(EntityAdapter.class,(adapter,context) ->
                 when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call -> UUID.randomUUID()));
-        rolls = mockStatic(SummonRoll.class); bukkit = mockStatic(Bukkit.class);
+        rolls = mockStatic(SummonRoll.class,CALLS_REAL_METHODS); bukkit = mockStatic(Bukkit.class);
         games = spy(new GameService(plugin,mock(ArenaMaps.class),CampaignRules.standard()));
         session = new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
         doReturn(session).when(games).session(player);
@@ -56,6 +56,7 @@ class AutomationTest {
         games.toggleAutoSell(player,Rarity.RELIC);
         rolls.when(()->SummonRoll.draw(any(),eq(true))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.RELIC));
         rolls.when(()->SummonRoll.draw(any(),eq(false))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.COMMON));
+        rolls.clearInvocations();
         games.toggleBulkBuy(player);games.processAutomation(player,session);
         rolls.verify(()->SummonRoll.draw(any(),eq(true)),times(1));
         rolls.verify(()->SummonRoll.draw(any(),eq(false)),times(3));
@@ -76,6 +77,34 @@ class AutomationTest {
         assertEquals(2,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
         games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
         assertEquals(2,session.arena.coins());
+    }
+    @Test void traitUpgradesUseFinalAutoSaleGradeButOriginalAchievementAndSaleValue() {
+        var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
+        AchievementStats.reached(data,250);TraitSelections.save(data,List.of("round_250"));
+        session=new GameSession(player,session.map,CampaignRules.standard());doReturn(session).when(games).session(player);
+        games.achievements=mock(AchievementService.class);
+        games.toggleAutoSell(player,Rarity.RARE);draw(Rarity.COMMON);
+        games.summon(player);assertEquals(21,session.arena.coins());assertEquals(0,session.arena.defenderCount());
+        verify(games.achievements).summoned(player,Rarity.COMMON);verify(games.achievements,never()).summoned(player,Rarity.RARE);
+        games.summon(player);assertEquals(12,session.arena.coins());
+        games.summon(player);assertEquals(1,session.arena.defenderCount());assertEquals(Rarity.COMMON,session.arena.lastSummoned().rarity());
+        session.arena.credit(10);games.summon(player);verify(games.achievements).enhanced(player);
+        session.arena.credit(10);session.assisted=true;games.summon(player);verify(games.achievements,times(1)).enhanced(player);
+    }
+    @Test void higherPurchaseCeilingAwardsNaturalEpicAndAnnouncesTraitMythic() {
+        var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
+        AchievementStats.reached(data,350);TraitSelections.save(data,List.of("round_350"));
+        session=new GameSession(player,session.map,CampaignRules.standard());doReturn(session).when(games).session(player);
+        games.achievements=mock(AchievementService.class);session.autoSell.add(Rarity.EPIC);draw(Rarity.EPIC);
+        try(var announcement=mockStatic(SummonAnnouncement.class)) {
+            announcement.when(()->SummonAnnouncement.global(Rarity.MYTHIC)).thenReturn(true);
+            games.summon(player);
+            assertEquals(Rarity.MYTHIC,session.arena.lastSummoned().rarity());assertEquals(1,session.arena.defenderCount());
+            assertEquals(20,session.arena.coins());
+            verify(games.achievements).summoned(player,Rarity.EPIC);
+            verify(games.achievements,never()).summoned(player,Rarity.MYTHIC);
+            announcement.verify(()->SummonAnnouncement.traitBroadcast(player,new SummonRoll(UnitType.WOLF,Rarity.MYTHIC)));
+        }
     }
     @Test void legendaryAutoSalePaysSixtyAndOffRetainsFutureUnits() {
         draw(Rarity.LEGENDARY); games.summon(player);

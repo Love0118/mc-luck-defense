@@ -36,7 +36,8 @@ final class GameSession {
     GameSession(Player player, ArenaMap map, CampaignRules settings) {
         this.map = map;
         placement = new AutoPlacement(map.grid());
-        arena = new Arena(map.id(), player.getUniqueId(), map.grid(), settings.startingCoins(), settings.enemyLimit());
+        arena = new Arena(map.id(), player.getUniqueId(), map.grid(), settings.startingCoins(), settings.enemyLimit(),
+                TraitSelections.load(player.getPersistentDataContainer()),HashRandom.secure());
         campaign = new Campaign(settings,true);
         returnLocation = player.getLocation().clone(); returnMode = player.getGameMode();
         returnAllowFlight = player.getAllowFlight(); returnFlying = player.isFlying();

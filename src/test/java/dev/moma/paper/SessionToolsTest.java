@@ -53,6 +53,8 @@ class SessionToolsTest {
             assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"traits"));
+            inventory.setHeldItemSlot(0);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
             tools.giveViewer(player);assertTrue(tools.holding(player,"leave"));
             inventory.setHeldItemSlot(0);assertTrue(tools.holding(player,"sessions"));assertFalse(tools.holding(player,"move"));

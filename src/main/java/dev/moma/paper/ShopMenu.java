@@ -68,7 +68,10 @@ final class ShopMenu implements Listener {
             holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"&l":"") + "[" + d.rarity().label() + "] " + d.label(),
                     d.type().role().label(),
                     "강화 +" + d.enhancement() + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"":" · +20 달성 시 다음 등급"),
-                    "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()) + " · 간격 " + profile.intervalTicks() + "틱",
+                    "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()),
+                    "특성 적용 · 일반 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),false))
+                            +" / 보스 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),true)),
+                    "기본 타격 평균 간격 "+String.format(Locale.ROOT,"%.2f",Math.max(1,profile.intervalTicks()/(1+arena.traits().value(TraitCatalog.Family.SPEED)/100.0)))+"틱",
                     "사거리 " + String.format(Locale.ROOT, "%.1f", profile.range()),
                     d.rarity().abilityLevel() == 0 ? "특수효과: 전설부터 해금" : d.type().role().ability() + " · " + d.rarity().abilityLevel() + "단계",
                     "판매: " + sale));
@@ -88,7 +91,7 @@ final class ShopMenu implements Listener {
         boolean advanced=tier==SummonTier.ADVANCED;
         var lore = new ArrayList<String>();
         for (Rarity rarity : Rarity.values()) {
-            int weight=tier.weight(rarity,openingBonus);
+            int weight=arena==null?tier.weight(rarity,openingBonus):arena.summonWeight(rarity);
             if(weight==0)continue;
             String color = "&#" + String.format(Locale.ROOT,"%06x",EntityAdapter.rarityColor(rarity).value());
             String percent = java.math.BigDecimal.valueOf(weight).multiply(java.math.BigDecimal.valueOf(100))
@@ -101,6 +104,7 @@ final class ShopMenu implements Listener {
             lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
         lore.add(advanced?"&d유물 이상만 등장 · 1회 100골드":"&7101라운드부터 100골드 소환");
+        if(arena!=null && arena.openingTraitActive())lore.add("&d인연 보정 · "+arena.traits().openingTarget().label()+" 획득까지 최대 "+arena.openingTraitRemaining()+"회");
         lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
         lore.add("&7태초·진 태초는 판매할 수 없습니다.");
         return Ui.item(advanced?Material.ENCHANTED_BOOK:Material.KNOWLEDGE_BOOK,

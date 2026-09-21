@@ -4,9 +4,17 @@ import java.util.*;
 
 /** Stable IDs and thresholds; counters are exact-grade lifetime counts, not inventory totals. */
 public final class AchievementCatalog {
-    public enum Metric { ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL }
+    public enum Metric {
+        ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL, ENHANCEMENT, SESSION,
+        ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET;
+        public boolean role() { return name().startsWith("ROLE_"); }
+        public AttackRole attackRole() { return AttackRole.valueOf(name().substring(5)); }
+    }
     public record Entry(String id, Metric metric, long target, String title, boolean challenge) {
         public String description() {
+            if(metric.role())return "150라운드 도달 · "+metric.attackRole().label()+" 유효 피해 비중 70% 이상";
+            if(metric==Metric.ENHANCEMENT)return "누적 동일 유닛 합성 "+target+"회";
+            if(metric==Metric.SESSION)return "누적 게임 시작 "+target+"회";
             return metric == Metric.ROUND ? target + "라운드 도달"
                     : metric == Metric.TRUE_PRIMORDIAL ? "누적 진 태초 " + target + "회 승급"
                     : "누적 " + Rarity.valueOf(metric.name()).label() + " " + target + "회 소환";
@@ -25,6 +33,16 @@ public final class AchievementCatalog {
                 new String[]{"태초의 순간","두 개의 기원","삼중의 기적","태초의 손길","기원의 수집가","스무 번의 탄생","태초의 별자리","기원의 지배자","세상 이전의 기록","백 번의 태초"},1);
         add(entries, Metric.TRUE_PRIMORDIAL, new long[]{1,2,3,5,10,20,30,50,75,100},
                 new String[]{"기원을 넘어","두 번의 초월","진정한 삼위","초월의 손길","진 태초 수집가","기원 너머의 군단","초월의 별자리","진 태초의 지배자","시작 이전의 힘","백 번의 초월"},1);
+        add(entries, Metric.ROUND, new long[]{350,600,700},new String[]{"선택의 확장","육백의 방벽","칠백의 증명"},0);
+        add(entries, Metric.SESSION, new long[]{1,10,50,100,250,500,1000},
+                new String[]{"새로운 도전","다시 출발","도전의 습관","백 번의 출전","끊이지 않는 도전","오백 번의 결심","천 번의 재회"},100);
+        add(entries, Metric.ENHANCEMENT, new long[]{100,500,2000,10000,50000},
+                new String[]{"단련의 시작","숙련된 대장장이","강화의 장인","끝없는 단련","완성된 담금질"},0);
+        String[] roleTitles={"결투의 지휘관","전선의 지휘관","저격의 지휘관","집중 포화","전장의 폭풍","동시 제압"};
+        int roleIndex=0;
+        for(Metric metric:Metric.values())if(metric.role())
+            add(entries,metric,new long[]{150},new String[]{roleTitles[roleIndex++]},0);
+        entries.sort(Comparator.comparing(Entry::metric).thenComparingLong(Entry::target));
         ALL = List.copyOf(entries);
     }
     private static void add(List<Entry> entries, Metric metric, long[] targets, String[] titles, long hardFrom) {

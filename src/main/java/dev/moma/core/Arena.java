@@ -17,6 +17,12 @@ public final class Arena {
     private UUID selected;
     private int openingDraws;
     private boolean openingHit;
+    private boolean openingTraitHit;
+    private final TraitLoadout traits;
+    private final java.util.random.RandomGenerator traitRandom;
+    private long purchases;
+    private boolean lastPurchaseMerged;
+    private final double[] roleDamage=new double[AttackRole.values().length];
     private SummonTier summonTier=SummonTier.NORMAL;
     private Defender lastSummoned;
     private final List<UUID> mergedEntities=new ArrayList<>();
@@ -24,9 +30,36 @@ public final class Arena {
     public long summonCost() { return summonTier.cost(); }
     public void reachedRound(int round) { if(round>100)summonTier=SummonTier.ADVANCED; }
     public Defender lastSummoned() { return lastSummoned; }
+    public TraitLoadout traits() { return traits; }
+    public boolean lastPurchaseMerged() { return lastPurchaseMerged; }
+    public Rarity summonRarity(Rarity original) { return traits.summonedRarity(original,purchases); }
+    public boolean criticalAttack() {
+        int chance=traits.value(TraitCatalog.Family.CRITICAL);
+        return chance>0 && traitRandom.nextInt(100)<chance;
+    }
+    void recordDamage(AttackRole role,double effective) { roleDamage[role.ordinal()]+=effective; }
+    public boolean roleAchievement(AttackRole role) {
+        double total=Arrays.stream(roleDamage).sum();
+        return total>0 && roleDamage[role.ordinal()]>=total*.70;
+    }
     public List<UUID> collectMergedEntities() { var result=List.copyOf(mergedEntities);mergedEntities.clear();return result; }
     public boolean openingBonusActive() { return summonTier==SummonTier.NORMAL && openingDraws < 3 && !openingHit; }
     public int openingDrawsRemaining() { return openingBonusActive() ? 3 - openingDraws : 0; }
+    public boolean openingTraitActive() { return summonTier==SummonTier.NORMAL && openingDraws<3 && !openingTraitHit && traits.openingTarget()!=null; }
+    public int openingTraitRemaining() { return openingTraitActive()?3-openingDraws:0; }
+    public int summonWeight(Rarity rarity) {
+        int weight=summonTier.weight(rarity,openingBonusActive());
+        if(!openingTraitActive())return weight;
+        Rarity target=traits.openingTarget();
+        int extra=traits.value(TraitCatalog.Family.OPENING_ODDS)-summonTier.weight(target,openingBonusActive());
+        return rarity==target?weight+extra:rarity==Rarity.COMMON?weight-extra:weight;
+    }
+    public Rarity rarityFromRoll(int roll) {
+        if(roll<0 || roll>=Rarity.TOTAL_WEIGHT)throw new IllegalArgumentException("Invalid rarity roll");
+        int boundary=0;
+        for(Rarity rarity:Rarity.values()){boundary+=summonWeight(rarity);if(roll<boundary)return rarity;}
+        throw new IllegalStateException("Rarity weights do not sum to 100000");
+    }
     public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
     private Outcome outcome = Outcome.PLAYING;
     private long earnedUnits;
@@ -34,9 +67,15 @@ public final class Arena {
     private final Collection<Enemy> enemyView = Collections.unmodifiableCollection(enemies.values());
 
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit) {
+        this(id,owner,grid,startingCoins,enemyLimit,TraitLoadout.EMPTY,new HashRandom(0));
+    }
+    public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit, TraitLoadout traits,
+                 java.util.random.RandomGenerator traitRandom) {
         if (startingCoins < 0 || enemyLimit < 1) throw new IllegalArgumentException("Invalid arena settings");
+        this.traits=Objects.requireNonNull(traits);this.traitRandom=Objects.requireNonNull(traitRandom);
         this.id = Objects.requireNonNull(id); this.owner = Objects.requireNonNull(owner);
-        this.grid = Objects.requireNonNull(grid); this.coinUnits = Gold.units(startingCoins); this.enemyLimit = enemyLimit;
+        this.grid = Objects.requireNonNull(grid);
+        this.coinUnits = Gold.units(Math.addExact(startingCoins,traits.value(TraitCatalog.Family.START_GOLD))); this.enemyLimit = enemyLimit;
     }
     public String id() { return id; }
     public UUID owner() { return owner; }
@@ -67,9 +106,10 @@ public final class Arena {
         if (coinUnits < Gold.units(summonCost())) return Result.INSUFFICIENT_COINS;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
-        Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==roll.rarity()).findFirst().orElse(null);
+        Rarity grade=summonRarity(roll.rarity());
+        Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null);
         if(duplicate!=null) {
-            duplicate.merge();
+            duplicate.merge(roll.rarity().salePrice().orElse(0));
             Defender match;
             while((match=matchingOther(duplicate))!=null) {
                 duplicate.absorb(match);defenders.remove(match.entityId());mergedEntities.add(match.entityId());
@@ -79,15 +119,18 @@ public final class Arena {
         }
         else {
             // Spawn before committing currency/occupancy: an adapter failure cannot consume a purchase.
-            UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), roll.rarity(), cell));
+            UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), grade, cell));
             if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
-            lastSummoned=new Defender(entity, owner, id, roll.type(), roll.rarity(), cell);
+            lastSummoned=new Defender(entity, owner, id, roll.type(), grade, cell,
+                    traits.value(TraitCatalog.Family.ENHANCEMENT)/100.0,roll.rarity().salePrice().orElse(0));
             defenders.put(entity, lastSummoned);
         }
         coinUnits -= Gold.units(summonCost());
+        purchases++;lastPurchaseMerged=duplicate!=null;
         if (openingDraws < 3) {
             openingDraws++;
             openingHit |= roll.rarity() == Rarity.ANCIENT || roll.rarity() == Rarity.RELIC;
+            openingTraitHit |= roll.rarity()==traits.openingTarget();
         }
         return Result.OK;
     }

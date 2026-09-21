@@ -27,6 +27,7 @@ public final class MomaPlugin extends JavaPlugin {
         var shop = new ShopMenu(this, games);
         var lobbyMenu = new LobbyMenu(this, games);
         getServer().getPluginManager().registerEvents(lobbyMenu, this);
+        getServer().getPluginManager().registerEvents(new TraitMenu(games,lobby),this);
         getServer().getPluginManager().registerEvents(new SpectatorListener(games), this);
         if (lobby != null) {
             getServer().getPluginManager().registerEvents(new LobbyListener(lobby, games, lobbyMenu), this);

@@ -31,6 +31,7 @@ public final class CombatEngine {
             Enemy primary = selected.getFirst();
             int chain = defender.hitTarget(primary.entityId());
             int level = defender.rarity().abilityLevel();
+            double critical=arena.criticalAttack()?1.5:1;
             for (Enemy target : selected) {
                 double damage = profile.damage();
                 if (level > 0) {
@@ -42,11 +43,13 @@ public final class CombatEngine {
                     };
                     if (defender.type().role() == AttackRole.MELEE_CLEAVE) target.slow(0.10 + 0.08 * level, tick + 40);
                 }
+                damage*=arena.traits().damageMultiplier(defender.type().role(),target.boss())*critical;
                 double effective = Math.min(target.health(), damage);
                 target.damage(damage);
+                arena.recordDamage(defender.type().role(),effective);
                 if (sink != null) sink.hit(defender, target, effective);
             }
-            defender.attackAt(tick, profile.intervalTicks());
+            defender.attackAt(tick, profile.intervalTicks(),arena.traits().value(TraitCatalog.Family.SPEED));
         }
     }
     public List<Enemy> targets(Defender defender, Collection<Enemy> enemies, Route route, CombatProfile profile) {

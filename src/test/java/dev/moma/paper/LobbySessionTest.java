@@ -58,6 +58,20 @@ class LobbySessionTest {
         assertEquals(CampaignRules.standard().startingCoins(),games.session(third).arena.coins());
         assertEquals(0,games.session(third).campaign.round());
     }
+    @Test void sessionAchievementCountsOnlySuccessfulStartsIncludingFreshRetries() {
+        World world=mock(World.class);Lobby lobby=mock(Lobby.class);
+        GameService games=new GameService(plugin(),maps(world),CampaignRules.standard(),lobby);
+        games.achievements=mock(AchievementService.class);Player player=player(world),viewer=player(world);
+        when(player.teleport(any(Location.class))).thenReturn(false);
+        assertThrows(IllegalArgumentException.class,()->games.start(player));
+        verifyNoInteractions(games.achievements);
+        when(player.teleport(any(Location.class))).thenReturn(true);
+        games.start(player);verify(games.achievements).sessionStarted(player);
+        assertThrows(IllegalArgumentException.class,()->games.start(player));
+        games.spectate(viewer,games.session(player).sessionId);verify(games.achievements,never()).sessionStarted(viewer);
+        try(var bukkit=mockStatic(Bukkit.class)){games.leave(player);}
+        games.start(player);verify(games.achievements,times(2)).sessionStarted(player);
+    }
     @Test void everyTerminalOutcomeReleasesEntitiesTicketsAndReturnsOnce() {
         for (Arena.Outcome outcome : List.of(Arena.Outcome.ENEMY_LIMIT,Arena.Outcome.TIME_LIMIT,Arena.Outcome.VICTORY)) {
             World world=mock(World.class); Lobby lobby=spy(new Lobby(new Location(world,0,65,0),256));

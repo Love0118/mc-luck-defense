@@ -13,12 +13,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AchievementTest {
-    @Test void sixtyStableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
-        assertEquals(60,AchievementCatalog.ALL.size());
-        assertEquals(60,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
+    @Test void stableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
+        assertEquals(81,AchievementCatalog.ALL.size());
+        assertEquals(81,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
         for(Metric metric:Metric.values()) {
             var entries=AchievementCatalog.ALL.stream().filter(e->e.metric()==metric).toList();
-            assertEquals(metric==Metric.ROUND?20:10,entries.size());
+            assertEquals(metric==Metric.ROUND?23:metric==Metric.ENHANCEMENT?5:metric==Metric.SESSION?7:metric.role()?1:10,entries.size());
             long previous=0;
             for(Entry entry:entries) {
                 assertTrue(entry.target()>previous);previous=entry.target();
@@ -40,6 +40,9 @@ class AchievementTest {
         assertEquals(1,AchievementStats.summoned(data,Metric.TRUE_PRIMORDIAL));
         assertEquals(0,AchievementStats.get(data,Metric.PRIMORDIAL));
         assertEquals(1,AchievementStats.summoned(data,Metric.EPIC));
+        assertEquals(1,AchievementStats.summoned(data,Metric.SESSION));
+        assertEquals(2,AchievementStats.summoned(data,Metric.SESSION));
+        assertEquals(1,AchievementStats.get(data,Metric.EPIC));
         assertEquals(1000,AchievementStats.reached(data,1000));assertEquals(1000,AchievementStats.reached(data,1));
         values.put(new NamespacedKey("mcluckdefense","achievement_mythic"),Long.MAX_VALUE);
         assertEquals(Long.MAX_VALUE,AchievementStats.summoned(data,Metric.MYTHIC));

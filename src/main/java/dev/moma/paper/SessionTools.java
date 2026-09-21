@@ -49,6 +49,7 @@ final class SessionTools {
         inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&c태초 판매 불가"));
         }
         if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
+        if (lobby) inventory.setItem(1,tool(Material.ENCHANTED_BOOK,"traits","&d특성 선택","&7우클릭: 특성 장착·해제","&7최고 100·250·500라운드에 슬롯 해금"));
         if (!lobby) inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
         if (!lobby) giveSound(player);
         if (!lobby) {
@@ -66,7 +67,7 @@ final class SessionTools {
                 viewer ? "&7우클릭: BGM 켜기·끄기" : "&7우클릭: 노래 선택·업로드"));
     }
     boolean holding(Player player,String id) {
-        int slot=switch(id) { case "manage", "sessions" -> 0; case "move" -> 1; case "sell" -> 2; case "bgm" -> 6; case "sound" -> 7; case "leave" -> 8; default -> -1; };
+        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "bgm" -> 6; case "sound" -> 7; case "leave" -> 8; default -> -1; };
         return player.getInventory().getHeldItemSlot()==slot && id.equals(id(player.getInventory().getItemInMainHand()));
     }
     boolean isTool(ItemStack item) { return id(item)!=null; }

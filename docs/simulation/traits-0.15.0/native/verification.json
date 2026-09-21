@@ -1,0 +1,24 @@
+{
+  "plugin": "mc-luck-defense-0.15.0.jar",
+  "sha256": "e0129711c980f171be191a72bf1708995379f21a4ae76ab584241f0129164f02",
+  "tests": 251,
+  "boots": [
+    {
+      "boot": 1,
+      "clientVersion": "1.21.8",
+      "connected": true,
+      "errors": [],
+      "customAdvancementDefinitions": 81
+    },
+    {
+      "boot": 2,
+      "clientVersion": "1.21.8",
+      "connected": true,
+      "errors": [],
+      "customAdvancementDefinitions": 81
+    }
+  ],
+  "openingMythicWeight": 4000,
+  "mythicUpgradeCapped": true,
+  "liveServerRestarted": false
+}

@@ -14,9 +14,12 @@ final class AchievementStats {
         return Math.max(0, data.getOrDefault(key(metric), PersistentDataType.LONG, 0L));
     }
     static long reached(PersistentDataContainer data, int round) {
+        return maximum(data,Metric.ROUND,round);
+    }
+    static long maximum(PersistentDataContainer data,Metric metric,long round) {
         if(round<0)throw new IllegalArgumentException("Negative round");
-        long value=Math.max(get(data,Metric.ROUND),round);
-        data.set(key(Metric.ROUND),PersistentDataType.LONG,value);return value;
+        long value=Math.max(get(data,metric),round);
+        data.set(key(metric),PersistentDataType.LONG,value);return value;
     }
     static long summoned(PersistentDataContainer data, Metric metric) {
         if(metric==Metric.ROUND)throw new IllegalArgumentException("Round is a maximum, not a summon counter");

@@ -19,7 +19,7 @@ class UiFeedbackTest {
         when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
         try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->
                     when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call->UUID.randomUUID()));
-            var rolls=mockStatic(SummonRoll.class);var bukkit=mockStatic(Bukkit.class)) {
+            var rolls=mockStatic(SummonRoll.class,CALLS_REAL_METHODS);var bukkit=mockStatic(Bukkit.class)) {
             GameService games=spy(new GameService(plugin,mock(ArenaMaps.class),CampaignRules.standard()));
             games.achievements=mock(AchievementService.class);
             GameSession session=new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());

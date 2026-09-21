@@ -35,8 +35,10 @@ final class AchievementService implements Listener {
     static String definition(Entry entry,String parent) {
         JsonObject json=new JsonObject(),display=new JsonObject(),icon=new JsonObject(),criterion=new JsonObject(),criteria=new JsonObject();
         if(parent!=null)json.addProperty("parent","mcluckdefense:"+parent);
-        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";case TRUE_PRIMORDIAL->"minecraft:end_crystal";});
-        display.add("icon",icon);display.addProperty("title",entry.title());display.addProperty("description",entry.description());
+        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";case TRUE_PRIMORDIAL->"minecraft:end_crystal";case ENHANCEMENT->"minecraft:anvil";default->"minecraft:iron_sword";});
+        var trait=TraitCatalog.find(entry.id());
+        display.add("icon",icon);display.addProperty("title",entry.title());
+        display.addProperty("description",entry.description()+(trait==null?"":" · 특성: "+trait.name()));
         display.addProperty("frame",entry.challenge()?"challenge":"task");
         display.addProperty("show_toast",true);display.addProperty("announce_to_chat",true);display.addProperty("hidden",false);
         if(parent==null)display.addProperty("background","minecraft:gui/advancements/backgrounds/stone");
@@ -51,10 +53,26 @@ final class AchievementService implements Listener {
     void truePrimordialPromoted(Player player) {
         award(player,Metric.TRUE_PRIMORDIAL,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.TRUE_PRIMORDIAL));
     }
+    void enhanced(Player player) {
+        award(player,Metric.ENHANCEMENT,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.ENHANCEMENT));
+    }
+    void sessionStarted(Player player) {
+        award(player,Metric.SESSION,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.SESSION));
+    }
+    void roleReached(Player player,Arena arena) {
+        for(Metric metric:Metric.values())if(metric.role() && arena.roleAchievement(metric.attackRole()))
+            award(player,metric,AchievementStats.maximum(player.getPersistentDataContainer(),metric,150));
+    }
     private void award(Player player,Metric metric,long value) {
         for(Entry entry:AchievementCatalog.ALL)if(entry.metric()==metric && value>=entry.target()) {
             var progress=player.getAdvancementProgress(advancements.get(entry.id()));
-            if(!progress.isDone())progress.awardCriteria("earned");
+            if(!progress.isDone()) {
+                progress.awardCriteria("earned");
+                var trait=TraitCatalog.find(entry.id());
+                if(trait!=null)player.sendMessage(Ui.text("&d특성 해금 &f"+trait.name()+" &7· "+trait.description()));
+                if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500))
+                    player.sendMessage(Ui.text("&d특성 슬롯 해금 &f"+TraitCatalog.slots(entry.target())+"개 &7· 로비에서 선택하세요."));
+            }
         }
     }
     static boolean vanillaDisplay(Advancement advancement) {

@@ -77,7 +77,7 @@ public final class AutoPlayer {
         }
         if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;
         if (arena.coins() >= arena.summonCost() && units.size() < arena.grid().size() * arena.grid().size()) {
-            SummonRoll roll = SummonRoll.draw(random, arena.openingBonusActive(),arena.summonTier());
+            SummonRoll roll = SummonRoll.draw(random, arena);
             // Stress-test intervention only: spend the same draw but downgrade excess Primordials.
             if (roll.rarity() == Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()] >= primordialCap)
                 roll = new SummonRoll(roll.type(), Rarity.MYTHIC);

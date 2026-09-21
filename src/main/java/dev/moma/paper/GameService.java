@@ -148,7 +148,10 @@ final class GameService {
         player.setAllowFlight(true); player.setFlying(true);
         tools.give(player);
         appearance.enter(player, false);
-        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F: 소환·판매·배속 / 1번 좌클릭: 선택·이동 / 2번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
+        if(achievements!=null)achievements.sessionStarted(player);
+        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
+        if(!session.arena.traits().entries().isEmpty())
+            player.sendMessage(Ui.text("&d적용 특성 &f"+String.join(" · ",session.arena.traits().entries().stream().map(TraitCatalog.Entry::name).toList())));
     }
     void leave(Player player) {
         if(bgm!=null)bgm.stop(player);
@@ -211,8 +214,9 @@ final class GameService {
         purchase(player, session, true);
     }
     private boolean purchase(Player player, GameSession session, boolean feedback) {
-        SummonRoll roll = session.arena.summonTier()==SummonTier.NORMAL ? SummonRoll.draw(session.random, session.arena.openingBonusActive()) : SummonRoll.draw(session.random,false,session.arena.summonTier());
-        boolean autoSell = session.autoSell.contains(roll.rarity());
+        SummonRoll roll = SummonRoll.draw(session.random,session.arena);
+        Rarity awardedGrade=session.arena.summonRarity(roll.rarity());
+        boolean autoSell = session.autoSell.contains(awardedGrade);
         Arena.Result result;
         try {
             result = session.arena.summon(player.getUniqueId(), roll,
@@ -227,14 +231,23 @@ final class GameService {
         if (feedback) tell(player, result);
         if (result == Arena.Result.OK) {
             if(achievements!=null && !session.assisted)achievements.summoned(player,roll.rarity());
+            if(achievements!=null && !session.assisted && session.arena.lastPurchaseMerged())achievements.enhanced(player);
             session.arena.collectMergedEntities().forEach(entities::remove);
             Defender d=session.arena.lastSummoned();
             if(d.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL && achievements!=null && !session.assisted)
                 achievements.truePrimordialPromoted(player);
-            if (autoSell) session.arena.sellRarity(player.getUniqueId(), roll.rarity());
+            if(awardedGrade!=roll.rarity())player.sendActionBar(Ui.text("&d특성 승급 &f"+roll.rarity().label()+" → "+awardedGrade.label()));
+            if (autoSell) {
+                session.arena.sellRarity(player.getUniqueId(),awardedGrade).entities().forEach(entities::remove);
+                // A duplicate can promote before auto-sale; keep its real entity or remove it at the final grade.
+                if(d.rarity()!=awardedGrade) {
+                    entities.updateDefenderName(d);
+                    if(session.autoSell.contains(d.rarity()))session.arena.sellRarity(player.getUniqueId(),d.rarity()).entities().forEach(entities::remove);
+                }
+            }
             else {
                 entities.updateDefenderName(d);
-                if(d.enhancement()>0 || d.rarity()!=roll.rarity()) {
+                if(d.enhancement()>0 || d.rarity()!=awardedGrade) {
                     fusionEffect(player,session,d);
                     player.sendActionBar(Ui.text("&a"+(d.rarity()!=roll.rarity()?"승급":"합성")+" &f["+d.rarity().label()+"] "+d.label()));
                 }
@@ -249,6 +262,8 @@ final class GameService {
             Defender summoned=session.arena.lastSummoned();
             if(summoned.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL)
                 SummonAnnouncement.broadcast(player,new SummonRoll(summoned.type(),Rarity.TRUE_PRIMORDIAL));
+            else if(awardedGrade!=roll.rarity() && SummonAnnouncement.global(awardedGrade))
+                SummonAnnouncement.traitBroadcast(player,new SummonRoll(roll.type(),awardedGrade));
             else if(SummonAnnouncement.global(roll.rarity()))SummonAnnouncement.broadcast(player,roll);
         }
         return result == Arena.Result.OK;
@@ -438,6 +453,7 @@ final class GameService {
             player.sendMessage(Component.text("라운드 " + session.announcedRound + " · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             if(leaderboard!=null && !session.assisted)leaderboard.record(player,session.announcedRound);
             if(achievements!=null && !session.assisted)achievements.reached(player,session.announcedRound);
+            if(achievements!=null && !session.assisted && session.announcedRound==150)achievements.roleReached(player,session.arena);
         }
         session.attackEffects.beginStep();
         combat.tick(session.arena, session.simulationTick, (defender, enemy, damage) ->
