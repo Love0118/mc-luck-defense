@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 
-ROUNDS = [30, 60, 90, 100, 150, 200, 300, 350, 400, 450, 500, 750, 1000, 1500, 2000]
+ROUNDS = [30, 60, 90, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 1000, 1500, 2000]
 
 def summarize(directory):
     rules = json.loads((directory / "rules.json").read_text(encoding="utf-8"))
@@ -28,7 +28,13 @@ def summarize(directory):
         points.append(dict(round=round_number, reached=reached, completed=completed, rate=p,
                            ci95=[max(0, center - margin), min(1, center + margin)]))
     counts = {point["round"]: point["reached"] for point in points}
+    death_decades = {}
+    for row in rows:
+        if row["outcome"] != "PLAYING":
+            decade = str(row["round"] // 10 * 10)
+            death_decades[decade] = death_decades.get(decade, 0) + 1
     result = dict(rules=rules, runs=count, checkpoints=points,
+                  deathsByDecade=death_decades,
                   conditional400Given300=counts.get(400, 0) / counts[300] if counts.get(300) and 400 in counts else None)
     (directory / "summary.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     # Keep raw evidence compact without rewriting or deleting the input.
