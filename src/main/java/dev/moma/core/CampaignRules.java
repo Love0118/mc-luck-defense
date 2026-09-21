@@ -5,7 +5,7 @@ import java.util.Properties;
 
 /** One checked-in ruleset consumed by both Paper and the standalone simulator. */
 public record CampaignRules(int gridSize, long startingCoins, int enemyLimit, int preparationTicks,
-                            int roundTicks, int cleanupTicks, double healthScale, HealthCurve healthCurve, double bossHealthScale) {
+                            int roundTicks, int cleanupTicks, double healthScale, HealthCurve healthCurve, double bossHealthScale) implements java.io.Serializable {
     public static final int ROUNDS = 100;
     public CampaignRules {
         if (gridSize < 2 || gridSize > 15 || startingCoins < 0 || enemyLimit < 2 || preparationTicks < 0

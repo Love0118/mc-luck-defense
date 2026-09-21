@@ -1,57 +1,29 @@
 package dev.moma.paper;
 
-import dev.moma.core.CampaignRules;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.plugin.java.JavaPlugin;
+import dev.moma.bootstrap.RuntimeController;
 import java.util.Objects;
+import org.bukkit.plugin.java.JavaPlugin;
 
+/** Permanent Paper entrypoint. Game generations own their own classloaders and lifecycle. */
 public final class MomaPlugin extends JavaPlugin {
-    private GameService games;
-    // Keep existing entity data keys valid across the plugin rename.
-    @Override public String namespace() { return "momadefense"; }
+    private RuntimeController runtime;
+    private Object games;
+    @Override public String namespace(){return "momadefense";}
+    public void runtimeChanged(Object games){this.games=games;}
+    public RuntimeController runtime(){return runtime;}
     @Override public void onEnable() {
-        CampaignRules settings = CampaignRules.standard();
-        var maps = new ArenaMaps(this);
-        maps.load();
-        Lobby lobby = Lobby.load(this);
-        games = new GameService(this, maps, settings, lobby);
-        games.achievements = new AchievementService(this);
-        if(lobby!=null)try{games.leaderboard=new RoundLeaderboard(this,lobby);}
-        catch(Exception error){getLogger().log(java.util.logging.Level.SEVERE,"Leaderboard initialization failed",error);}
-        try { games.bgm = new BgmService(this,games); }
-        catch(Exception error) { getLogger().log(java.util.logging.Level.SEVERE,"BGM initialization failed",error); }
-        for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
-        games.entities.enablePresentationMetadata(this);
-        getServer().getPluginManager().registerEvents(new UnsignedChat(this), this);
-        var shop = new ShopMenu(this, games);
-        var lobbyMenu = new LobbyMenu(this, games);
-        getServer().getPluginManager().registerEvents(lobbyMenu, this);
-        getServer().getPluginManager().registerEvents(new TraitMenu(games,lobby),this);
-        getServer().getPluginManager().registerEvents(new SpectatorListener(games), this);
-        if (lobby != null) {
-            getServer().getPluginManager().registerEvents(new LobbyListener(lobby, games, lobbyMenu), this);
-            var portals = new LobbyPortals(this, lobby, games, lobbyMenu);
-            getServer().getPluginManager().registerEvents(portals, this);
-            getServer().getScheduler().runTaskTimer(this, portals, 1, 5);
-            for (var player : Bukkit.getOnlinePlayers()) lobby.send(player);
+        try {
+            runtime=new RuntimeController(this,getFile().toPath(),getServer().getUpdateFolderFile().toPath());
+            runtime.start();
+            var command=Objects.requireNonNull(getCommand("mud"));command.setExecutor(runtime);command.setTabCompleter(runtime);
+            getLogger().info("MC Luck Defense enabled: "+runtime.status());
+        } catch(Exception|LinkageError error) {
+            getLogger().log(java.util.logging.Level.SEVERE,"MC Luck Defense runtime failed to start",error);
+            getServer().getPluginManager().disablePlugin(this);
         }
-        getServer().getPluginManager().registerEvents(shop, this);
-        getServer().getPluginManager().registerEvents(new GameListener(games, maps, shop), this);
-        for (var world : Bukkit.getWorlds()) for (Entity entity : world.getEntities()) if (games.entities.managed(entity)) entity.remove();
-        var command = new MomaCommand(maps, games, settings, lobbyMenu);
-        Objects.requireNonNull(getCommand("mud")).setExecutor(command);
-        Objects.requireNonNull(getCommand("mud")).setTabCompleter(command);
-        getServer().getScheduler().runTaskTimer(this, games::tick, 1, 1);
-        getServer().getScheduler().runTaskTimer(this, shop::refreshOpen, 5, 5);
-        getServer().getScheduler().runTaskTimer(this, lobbyMenu::refreshOpen, 20, 20);
-        getServer().getScheduler().runTaskTimer(this, TabStatus::update, 20, 20);
-        getLogger().info("MC Luck Defense " + getPluginMeta().getVersion() + " enabled; /mud; endless campaign.");
     }
     @Override public void onDisable() {
-        if (games != null && games.bgm != null) games.bgm.close();
-        if (games != null) games.shutdown();
-        if (games != null && games.leaderboard != null) games.leaderboard.close();
-        if (games != null) for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
+        if(runtime!=null)try{runtime.close();}catch(Exception error){getLogger().log(java.util.logging.Level.SEVERE,"Runtime shutdown failed",error);}
+        games=null;
     }
 }

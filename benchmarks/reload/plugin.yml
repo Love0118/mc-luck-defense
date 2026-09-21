@@ -1,0 +1,5 @@
+name: ReloadSmoke
+version: '1'
+main: dev.moma.benchmark.ReloadSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense]

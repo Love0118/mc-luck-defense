@@ -3,7 +3,8 @@ package dev.moma.core;
 import java.util.*;
 
 /** Single-threaded game state. Paper calls this only from its server thread. */
-public final class Arena {
+public final class Arena implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     public static final long SUMMON_COST = 10;
     public enum Result { OK, NOT_OWNER, ENDED, INSUFFICIENT_COINS, FULL, INVALID_CELL, OCCUPIED, NO_SELECTION, NOT_SELLABLE }
     @FunctionalInterface public interface Spawner { UUID spawn(UnitType type, Rarity rarity, Cell cell); }
@@ -63,9 +64,13 @@ public final class Arena {
     public enum Outcome { PLAYING, VICTORY, ENEMY_LIMIT, TIME_LIMIT }
     private Outcome outcome = Outcome.PLAYING;
     private long earnedUnits;
-    private final Collection<Defender> defenderView = Collections.unmodifiableCollection(defenders.values());
-    private final Collection<Enemy> enemyView = Collections.unmodifiableCollection(enemies.values());
+    private transient Collection<Defender> defenderView = Collections.unmodifiableCollection(defenders.values());
+    private transient Collection<Enemy> enemyView = Collections.unmodifiableCollection(enemies.values());
 
+    private void readObject(java.io.ObjectInputStream input)throws java.io.IOException,ClassNotFoundException {
+        input.defaultReadObject();
+        defenderView=Collections.unmodifiableCollection(defenders.values());enemyView=Collections.unmodifiableCollection(enemies.values());
+    }
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit) {
         this(id,owner,grid,startingCoins,enemyLimit,TraitLoadout.EMPTY,new HashRandom(0));
     }

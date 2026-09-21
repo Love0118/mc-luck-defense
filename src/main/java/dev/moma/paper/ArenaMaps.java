@@ -3,7 +3,7 @@ package dev.moma.paper;
 import dev.moma.core.Grid;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.generator.ChunkGenerator;
+import dev.moma.bootstrap.EmptyWorldGenerator;
 import java.io.*;
 import java.util.*;
 
@@ -26,14 +26,7 @@ final class ArenaMaps {
     }
     private World world() {
         if (world != null) return world;
-        world = Bukkit.createWorld(new WorldCreator("moma_arenas").generator(new ChunkGenerator() {
-            @Override public boolean shouldGenerateNoise() { return false; }
-            @Override public boolean shouldGenerateSurface() { return false; }
-            @Override public boolean shouldGenerateCaves() { return false; }
-            @Override public boolean shouldGenerateDecorations() { return false; }
-            @Override public boolean shouldGenerateMobs() { return false; }
-            @Override public boolean shouldGenerateStructures() { return false; }
-        }));
+        world = Bukkit.createWorld(new WorldCreator("moma_arenas").generator(new EmptyWorldGenerator()));
         Objects.requireNonNull(world, "Could not create arena world");
         world.setGameRule(org.bukkit.GameRules.SPAWN_MOBS, false);
         return world;

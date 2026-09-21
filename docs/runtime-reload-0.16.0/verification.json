@@ -1,0 +1,35 @@
+{
+  "checks": [
+    "compatible-new-code",
+    "incompatible-rejected",
+    "invalid-config-rejected",
+    "activation-rollback",
+    "explicit-rollback",
+    "same-version-reload",
+    "single-game-loop"
+  ],
+  "sessionId": "4e2976f9-204f-44c2-bde7-8c60fe882059",
+  "sameEntities": true,
+  "playerAndSpectatorPreserved": true,
+  "stateFingerprintMatched": true,
+  "clients": {
+    "version": "1.21.8",
+    "players": {
+      "ReloadOwner": {
+        "position": true,
+        "errors": [],
+        "completed": true
+      },
+      "ReloadViewer": {
+        "position": true,
+        "errors": [],
+        "completed": true
+      }
+    }
+  },
+  "sha256": "cc2d74d1b945dcd8e50ccf3eadca8f761f35dafa19aa9b15ded97b5b4ac399da",
+  "protocolClientParticleWarnings": 0,
+  "unitTests": 261,
+  "liveServerRestarted": false,
+  "leaderboardCommit": "74beb41"
+}

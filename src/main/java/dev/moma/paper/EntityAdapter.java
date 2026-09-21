@@ -32,6 +32,12 @@ final class EntityAdapter {
     void enablePresentationMetadata(MomaPlugin plugin) { presentationMetadata = new PresentationMetadata(plugin); }
     void selectGlow(Player player, UUID entity) { if (presentationMetadata != null) presentationMetadata.select(player, entity); }
     void close() { if (presentationMetadata != null) presentationMetadata.close(); }
+    void restore(Arena arena) {
+        for(Defender defender:arena.activeDefenders()) {
+            Entity entity=java.util.Objects.requireNonNull(Bukkit.getEntity(defender.entityId()));defenderYaw.put(defender.entityId(),entity.getYaw());
+        }
+        if(presentationMetadata!=null)for(var enemy:arena.activeEnemies())presentationMetadata.spawned(java.util.Objects.requireNonNull(Bukkit.getEntity(enemy.entityId())));
+    }
     boolean managed(Entity entity) {
         if(entity instanceof ComplexEntityPart part)entity=part.getParent();
         return entity.getPersistentDataContainer().has(factionKey, PersistentDataType.STRING);

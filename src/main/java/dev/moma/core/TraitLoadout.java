@@ -5,7 +5,8 @@ import java.util.function.Predicate;
 import dev.moma.core.TraitCatalog.*;
 
 /** Immutable, validated session snapshot. Unlock checks belong to the account boundary. */
-public final class TraitLoadout {
+public final class TraitLoadout implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     public static final TraitLoadout EMPTY=new TraitLoadout(List.of());
     private final List<Entry> entries;
     private final int[] values=new int[Family.values().length];

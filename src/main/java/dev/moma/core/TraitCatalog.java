@@ -6,7 +6,7 @@ import dev.moma.core.AchievementCatalog.*;
 /** Every reward uses its achievement ID; a family occupies at most one loadout slot. */
 public final class TraitCatalog {
     public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT }
-    public record Entry(String id, String name, Family family, int value, AttackRole role, Rarity purchaseCeiling, Rarity openingTarget, AchievementCatalog.Entry achievement) {
+    public record Entry(String id, String name, Family family, int value, AttackRole role, Rarity purchaseCeiling, Rarity openingTarget, AchievementCatalog.Entry achievement) implements java.io.Serializable {
         public String description() {
             return switch(family) {
                 case START_GOLD -> "시작 골드 +"+value;

@@ -4,7 +4,8 @@ import java.util.*;
 import java.util.function.Function;
 
 /** Time-based waves overlap: surviving enemies remain on the circuit across rounds. */
-public final class Campaign {
+public final class Campaign implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     private final CampaignRules rules;
     private final boolean endless;
     private Wave wave;

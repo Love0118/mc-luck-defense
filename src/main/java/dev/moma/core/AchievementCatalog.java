@@ -10,7 +10,7 @@ public final class AchievementCatalog {
         public boolean role() { return name().startsWith("ROLE_"); }
         public AttackRole attackRole() { return AttackRole.valueOf(name().substring(5)); }
     }
-    public record Entry(String id, Metric metric, long target, String title, boolean challenge) {
+    public record Entry(String id, Metric metric, long target, String title, boolean challenge) implements java.io.Serializable {
         public String description() {
             if(metric.role())return "150라운드 도달 · "+metric.attackRole().label()+" 유효 피해 비중 70% 이상";
             if(metric==Metric.ENHANCEMENT)return "누적 동일 유닛 합성 "+target+"회";

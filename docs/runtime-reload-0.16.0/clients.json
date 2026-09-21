@@ -1,0 +1,15 @@
+{
+  "version": "1.21.8",
+  "players": {
+    "ReloadOwner": {
+      "position": true,
+      "errors": [],
+      "completed": true
+    },
+    "ReloadViewer": {
+      "position": true,
+      "errors": [],
+      "completed": true
+    }
+  }
+}

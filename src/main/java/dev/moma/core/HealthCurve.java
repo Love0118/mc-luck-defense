@@ -3,8 +3,8 @@ package dev.moma.core;
 import java.util.*;
 
 /** Geometric interpolation between monotonically increasing round/health anchors. */
-public record HealthCurve(List<Anchor> anchors) {
-    public record Anchor(int round, double health) {}
+public record HealthCurve(List<Anchor> anchors) implements java.io.Serializable {
+    public record Anchor(int round, double health) implements java.io.Serializable {}
     public HealthCurve {
         anchors = List.copyOf(anchors);
         if (anchors.size() < 2 || anchors.getFirst().round() != 1 || anchors.getLast().round() < 100)

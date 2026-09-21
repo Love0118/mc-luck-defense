@@ -3,7 +3,8 @@ package dev.moma.bgm;
 import java.util.*;
 
 /** One monotonic wall-clock timeline shared by every listener, independent of simulation speed. */
-public final class BgmTimeline {
+public final class BgmTimeline implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     public static final long SEGMENT_MILLIS = 2000;
     public enum Mode { SINGLE, MEDLEY }
     public record Cue(Track track, int segment, long cycle, long offsetMillis, long lateMillis) {

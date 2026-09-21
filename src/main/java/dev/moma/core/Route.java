@@ -1,7 +1,7 @@
 package dev.moma.core;
 
 /** Clockwise square; cumulative progress is never reset at the start of a lap. */
-public record Route(double min, double max) {
+public record Route(double min, double max) implements java.io.Serializable {
     public Route {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) throw new IllegalArgumentException("Invalid route");
     }

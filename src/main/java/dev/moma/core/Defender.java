@@ -2,7 +2,8 @@ package dev.moma.core;
 
 import java.util.UUID;
 
-public final class Defender {
+public final class Defender implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     private final UUID entityId, ownerId;
     private final String arenaId;
     private final UnitType type;

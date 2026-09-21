@@ -8,7 +8,7 @@ softdepend: [ViaVersion]
 commands:
   mud:
     description: 운빨 디펜스 참가 및 관리
-    usage: /mud <start|join|spectate|speed|lobby|leave|list|create|spawn|coins>
+    usage: /mud <start|join|spectate|speed|lobby|leave|list|create|spawn|coins|reload|rollback|version>
 permissions:
   moma.play:
     default: true

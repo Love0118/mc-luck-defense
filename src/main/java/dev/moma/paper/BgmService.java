@@ -46,12 +46,14 @@ final class BgmService implements Listener, AutoCloseable {
     private final Map<UUID,Playback> playback=new HashMap<>();
     private final Map<UUID,Integer> clicks=new HashMap<>();
     private long nextHealthCheck;
-    private static final class Playback {
+    private static final class Playback implements java.io.Serializable {
+        private static final long serialVersionUID=1L;
         UUID session;String lastCue,currentSound;boolean readyNotified;
         final Map<UUID,PackState> packs=new LinkedHashMap<>();
         final Set<UUID> required=new HashSet<>();
     }
-    private static final class PackState {
+    private static final class PackState implements java.io.Serializable {
+        private static final long serialVersionUID=1L;
         final Track track;final long requested;boolean loaded,failed;
         PackState(Track track,long requested){this.track=track;this.requested=requested;}
     }
@@ -61,16 +63,38 @@ final class BgmService implements Listener, AutoCloseable {
         Holder(UUID owner,UUID session,boolean library,int page,List<String> ids){this.owner=owner;this.session=session;this.library=library;this.page=page;this.ids=ids;}
         @Override public Inventory getInventory(){return inventory;}
     }
+    record Saved(Map<UUID,BgmTimeline> timelines,Map<UUID,Playback> playback,long nextHealthCheck) implements java.io.Serializable {}
+    Saved saveState(){return new Saved(new LinkedHashMap<>(timelines),new LinkedHashMap<>(playback),nextHealthCheck);}
+    void restoreState(Saved saved){if(saved!=null){timelines.putAll(saved.timelines());playback.putAll(saved.playback());nextHealthCheck=saved.nextHealthCheck();}}
+    void checkReloadReady() {
+        if(worker.getActiveCount()!=0 || !worker.getQueue().isEmpty() || !uploading.isEmpty() || !prompts.isEmpty())
+            throw new IllegalStateException("BGM 작업이나 입력이 진행 중입니다. 완료 후 다시 시도하세요.");
+    }
+    void suspend()throws Exception {
+        checkReloadReady();closed=true;worker.shutdown();
+        if(!worker.awaitTermination(2,TimeUnit.SECONDS))throw new IllegalStateException("BGM 작업 종료를 기다리고 있습니다.");
+        if(store!=null)store.close();
+    }
     BgmService(MomaPlugin plugin,GameService games)throws Exception {
-        this(plugin,games,System::nanoTime);
+        this(plugin,games,System::nanoTime,null);
     }
     BgmService(MomaPlugin plugin,GameService games,java.util.function.LongSupplier clock)throws Exception {
+        this(plugin,games,clock,null);
+    }
+    BgmService(MomaPlugin plugin,GameService games,String preparedConfig)throws Exception {
+        this(plugin,games,System::nanoTime,preparedConfig);
+    }
+    static String prepareConfiguration(MomaPlugin plugin)throws Exception {
+        var file=plugin.getDataFolder().toPath().resolve("bgm.yml").toFile();
+        if(!file.exists())plugin.saveResource("bgm.yml",false);
+        var config=new YamlConfiguration();config.load(file);BgmSettings.limits(config);return config.saveToString();
+    }
+    private BgmService(MomaPlugin plugin,GameService games,java.util.function.LongSupplier clock,String preparedConfig)throws Exception {
         this.clock=clock;
         this.plugin=plugin;this.games=games;data=plugin.getDataFolder().toPath();work=data.resolve("bgm-work");
         Files.createDirectories(work);
-        if(!Files.exists(data.resolve("bgm.yml")))plugin.saveResource("bgm.yml",false);
-        config=YamlConfiguration.loadConfiguration(data.resolve("bgm.yml").toFile());
-        limits=BgmSettings.limits(config);config.save(data.resolve("bgm.yml").toFile());
+        config=new YamlConfiguration();config.loadFromString(preparedConfig==null?prepareConfiguration(plugin):preparedConfig);
+        limits=BgmSettings.limits(config);if(preparedConfig==null)config.save(data.resolve("bgm.yml").toFile());
         dropbox=new DropboxBgm(config.getString("refresh-token",""),limits.fileSizeBytes());
         media=new BgmMedia(config.getString("yt-dlp","yt-dlp"),config.getString("ffmpeg","ffmpeg"),limits);
         worker.execute(()->{

@@ -7,7 +7,21 @@ import java.util.function.IntSupplier;
 import java.util.random.RandomGenerator;
 
 /** Versioned SHA-256 counter stream. One instance per game; not thread-safe. */
-public final class HashRandom implements RandomGenerator {
+public final class HashRandom implements RandomGenerator, java.io.Serializable {
+    private static final long serialVersionUID=1L;
+    private record Saved(byte[] seed,long counter,byte[] remaining) implements java.io.Serializable {
+        private Object readResolve() {
+            HashRandom restored=new HashRandom(seed);restored.counter=counter;restored.block=ByteBuffer.wrap(remaining);return restored;
+        }
+    }
+    private Object writeReplace() {
+        byte[] remaining=new byte[block.remaining()];block.duplicate().get(remaining);
+        return new Saved(seed.clone(),counter,remaining);
+    }
+    public byte[] stateBytes() {
+        ByteBuffer state=ByteBuffer.allocate(seed.length+Long.BYTES+block.remaining());
+        state.put(seed).putLong(counter).put(block.duplicate());return state.array();
+    }
     public static final String ALGORITHM = "sha256-counter-v1";
     private static final byte[] DOMAIN = "moma-defense/sha256-counter/v1\0".getBytes(StandardCharsets.US_ASCII);
     private static final SecureRandom SEED_SOURCE = new SecureRandom();

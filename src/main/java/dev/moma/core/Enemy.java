@@ -3,8 +3,9 @@ package dev.moma.core;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public final class Enemy {
-    private record Slow(double fraction, long expiresAt) {}
+public final class Enemy implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
+    private record Slow(double fraction, long expiresAt) implements java.io.Serializable {}
     private final UUID entityId;
     private final String arenaId;
     private final EnemyType type;

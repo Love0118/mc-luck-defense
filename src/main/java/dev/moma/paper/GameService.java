@@ -24,6 +24,44 @@ final class GameService {
     record SessionInfo(UUID sessionId, UUID owner, String playerName, String arena, int round, int enemies) {}
     private final CombatEngine combat = new CombatEngine();
     private long tick;
+    SessionState.Game saveState() {
+        return new SessionState.Game(tick,sessions.values().stream().map(GameSession::save).toList(),
+                spectators.entrySet().stream().map(e->new SessionState.Watch(e.getKey(),e.getValue().target.sessionId,
+                        SessionState.Position.of(e.getValue().returnLocation),e.getValue().returnMode.name(),e.getValue().returnAllowFlight,e.getValue().returnFlying)).toList(),
+                bgm==null?null:bgm.saveState());
+    }
+    void restoreState(SessionState.Game state) {
+        if(!sessions.isEmpty() || !spectators.isEmpty())throw new IllegalStateException("Runtime already populated");
+        tick=state.tick();var bySession=new HashMap<UUID,GameSession>();var entitiesSeen=new HashSet<UUID>();var mapsSeen=new HashSet<String>();
+        for(var saved:state.sessions()) {
+            var session=new GameSession(saved,maps.get(saved.map()));
+            if(Bukkit.getPlayer(session.arena.owner())==null || !mapsSeen.add(saved.map()) || sessions.put(session.arena.owner(),session)!=null
+                    || bySession.put(session.sessionId,session)!=null)throw new IllegalArgumentException("중복되거나 접속자가 없는 세션입니다.");
+            var ids=new ArrayList<UUID>();session.arena.activeDefenders().forEach(d->ids.add(d.entityId()));session.arena.activeEnemies().forEach(e->ids.add(e.entityId()));
+            for(UUID id:ids) {
+                Entity entity=Bukkit.getEntity(id);
+                if(!entitiesSeen.add(id) || entity==null || !entity.isValid() || !entity.getWorld().equals(session.map.world()) || !entities.managed(entity))
+                    throw new IllegalArgumentException("복원할 전장 엔티티가 없습니다.");
+            }
+        }
+        for(var saved:state.spectators()) {
+            var target=bySession.get(saved.session());
+            if(target==null || Bukkit.getPlayer(saved.player())==null || sessions.containsKey(saved.player()) || spectators.containsKey(saved.player()))
+                throw new IllegalArgumentException("관전 세션을 복원할 수 없습니다.");
+            spectators.put(saved.player(),new Watch(target,saved.returnLocation().location(),GameMode.valueOf(saved.returnMode()),saved.returnFlight(),saved.returnFlying()));
+        }
+    }
+    boolean hasSessions(){return !sessions.isEmpty() || !spectators.isEmpty();}
+    void rebindPresentation() {
+        for(var session:sessions.values()) {
+            Player owner=Objects.requireNonNull(Bukkit.getPlayer(session.arena.owner()));
+            for(Chunk chunk:session.tickets)chunk.addPluginChunkTicket(plugin);
+            appearance.enter(owner,false);entities.restore(session.arena);
+            session.arena.selected().ifPresent(d->entities.selectGlow(owner,d.entityId()));
+        }
+        spectators.forEach((id,watch)->appearance.enter(Objects.requireNonNull(Bukkit.getPlayer(id)),true));
+    }
+    void suspendPresentation(){appearance.close();entities.close();}
 
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings) {
         this(plugin, maps, settings, null);

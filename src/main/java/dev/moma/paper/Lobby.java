@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.generator.ChunkGenerator;
+import dev.moma.bootstrap.EmptyWorldGenerator;
 
 /** Dedicated lobby world. Its build is imported offline; startup never pastes over it. */
 final class Lobby {
@@ -21,14 +21,7 @@ final class Lobby {
         if (!config.getBoolean("enabled")) return null;
         String name = config.getString("world", "mud_lobby");
         if (!name.matches("[a-z0-9_-]{1,32}") || name.equals("moma_arenas")) throw new IllegalArgumentException("Invalid lobby world name");
-        World world = Objects.requireNonNull(Bukkit.createWorld(new WorldCreator(name).generator(new ChunkGenerator() {
-            @Override public boolean shouldGenerateNoise() { return false; }
-            @Override public boolean shouldGenerateSurface() { return false; }
-            @Override public boolean shouldGenerateCaves() { return false; }
-            @Override public boolean shouldGenerateDecorations() { return false; }
-            @Override public boolean shouldGenerateMobs() { return false; }
-            @Override public boolean shouldGenerateStructures() { return false; }
-        })));
+        World world = Objects.requireNonNull(Bukkit.createWorld(new WorldCreator(name).generator(new EmptyWorldGenerator())));
         Location spawn = new Location(world, config.getDouble("spawn.x"), config.getDouble("spawn.y"),
                 config.getDouble("spawn.z"), (float) config.getDouble("spawn.yaw"), (float) config.getDouble("spawn.pitch"));
         spawn.checkFinite();

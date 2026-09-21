@@ -3,7 +3,8 @@ package dev.moma.core;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Grid {
+public final class Grid implements java.io.Serializable {
+    private static final long serialVersionUID=1L;
     public static final int SPACING = 3;
     private final int size;
     private final List<Cell> placementOrder;

@@ -1,5 +1,11 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
+## 0.16.0 세션 유지 리로드
+
+최초 설치에는 정상 재시작 한 번이 필요합니다. 이후 관리자는 업데이트 JAR를 plugins/update에 기존 설치 파일명으로 넣고 /mud reload check로 검사한 뒤 /mud reload로 적용할 수 있습니다. 진행 중인 세션·재화·몹·강화·공격 대기시간·관전 대상을 보존하며, 적용 실패 시 기존 런타임을 복구합니다. /mud rollback은 현재 진행도를 유지한 채 이전 코드로 돌아갑니다. /mud version에서 실제 게임 코드 버전을 확인합니다. [사용법·제약·검증](docs/release-0.16.0.md)
+
+별도 작업에서 추가한 [개인별 순위표 페이지](docs/private-leaderboard-pages.md)도 포함합니다.
+
 ## 0.15.1 엔더 드래곤 표시 수정
 
 서버 좌표는 움직이지만 1.21.8 클라이언트에서 엔더 드래곤이 멈춰 보이던 문제를 수정했습니다. 서버 AI는 계속 비활성화하고, 관리 대상 드래곤의 클라이언트 메타데이터에서만 NoAI를 해제합니다. 드래곤 모델의 반대 방향 기준도 보정해 경로 진행 방향을 바라봅니다. [수정·검증 기록](docs/release-0.15.1.md)
@@ -41,7 +47,7 @@ Paper **26.3 build 26 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-0.15.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 설치의 예약 업데이트는 plugins/update에 기존 JAR와 같은 파일명으로 넣습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-0.16.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 설치의 예약 업데이트는 plugins/update에 기존 JAR와 같은 파일명으로 넣습니다. 0.16.0 로더가 이미 실행 중이면 호환 업데이트는 /mud reload로 적용할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 
