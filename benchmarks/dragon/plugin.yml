@@ -1,0 +1,5 @@
+name: DragonSmoke
+version: '1'
+main: dev.moma.benchmark.DragonSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense]

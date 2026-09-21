@@ -22,7 +22,7 @@ public final class MomaPlugin extends JavaPlugin {
         try { games.bgm = new BgmService(this,games); }
         catch(Exception error) { getLogger().log(java.util.logging.Level.SEVERE,"BGM initialization failed",error); }
         for (var player : Bukkit.getOnlinePlayers()) games.tools.restore(player);
-        games.entities.enablePrivateGlow(this);
+        games.entities.enablePresentationMetadata(this);
         getServer().getPluginManager().registerEvents(new UnsignedChat(this), this);
         var shop = new ShopMenu(this, games);
         var lobbyMenu = new LobbyMenu(this, games);
@@ -46,7 +46,7 @@ public final class MomaPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, shop::refreshOpen, 5, 5);
         getServer().getScheduler().runTaskTimer(this, lobbyMenu::refreshOpen, 20, 20);
         getServer().getScheduler().runTaskTimer(this, TabStatus::update, 20, 20);
-        getLogger().info("MC Luck Defense enabled. Paper 26.3.build.19-alpha; /mud; endless campaign.");
+        getLogger().info("MC Luck Defense " + getPluginMeta().getVersion() + " enabled; /mud; endless campaign.");
     }
     @Override public void onDisable() {
         if (games != null && games.bgm != null) games.bgm.close();

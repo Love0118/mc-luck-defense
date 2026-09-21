@@ -1,5 +1,9 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
+## 0.15.1 엔더 드래곤 표시 수정
+
+서버 좌표는 움직이지만 1.21.8 클라이언트에서 엔더 드래곤이 멈춰 보이던 문제를 수정했습니다. 서버 AI는 계속 비활성화하고, 관리 대상 드래곤의 클라이언트 메타데이터에서만 NoAI를 해제합니다. 드래곤 모델의 반대 방향 기준도 보정해 경로 진행 방향을 바라봅니다. [수정·검증 기록](docs/release-0.15.1.md)
+
 ## 0.15.0 업적 특성
 
 로비 2번 칸 마법책에서 업적으로 해금한 특성을 선택합니다. 최고 100/250/500라운드마다 장착 슬롯 하나가 열리며 최대 3개, 같은 계열은 하나만 장착합니다. 총 81개 업적과 62개 특성에 강화·공격 타입·누적 출전 과제를 포함합니다. 첫 구매 승급은 에픽 → 신화까지만 가능하며 서사/전설/에픽/신화 초반 확률 보정도 선택할 수 있습니다. [전체 규칙](docs/traits.md) · [특성별 시뮬레이션](docs/simulation/traits-0.15.0/REPORT.md)
@@ -37,7 +41,7 @@ Paper **26.3 build 26 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-0.15.0.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 설치의 예약 업데이트는 plugins/update에 기존 JAR와 같은 파일명으로 넣습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-0.15.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 설치의 예약 업데이트는 plugins/update에 기존 JAR와 같은 파일명으로 넣습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 

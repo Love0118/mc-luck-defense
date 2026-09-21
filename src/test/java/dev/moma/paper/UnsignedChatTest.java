@@ -34,7 +34,7 @@ class UnsignedChatTest {
     }
     @Test void privateGlowBitPreservesEveryOtherEntityFlag() {
         for(int flags=0;flags<256;flags++) {
-            int value=Byte.toUnsignedInt(PrivateGlow.glowing((byte)flags));
+            int value=Byte.toUnsignedInt(PresentationMetadata.glowing((byte)flags));
             assertEquals(flags|0x40,value);assertEquals(flags&~0x40,value&~0x40);
         }
     }

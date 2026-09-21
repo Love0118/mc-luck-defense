@@ -15,7 +15,7 @@ final class EntityAdapter {
     private final NamespacedKey factionKey, arenaKey, ownerKey;
     private final Set<UUID> moving = new HashSet<>();
     private final java.util.Map<UUID, Float> defenderYaw = new java.util.HashMap<>();
-    private PrivateGlow privateGlow;
+    private PresentationMetadata presentationMetadata;
     private final Entity[] batchEntities = new Entity[100];
     private final double[] batchPositions = new double[500];
     private java.lang.reflect.Method batchBridge;
@@ -29,9 +29,9 @@ final class EntityAdapter {
     EntityAdapter(MomaPlugin plugin) {
         factionKey = new NamespacedKey(plugin, "faction"); arenaKey = new NamespacedKey(plugin, "arena"); ownerKey = new NamespacedKey(plugin, "owner");
     }
-    void enablePrivateGlow(MomaPlugin plugin) { privateGlow = new PrivateGlow(plugin); }
-    void selectGlow(Player player, UUID entity) { if (privateGlow != null) privateGlow.select(player, entity); }
-    void close() { if (privateGlow != null) privateGlow.close(); }
+    void enablePresentationMetadata(MomaPlugin plugin) { presentationMetadata = new PresentationMetadata(plugin); }
+    void selectGlow(Player player, UUID entity) { if (presentationMetadata != null) presentationMetadata.select(player, entity); }
+    void close() { if (presentationMetadata != null) presentationMetadata.close(); }
     boolean managed(Entity entity) {
         if(entity instanceof ComplexEntityPart part)entity=part.getParent();
         return entity.getPersistentDataContainer().has(factionKey, PersistentDataType.STRING);
@@ -77,8 +77,10 @@ final class EntityAdapter {
             living.getPersistentDataContainer().set(factionKey, PersistentDataType.STRING, faction.name());
             living.getPersistentDataContainer().set(arenaKey, PersistentDataType.STRING, map.id());
             living.getPersistentDataContainer().set(ownerKey, PersistentDataType.STRING, owner.toString());
+            if(presentationMetadata!=null)presentationMetadata.spawned(living);
         });
         if (!entity.isValid()) {
+            if(presentationMetadata!=null)presentationMetadata.removed(entity.getUniqueId());
             entity.remove();
             throw new IllegalStateException("Entity spawn was cancelled");
         }
@@ -86,7 +88,7 @@ final class EntityAdapter {
     }
     void remove(UUID id) {
         defenderYaw.remove(id);
-        if (privateGlow != null) privateGlow.removed(id);
+        if (presentationMetadata != null) presentationMetadata.removed(id);
         Entity entity = Bukkit.getEntity(id); if (entity != null) entity.remove();
     }
     void face(Defender defender, Point target) {
@@ -153,7 +155,7 @@ final class EntityAdapter {
                     batchPositions[i*5] = map.originX()+point.x()+.5;
                     batchPositions[i*5+1] = map.floorY()+1;
                     batchPositions[i*5+2] = map.originZ()+point.z()+.5;
-                    float yaw = routeYaw(map.grid().route(), enemy.progress());
+                    float yaw = enemyYaw(enemy, map.grid().route());
                     batchPositions[i*5+3] = yaw; batchPositions[i*5+4] = 0;
                     if (entity instanceof LivingEntity living && living.getBodyYaw() != yaw) living.setBodyYaw(yaw);
                     i++;
@@ -166,7 +168,7 @@ final class EntityAdapter {
         boolean intact = true;
         for (dev.moma.core.Enemy enemy : arena.activeEnemies()) {
             Location destination = map.location(enemy.position(map.grid().route()));
-            destination.setYaw(routeYaw(map.grid().route(), enemy.progress()));
+            destination.setYaw(enemyYaw(enemy, map.grid().route()));
             intact &= advance(enemy.entityId(), destination);
         }
         return intact;
@@ -175,6 +177,10 @@ final class EntityAdapter {
         double distance = ((progress % route.length()) + route.length()) % route.length();
         int side = (int) (distance / (route.max()-route.min()));
         return switch (side) { case 0 -> -90; case 1 -> 0; case 2 -> 90; default -> -180; };
+    }
+    static float enemyYaw(dev.moma.core.Enemy enemy,Route route) {
+        float yaw=routeYaw(route,enemy.progress());
+        return enemy.type()==EnemyType.ENDER_DRAGON?Location.normalizeYaw(yaw+180):yaw;
     }
     static NamedTextColor rarityColor(Rarity rarity) {
         return switch (rarity) {

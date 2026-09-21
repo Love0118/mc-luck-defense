@@ -1,0 +1,33 @@
+{
+  "baseline": true,
+  "server": {
+    "ticks": 221,
+    "batchAndSingleMotion": true,
+    "serverAiDisabled": true,
+    "retracking": true,
+    "metadataChanges": true
+  },
+  "clients": {
+    "DragonOwner": {
+      "dragonFlags": [
+        1,
+        1,
+        1,
+        3
+      ],
+      "movementPackets": 73,
+      "privateGlow": true
+    },
+    "DragonViewer": {
+      "dragonFlags": [
+        1,
+        1,
+        1,
+        3
+      ],
+      "movementPackets": 73,
+      "privateGlow": false
+    }
+  },
+  "sha256": "e0129711c980f171be191a72bf1708995379f21a4ae76ab584241f0129164f02"
+}

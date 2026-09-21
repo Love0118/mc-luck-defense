@@ -9,12 +9,14 @@ import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.player.*;
 
-/** Paper 26.3 packet adapter. Only one viewer's metadata copies get the glow bit. */
-final class PrivateGlow implements Listener {
+/** Viewer-only metadata: private selection glow and dragon interpolation, without enabling server AI. */
+final class PresentationMetadata implements Listener {
     private static final String HANDLER = "mud_private_selection";
     private final Map<UUID, Binding> bindings = new HashMap<>();
     private final MomaPlugin plugin;
     private final Metadata metadata;
+    private final Map<UUID,Integer> dragons = new HashMap<>();
+    private final Set<Integer> dragonIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final class Binding {
         final Player player;
         final Channel channel;
@@ -22,7 +24,7 @@ final class PrivateGlow implements Listener {
         UUID selectedUuid; // Main-thread only; Netty uses the numeric snapshot above.
         Binding(Player player, Channel channel) { this.player = player; this.channel = channel; }
     }
-    PrivateGlow(MomaPlugin plugin) {
+    PresentationMetadata(MomaPlugin plugin) {
         this.plugin = plugin;
         try { metadata = new Metadata(); }
         catch (ReflectiveOperationException error) { throw new IllegalStateException("Private selection glow requires the pinned Paper 26.3 mappings", error); }
@@ -40,7 +42,7 @@ final class PrivateGlow implements Listener {
                 binding.channel.pipeline().addBefore("packet_handler", HANDLER, new ChannelOutboundHandlerAdapter() {
                     @Override public void write(ChannelHandlerContext context, Object packet, ChannelPromise promise) throws Exception {
                         int selected = binding.selectedId;
-                        context.write(selected < 0 ? packet : metadata.overlay(packet, selected), promise);
+                        context.write(selected < 0 && dragonIds.isEmpty() ? packet : metadata.overlay(packet, selected, dragonIds), promise);
                     }
                 });
             });
@@ -66,7 +68,11 @@ final class PrivateGlow implements Listener {
         catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot update private glow", error); }
     }
     void removed(UUID id) {
+        Integer dragonId=dragons.remove(id);if(dragonId!=null)dragonIds.remove(dragonId);
         for (Binding binding : bindings.values()) if (id.equals(binding.selectedUuid)) select(binding.player, null);
+    }
+    void spawned(Entity entity) {
+        if(entity instanceof EnderDragon){dragons.put(entity.getUniqueId(),entity.getEntityId());dragonIds.add(entity.getEntityId());}
     }
     @EventHandler public void join(PlayerJoinEvent event) { attach(event.getPlayer()); }
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -92,8 +98,10 @@ final class PrivateGlow implements Listener {
             Binding binding = bindings.get(id); select(binding.player, null); detach(id);
         }
         HandlerList.unregisterAll(this);
+        dragons.clear();dragonIds.clear();
     }
     static byte glowing(byte flags) { return (byte) (flags | 0x40); }
+    static byte animatedDragon(byte flags) { return (byte)(flags & ~1); }
 
     private static final class Metadata {
         private final Class<?> packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket");
@@ -114,11 +122,13 @@ final class PrivateGlow implements Listener {
         private final Class<?> accessorClass = Class.forName("net.minecraft.network.syncher.EntityDataAccessor");
         private final Method get = Class.forName("net.minecraft.network.syncher.SynchedEntityData").getMethod("get", accessorClass);
         private final Object flagsAccessor, byteSerializer;
-        private final int flagsId;
+        private final int flagsId, mobFlagsId;
         Metadata() throws ReflectiveOperationException {
             Field flags = Class.forName("net.minecraft.world.entity.Entity").getDeclaredField("DATA_SHARED_FLAGS_ID"); flags.setAccessible(true);
             flagsAccessor = flags.get(null); flagsId = (int) accessorClass.getMethod("id").invoke(flagsAccessor);
             byteSerializer = accessorClass.getMethod("serializer").invoke(flagsAccessor);
+            Field mobFlags=Class.forName("net.minecraft.world.entity.Mob").getDeclaredField("DATA_MOB_FLAGS_ID");mobFlags.setAccessible(true);
+            mobFlagsId=(int)accessorClass.getMethod("id").invoke(mobFlags.get(null));
         }
         Channel channel(Player player) throws ReflectiveOperationException {
             return (Channel) channel.get(connection.get(listener.get(handle.invoke(player))));
@@ -128,22 +138,27 @@ final class PrivateGlow implements Listener {
             Object message = packet.newInstance(entity.getEntityId(), List.of(value.newInstance(flagsId, byteSerializer, flags)));
             send.invoke(listener.get(handle.invoke(player)), message);
         }
-        Object overlay(Object message, int selected) throws ReflectiveOperationException {
+        Object overlay(Object message, int selected, Set<Integer> dragons) throws ReflectiveOperationException {
             if (bundleClass.isInstance(message)) {
                 var replaced = new ArrayList<>(); boolean changed = false;
-                for (Object child : (Iterable<?>) subPackets.invoke(message)) { Object result = overlay(child, selected); replaced.add(result); changed |= child != result; }
+                for (Object child : (Iterable<?>) subPackets.invoke(message)) { Object result = overlay(child, selected, dragons); replaced.add(result); changed |= child != result; }
                 return changed ? bundle.newInstance(replaced) : message;
             }
-            if (!packetClass.isInstance(message) || (int) packetId.invoke(message) != selected) return message;
+            if (!packetClass.isInstance(message))return message;
+            int entityId=(int)packetId.invoke(message);boolean glow=entityId==selected,dragon=dragons.contains(entityId);
+            if(!glow && !dragon)return message;
             List<?> original = (List<?>) items.invoke(message);
             ArrayList<Object> replaced = null;
             for (int i = 0; i < original.size(); i++) {
                 Object entry = original.get(i);
-                if ((int) valueId.invoke(entry) != flagsId) continue;
+                int id=(int)valueId.invoke(entry);byte flags;
+                if(glow && id==flagsId)flags=glowing((byte)data.invoke(entry));
+                else if(dragon && id==mobFlagsId)flags=animatedDragon((byte)data.invoke(entry));
+                else continue;
                 if (replaced == null) replaced = new ArrayList<>(original);
-                replaced.set(i, value.newInstance(flagsId, serializer.invoke(entry), glowing((byte) data.invoke(entry))));
+                replaced.set(i, value.newInstance(id, serializer.invoke(entry), flags));
             }
-            return replaced == null ? message : packet.newInstance(selected, replaced);
+            return replaced == null ? message : packet.newInstance(entityId, replaced);
         }
     }
 }

@@ -10,6 +10,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class EntityAdapterTest {
+    @Test void dragonAnimationClearsOnlyClientNoAiAndFacingMatchesItsReversedModel() {
+        for(int flags=0;flags<256;flags++)assertEquals(flags & ~1,Byte.toUnsignedInt(PresentationMetadata.animatedDragon((byte)flags)));
+        Route route=new Route(-3,18);
+        var arena=new Arena("a",UUID.randomUUID(),new Grid(6),30,100);
+        var dragon=new Enemy(UUID.randomUUID(),"a",EnemyType.ENDER_DRAGON,100,20,0,true);
+        var zombie=new Enemy(UUID.randomUUID(),"a",EnemyType.ZOMBIE,100,20,0,false);
+        arena.addEnemy(dragon);arena.addEnemy(zombie);
+        for(int tick=0;tick<168;tick++) {
+            float routeYaw=EntityAdapter.routeYaw(route,dragon.progress());
+            assertEquals(Location.normalizeYaw(routeYaw+180),EntityAdapter.enemyYaw(dragon,route));
+            assertEquals(routeYaw,EntityAdapter.enemyYaw(zombie,route));
+            new CombatEngine().tick(arena,tick);
+        }
+    }
     public interface MotionBridge { boolean mudMovePresentation(Location location); }
     private EntityAdapter adapter() {
         MomaPlugin plugin = mock(MomaPlugin.class);
