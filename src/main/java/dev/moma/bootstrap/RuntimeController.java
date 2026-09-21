@@ -18,6 +18,7 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
     private Loaded active;
     private RuntimeArtifact previous;
     private boolean changing;
+    private BetaUpdater updater;
 
     public RuntimeController(MomaPlugin host,Path installed,Path updates)throws IOException {
         this.host=host;this.installed=installed;this.updates=updates;
@@ -86,9 +87,21 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         } finally {next.loader.close();}
         return artifact.version();
     }
-    public void reload()throws Exception {requireMainThread();replace(cache(candidate()));}
+    private void requireNoDownload() {
+        if(updater!=null && updater.busy())throw new IllegalStateException("베타 업데이트가 진행 중입니다.");
+    }
+    String activeHash(){return active.artifact.sha256();}
+    boolean installDownloaded(Path path)throws Exception {
+        requireMainThread();RuntimeArtifact artifact=cache(path);
+        if(artifact.sha256().equals(activeHash()))return false;
+        Path staged=updates.resolve(installed.getFileName());
+        if(Files.exists(staged) && !RuntimeArtifact.hash(staged).equals(artifact.sha256()))
+            throw new IllegalStateException("update 폴더에 다른 업데이트 파일이 있습니다. 먼저 정리해 주세요.");
+        replace(artifact);return true;
+    }
+    public void reload()throws Exception {requireMainThread();requireNoDownload();replace(cache(candidate()));}
     public void rollback()throws Exception {
-        requireMainThread();
+        requireMainThread();requireNoDownload();
         if(previous==null)throw new IllegalArgumentException("되돌릴 이전 버전이 없습니다.");
         replace(previous);
     }
@@ -145,10 +158,17 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
     public String status(){return "로더 "+hostArtifact.version()+" · 게임 "+version()+(previous==null?"":" · 이전 "+previous.version());}
     @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args) {
         String action=args.length==0?"":args[0].toLowerCase(Locale.ROOT);
-        if(!Set.of("reload","rollback","version").contains(action))return active.module.onCommand(sender,command,label,args);
+        if(!Set.of("update","reload","rollback","version").contains(action))return active.module.onCommand(sender,command,label,args);
         if(!sender.hasPermission("moma.admin")){sender.sendMessage(Component.text("관리자만 사용할 수 있습니다.",NamedTextColor.RED));return true;}
         try {
-            if(action.equals("version"))sender.sendMessage(Component.text(status(),NamedTextColor.AQUA));
+            if(action.equals("update")) {
+                if(args.length>2 || args.length==2 && !args[1].equalsIgnoreCase("check")) {
+                    sender.sendMessage(Component.text("/mud update [check]",NamedTextColor.YELLOW));return true;
+                }
+                if(updater==null)updater=new BetaUpdater(host,this);
+                updater.start(sender,args.length==2);
+            }
+            else if(action.equals("version"))sender.sendMessage(Component.text(status(),NamedTextColor.AQUA));
             else if(action.equals("rollback")){rollback();sender.sendMessage(Component.text("세션을 유지하고 게임 "+version()+" 버전으로 되돌렸습니다.",NamedTextColor.GREEN));}
             else if(args.length==2 && args[1].equalsIgnoreCase("check"))sender.sendMessage(Component.text("게임 "+check()+" · 세션 유지 업데이트 가능",NamedTextColor.GREEN));
             else if(args.length==1){reload();sender.sendMessage(Component.text("게임 "+version()+" 적용 완료 · 진행 중인 세션을 유지했습니다.",NamedTextColor.GREEN));}
@@ -160,12 +180,13 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         return true;
     }
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args) {
-        if(args.length==2 && args[0].equalsIgnoreCase("reload") && sender.hasPermission("moma.admin"))return List.of("check");
+        if(args.length==2 && Set.of("reload","update").contains(args[0].toLowerCase(Locale.ROOT)) && sender.hasPermission("moma.admin"))return List.of("check").stream().filter(s->s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
         var choices=new ArrayList<>(Optional.ofNullable(active.module.onTabComplete(sender,command,alias,args)).orElse(List.of()));
-        if(args.length==1 && sender.hasPermission("moma.admin"))for(String extra:List.of("reload","rollback","version"))if(extra.startsWith(args[0].toLowerCase(Locale.ROOT)))choices.add(extra);
+        if(args.length==1 && sender.hasPermission("moma.admin"))for(String extra:List.of("update","reload","rollback","version"))if(extra.startsWith(args[0].toLowerCase(Locale.ROOT)))choices.add(extra);
         return choices;
     }
     @Override public void close()throws Exception {
+        if(updater!=null)updater.close();
         if(active!=null){active.module.shutdown();active.loader.close();active=null;}
     }
 }

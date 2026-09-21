@@ -3,10 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dev.moma</groupId>
   <artifactId>mc-luck-defense</artifactId>
-  <version>0.16.0</version>
+  <version>0.17.0</version>
   <name>MC Luck Defense</name>
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
+    <maven.compiler.fork>true</maven.compiler.fork>
+    <build.commit>local</build.commit>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.outputTimestamp>2026-09-19T00:00:00Z</project.build.outputTimestamp>
     <paper.version>26.3.build.26-alpha</paper.version>

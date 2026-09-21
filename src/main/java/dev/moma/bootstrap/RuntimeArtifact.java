@@ -23,7 +23,7 @@ record RuntimeArtifact(Path path,String version,String schema,String hostHash,St
                 try(var in=jar.getInputStream(entry)){bytes=in.readNBytes(64*1024*1024+1);}
                 total+=bytes.length;if(total>128*1024*1024)throw new IOException("압축 해제 크기가 너무 큽니다.");
                 if(name.equals("plugin.yml")) {
-                    String yaml=new String(bytes,StandardCharsets.UTF_8);
+                    String yaml=new String(bytes,StandardCharsets.UTF_8).replace("\r\n","\n");
                     if(!yaml.contains("name: MCLuckDefense") || !yaml.contains("main: dev.moma.paper.MomaPlugin"))throw new IOException("다른 플러그인입니다.");
                     bytes=yaml.replaceAll("(?m)^version:.*(?:\\r?\\n|$)","").getBytes(StandardCharsets.UTF_8);
                 }

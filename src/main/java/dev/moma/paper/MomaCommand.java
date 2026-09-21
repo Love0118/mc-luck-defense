@@ -20,7 +20,7 @@ final class MomaCommand implements TabExecutor {
         if (args.length == 0) {
             if (sender instanceof Player player && menu != null && !games.playing(player)) { menu.open(player); return true; }
             sender.sendMessage(Ui.text("&e/mud start | list | join [전장] | spectate <플레이어> | speed <1|2|4|8> | lobby | leave"));
-            if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud create <전장> | spawn <종> [수] [boss] | coins <금액>"));
+            if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud update [check] | reload [check] | rollback | version | create <전장> | spawn <종> [수] [boss] | coins <금액>"));
             return true;
         }
         try {

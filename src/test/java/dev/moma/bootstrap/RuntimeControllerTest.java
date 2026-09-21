@@ -100,6 +100,21 @@ class RuntimeControllerTest {
             try(var controller=new RuntimeController(host,installed,updates)){controller.start();assertEquals("0.16.2",controller.version());}
         }
     }
+    @Test void downloadedUpdateUsesSafeReloadAndRejectsIncompatibleBuildWithoutStagingIt()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);assertFalse(controller.installDownloaded(installed));
+                Path next=jar("download.jar","0.17.0","1","download","host","balance","");
+                assertTrue(controller.installDownloaded(next));assertEquals("download",state().get("marker"));assertEquals(1,state().get("counter"));
+                assertThrows(Exception.class,()->controller.installDownloaded(jar("incompatible.jar","0.18.0","2","bad","other","balance","")));
+                assertEquals("0.17.0",controller.version());assertEquals(1,state().get("counter"));
+                assertFalse(Files.exists(updates.resolve(installed.getFileName())));
+                assertThrows(Exception.class,()->controller.installDownloaded(jar("broken.jar","0.17.1","1","bad","host","balance","activate")));
+                assertEquals("download",state().get("marker"));assertEquals(1,state().get("bindings"));assertEquals(1,state().get("counter"));
+                controller.rollback();assertEquals("base",state().get("marker"));assertEquals(1,state().get("counter"));
+            }
+        }
+    }
     private Path jar(String file,String version,String schema,String marker,String hostMarker,String balance,String fault)throws Exception {
         Path work=Files.createTempDirectory(dir,"compile-"),source=work.resolve("GameRuntime.java");
         String code="""

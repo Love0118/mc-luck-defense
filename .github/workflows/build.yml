@@ -3,6 +3,7 @@ on:
   push:
     branches: [beta, main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -15,9 +16,63 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - run: mvn -B -ntp clean verify
+      - run: mvn -B -ntp -Dbuild.commit=${{ github.sha }} clean verify
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: mc-luck-defense
           path: target/mc-luck-defense-*.jar
+  publish-beta:
+    if: github.ref == 'refs/heads/beta' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-beta
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: mc-luck-defense
+          path: dist
+      - name: Publish verified beta build and update pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/beta" --jq '.object.sha')
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo 'A newer beta commit exists; skipping outdated publication.'
+            exit 0
+          fi
+          python3 - <<'PY'
+          import hashlib, os, pathlib, zipfile
+          files=list(pathlib.Path('dist').glob('mc-luck-defense-*.jar'))
+          assert len(files)==1, files
+          jar=files[0]
+          with zipfile.ZipFile(jar) as z:
+              properties=dict(line.split('=',1) for line in z.read('mud-runtime.properties').decode().splitlines() if '=' in line)
+          assert properties['commit']==os.environ['GITHUB_SHA']
+          data=jar.read_bytes()
+          pathlib.Path('dist/MCLuckDefense.jar').write_bytes(data)
+          values={'format':'1','repository':os.environ['GITHUB_REPOSITORY'],'branch':'beta',
+                  'commit':os.environ['GITHUB_SHA'],'version':properties['version'],
+                  'sha256':hashlib.sha256(data).hexdigest(),'size':str(len(data))}
+          pathlib.Path('dist/update.properties').write_text(''.join(f'{k}={v}\n' for k,v in values.items()))
+          PY
+          tag="beta-build-$GITHUB_SHA"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" dist/MCLuckDefense.jar dist/update.properties \
+              --target "$GITHUB_SHA" --prerelease --title "Beta ${GITHUB_SHA:0:8}" \
+              --notes 'Automated build from beta. Tests and simulation smoke passed.'
+          fi
+          # A retry must reuse the immutable build, even if a compiler update changed its bytes.
+          gh release download "$tag" --pattern update.properties --dir published
+          if ! gh release view beta-latest >/dev/null 2>&1; then
+            gh release create beta-latest --target "$GITHUB_SHA" --prerelease \
+              --title 'Latest tested beta' --notes 'The update.properties asset points to the latest published beta build.'
+          fi
+          gh release upload beta-latest published/update.properties --clobber
