@@ -39,7 +39,7 @@ final class EntityAdapter {
     boolean moving(Entity entity) { return moving.contains(entity.getUniqueId()); }
     UUID spawnDefender(ArenaMap map, UUID owner, UnitType type, Rarity rarity, Cell cell) {
         return spawn(map, owner, EntityType.valueOf(type.name()), Faction.DEFENDER, map.location(cell.point()),
-                Component.text("[아군] [" + rarity.label() + "] " + type.label(), rarityColor(rarity))).getUniqueId();
+                Component.text("[" + rarity.label() + "] " + type.label(), rarityColor(rarity))).getUniqueId();
     }
     UUID spawnEnemy(ArenaMap map, UUID owner, EnemyType type, boolean boss) {
         LivingEntity enemy=spawn(map, owner, EntityType.valueOf(type.name()), Faction.ENEMY, map.location(map.grid().route().at(0)),
@@ -48,7 +48,7 @@ final class EntityAdapter {
     }
     void updateDefenderName(Defender defender) {
         Entity entity=Bukkit.getEntity(defender.entityId());
-        if(entity!=null)entity.customName(Component.text("[아군] ["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity()))
+        if(entity!=null)entity.customName(Component.text("["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity()))
                 .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD,defender.rarity()==Rarity.TRUE_PRIMORDIAL));
     }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
