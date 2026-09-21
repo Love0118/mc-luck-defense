@@ -32,4 +32,4 @@ GitHub 배포 파일 형식의 기반: [GitHub Releases API](https://docs.github
 - [beta CI](https://github.com/Love0118/mc-luck-defense/actions/runs/35629283123)에서 Linux 빌드·테스트·시뮬레이션 스모크 및 릴리스 게시 성공.
 - 실제 `BetaFeed` 코드로 공개 피드를 읽고 릴리스 JAR를 다운로드하여 SHA-256·내부 버전·커밋 검증 성공.
 - 게시된 `70d34b7b` 빌드를 로컬 및 semion의 update 폴더에 배치했다. SHA-256은 `908e50061530f1012315a6afdf1c9dcf8b8136d9e0672a865fed7453bb4a302a`다.
-- 라이브 게임 접속 테스트나 서버 재시작은 수행하지 않았다. 최초 적용은 정상 재시작을 기다린다.
+- 이후 사용자의 명시적인 승인으로 semion을 정상 재시작하여 0.17.0을 적용했다. 로컬 Windows 서버는 update 폴더에 준비한 상태다. 라이브 게임 접속 테스트는 실행하지 않았다.
