@@ -1,0 +1,5 @@
+name: MudLeaderboardSmoke
+version: '1.0'
+main: dev.moma.benchmark.LeaderboardSmokePlugin
+api-version: '26.3'
+depend: [MCLuckDefense, ViaVersion, ViaBackwards]
