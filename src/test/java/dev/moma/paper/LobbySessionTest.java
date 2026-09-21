@@ -154,13 +154,18 @@ class LobbySessionTest {
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(()->Bukkit.getPlayer(owner.getUniqueId())).thenReturn(owner);
             bukkit.when(()->Bukkit.getPlayer(viewer.getUniqueId())).thenReturn(viewer);
+            assertEquals(0,games.spectatorCount(session.sessionId));
             games.spectate(viewer,session.sessionId);
+            assertEquals(1,games.spectatorCount(session.sessionId));
+            games.spectate(viewer,session.sessionId);
+            assertEquals(1,games.spectatorCount(session.sessionId));
             assertTrue(games.watching(viewer)); assertFalse(games.playing(viewer));assertTrue(games.available("b"));
-            verify(viewer).setGameMode(GameMode.ADVENTURE);
+            verify(viewer,times(2)).setGameMode(GameMode.ADVENTURE);
             assertTrue(viewer.getAllowFlight()); assertTrue(viewer.isFlying());
             assertFalse(games.spectatorDestination(viewer,new Location(world,128,72,0)));
             assertTrue(games.spectatorDestination(viewer,new Location(world,4,72,4)));
             games.leave(owner);verify(lobby).send(viewer);assertFalse(games.watching(viewer));
+            assertEquals(0,games.spectatorCount(session.sessionId));
             assertFalse(viewer.getAllowFlight()); assertFalse(viewer.isFlying());
             games.start(owner);assertNotEquals(session.sessionId,games.session(owner).sessionId);
             assertThrows(IllegalArgumentException.class,()->games.spectate(viewer,session.sessionId));

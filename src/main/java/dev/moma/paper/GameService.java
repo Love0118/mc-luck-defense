@@ -54,6 +54,10 @@ final class GameService {
         Ui.sound(player,Ui.Cue.SPEED);
         player.sendMessage(Ui.text("&a게임 속도 &e" + value + "배"));
     }
+    long spectatorCount(UUID sessionId) {
+        return spectators.values().stream().filter(watch -> watch.target.sessionId.equals(sessionId)
+                && !watch.target.arena.ended()).count();
+    }
     List<SessionInfo> activeSessions() {
         return sessions.values().stream().filter(s -> !s.arena.ended()).map(s -> {
             Player owner = Bukkit.getPlayer(s.arena.owner());
@@ -379,7 +383,7 @@ final class GameService {
             GameSession target = entry.getValue().target;
             if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
             recoverPosition(viewer, target.map, true);
-            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &f" + target.arena.id() + " &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· /mud: 메뉴"));
+            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· /mud: 메뉴"));
         }
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());

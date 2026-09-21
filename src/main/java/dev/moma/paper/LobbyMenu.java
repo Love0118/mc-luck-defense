@@ -48,9 +48,9 @@ final class LobbyMenu implements Listener {
         ItemStack item=Ui.item(Material.ENDER_EYE,"&b"+session.playerName()+" &f관전");
         var meta=item.getItemMeta();
         var lore=new ArrayList<net.kyori.adventure.text.Component>();
-        lore.add(Ui.text("&7전장 &f"+session.arena()));
         lore.add(Ui.text(session.round()==0?"&e시작 준비 중":"&7진행 라운드 &e"+session.round()));
         lore.add(Ui.text("&7남은 적 &c"+session.enemies()));
+        lore.add(Ui.text("&7관전자 &b"+games.spectatorCount(session.sessionId())+"명"));
         lore.add(Ui.text("&7재생 중인 곡 &f").append(net.kyori.adventure.text.Component.text(song)));
         lore.add(Ui.text("&7클릭하면 이 세션을 관전합니다."));
         meta.lore(lore);item.setItemMeta(meta);return item;
