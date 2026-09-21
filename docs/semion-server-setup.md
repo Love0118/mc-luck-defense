@@ -16,6 +16,14 @@
 
 기존 Fabric의 내부 주소 `127.0.0.1:25566`과 새 서버의 네트워크 주소를 분리하여 포트 충돌을 피한다. 기존 외부 `25565` 및 프록시 구성은 유지한다.
 
+## 후속 변경 준비
+
+사용자 요청으로 Fabric과 Paper의 다음 시작 옵션을 모두 **`-Xms4G -Xmx6G`**로 변경했다. Fabric은 `steve-td.service.d/memory.conf`, Paper는 기존 서비스 파일에 저장했다. Velocity는 `-Xms256M -Xmx1G`를 유지한다. 변경 후 최대 JVM 힙 합계는 13 GiB다. 약 17 GiB 물리 메모리 중 나머지는 JVM 네이티브 메모리·OS·다른 서비스가 사용하므로 힙 제한만으로 OOM 방지를 보장하지는 않는다.
+
+재시작 전 실행 중 프로세스는 Fabric 4–10 GiB, Paper 2–4 GiB로 유지된다. systemd 설정 재읽기는 실행 중 JVM의 힙을 변경하지 않는다. 기존 CPU 분리는 유지한다.
+
+0.17.0은 `plugins/update/MCLuckDefense.jar`에 준비했다. `ServerChatMirror` 1.1.0 JAR와 수신 설정도 설치했으며 다음 정상 시작 때 로드된다. 개인 `/chatmirror on|off` 선택 및 접속 안내가 포함된다. 별도 수집기나 Fabric에는 챗 미러 코드 변경을 적용하지 않았다.
+
 기존 두 서비스에 `systemctl set-property ... AllowedCPUs=0-1`을 적용했다. 실행 중인 프로세스와 이후 재시작에도 적용되며, Fabric·Velocity는 재시작하지 않았다. 새 서비스는 `AllowedCPUs=2`, `CPUAffinity=2`, JVM `ActiveProcessorCount=1`을 사용한다. 두 Minecraft 서버의 사용 가능 CPU 집합이 겹치지 않지만 OS 및 다른 서비스까지 코어 2에서 제외한 것은 아니다.
 
 로비는 `starhill120.schem`을 변환해 두었던 새 월드에서 가져왔다. 전장은 세션 생성 시 새로 만든다. 기존 서버의 진행 중 세션·플레이어 진행도·순위 기록은 복제하지 않았다. BGM 설정과 곡 목록은 복사하고, 미디어 도구 경로는 Linux의 `yt-dlp`, `ffmpeg`로 변경했다. 채팅 미러 플러그인은 설치하지 않았다.
