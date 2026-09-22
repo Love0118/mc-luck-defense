@@ -56,6 +56,12 @@ final class AchievementService implements Listener {
     void enhanced(Player player) {
         award(player,Metric.ENHANCEMENT,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.ENHANCEMENT));
     }
+    void spent(Player player,long amount) {
+        award(player,Metric.GOLD_SPENT,AchievementStats.add(player.getPersistentDataContainer(),Metric.GOLD_SPENT,amount));
+    }
+    void duplicate(Player player) {
+        award(player,Metric.DUPLICATE,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.DUPLICATE));
+    }
     void sessionStarted(Player player) {
         award(player,Metric.SESSION,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.SESSION));
     }
@@ -69,7 +75,7 @@ final class AchievementService implements Listener {
             if(!progress.isDone()) {
                 progress.awardCriteria("earned");
                 var trait=TraitCatalog.find(entry.id());
-                if(trait!=null)player.sendMessage(Ui.text("&d특성 해금 &f"+trait.name()+" &7· "+trait.description()));
+                if(trait!=null)player.sendMessage(Ui.text("&d"+(trait.passive()?"패시브 해금":"특성 해금")+" &f"+trait.name()+" &7· "+trait.description()));
                 if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500))
                     player.sendMessage(Ui.text("&d특성 슬롯 해금 &f"+TraitCatalog.slots(entry.target())+"개 &7· 로비에서 선택하세요."));
             }

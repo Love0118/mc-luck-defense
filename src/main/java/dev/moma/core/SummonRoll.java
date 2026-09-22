@@ -4,10 +4,15 @@ import java.util.random.RandomGenerator;
 
 public record SummonRoll(UnitType type, Rarity rarity) {
     public static SummonRoll draw(RandomGenerator random, Arena arena) {
-        if(!arena.openingTraitActive())return arena.summonTier()==SummonTier.NORMAL
-                ? draw(random,arena.openingBonusActive()):draw(random,false,arena.summonTier());
+        if(!arena.openingTraitActive()) {
+            SummonRoll base=arena.summonTier()==SummonTier.NORMAL
+                    ? draw(random,arena.openingBonusActive()):draw(random,false,arena.summonTier());
+            UnitType type=arena.summonType(base.type(),base.rarity());
+            return type==base.type()?base:new SummonRoll(type,base.rarity());
+        }
         Rarity rarity=arena.rarityFromRoll(random.nextInt(Rarity.TOTAL_WEIGHT));
-        return new SummonRoll(UnitType.values()[random.nextInt(UnitType.values().length)],rarity);
+        UnitType type=UnitType.values()[random.nextInt(UnitType.values().length)];
+        return new SummonRoll(arena.summonType(type,rarity),rarity);
     }
     public static SummonRoll draw(RandomGenerator random) {
         return draw(random, false);

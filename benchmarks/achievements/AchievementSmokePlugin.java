@@ -40,7 +40,7 @@ public final class AchievementSmokePlugin extends JavaPlugin implements Listener
             require(player.getPersistentDataContainer().get(new NamespacedKey("mcluckdefense","achievement_true_primordial"),PersistentDataType.LONG)==100L,"Persistent True Primordial promotions");
             for(var entry:AchievementCatalog.ALL)require(player.getAdvancementProgress(Bukkit.getAdvancement(new NamespacedKey("mcluckdefense",entry.id()))).isDone(),"Persisted "+entry.id());
             require(completed==0,"Reconnect must not reannounce old completions");
-            Files.writeString(Path.of("achievement-restart-pass.json"),"{\"persistentStats\":true,\"persistent81Awards\":true,\"noDuplicateCompletions\":true}");
+            Files.writeString(Path.of("achievement-restart-pass.json"),"{\"persistentStats\":true,\"persistent90Awards\":true,\"noDuplicateCompletions\":true}");
         } else {
             var vanilla=Objects.requireNonNull(Bukkit.getAdvancement(NamespacedKey.minecraft("story/root")));
             for(String criterion:vanilla.getCriteria())player.getAdvancementProgress(vanilla).awardCriteria(criterion);
@@ -60,16 +60,19 @@ public final class AchievementSmokePlugin extends JavaPlugin implements Listener
             }
             Method started=service.getClass().getDeclaredMethod("sessionStarted",Player.class);started.setAccessible(true);
             for(int i=0;i<1000;i++)started.invoke(service,player);
-            require(completed-start==81,"Exactly 81 completions, got "+(completed-start));
+            Method spent=service.getClass().getDeclaredMethod("spent",Player.class,long.class);spent.setAccessible(true);spent.invoke(service,player,10000000L);
+            Method duplicate=service.getClass().getDeclaredMethod("duplicate",Player.class);duplicate.setAccessible(true);
+            for(int i=0;i<10000;i++)duplicate.invoke(service,player);
+            require(completed-start==AchievementCatalog.ALL.size(),"All catalog completions, got "+(completed-start));
             reached.invoke(service,player,10);reached.invoke(service,player,2000);
-            require(completed-start==81,"Round revisits do not repeat rewards");
+            require(completed-start==AchievementCatalog.ALL.size(),"Round revisits do not repeat rewards");
             for(var entry:AchievementCatalog.ALL) {
                 var advancement=Objects.requireNonNull(Bukkit.getAdvancement(new NamespacedKey("mcluckdefense",entry.id())));
                 require(player.getAdvancementProgress(advancement).isDone(),"Awarded "+entry.id());
                 require(advancement.getDisplay().doesShowToast(),"Toast enabled");
                 require(advancement.getDisplay().frame().name().equals(entry.challenge()?"CHALLENGE":"TASK"),"Native frame");
             }
-            Files.writeString(Path.of("achievement-first-pass.json"),"{\"nativeAdvancements\":81,\"exactlyOnce\":true,\"vanillaBlocked\":true,\"challengeFrames\":true}");
+            Files.writeString(Path.of("achievement-first-pass.json"),"{\"nativeAdvancements\":90,\"exactlyOnce\":true,\"vanillaBlocked\":true,\"challengeFrames\":true}");
         }
         verifyTraits(player,games);
         Bukkit.getScheduler().runTaskLater(this,Bukkit::shutdown,40);

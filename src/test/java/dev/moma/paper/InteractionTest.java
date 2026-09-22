@@ -176,12 +176,12 @@ class InteractionTest {
                 actualShop.open(player);
                 var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
                 when(event.getRawSlot()).thenReturn(8);when(event.getClick()).thenReturn(ClickType.LEFT);
-                for(int expected:new int[]{2,4,8,1}) {
+                for(int expected:new int[]{2,4,8,16,1}) {
                     actualShop.click(event);actualShop.click(event);assertEquals(expected,session.speed());
                     tick[0]++;tasks.removeFirst().run();
                 }
                 doReturn(new GameSession(player,session.map,CampaignRules.standard())).when(games).session(player);
-                actualShop.click(event);verify(games,times(4)).speed(eq(player),anyInt());
+                actualShop.click(event);verify(games,times(5)).speed(eq(player),anyInt());
             }
         }
     }

@@ -188,8 +188,8 @@ final class GameService {
         appearance.enter(player, false);
         if(achievements!=null)achievements.sessionStarted(player);
         player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
-        if(!session.arena.traits().entries().isEmpty())
-            player.sendMessage(Ui.text("&d적용 특성 &f"+String.join(" · ",session.arena.traits().entries().stream().map(TraitCatalog.Entry::name).toList())));
+        if(!session.arena.traits().allEntries().isEmpty())
+            player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
     }
     void leave(Player player) {
         if(bgm!=null)bgm.stop(player);
@@ -268,6 +268,8 @@ final class GameService {
         }
         if (feedback) tell(player, result);
         if (result == Arena.Result.OK) {
+            if(achievements!=null && !session.assisted)achievements.spent(player,session.arena.summonCost());
+            if(achievements!=null && !session.assisted && session.arena.lastPurchaseMerged() && awardedGrade.ordinal()>=Rarity.LEGENDARY.ordinal())achievements.duplicate(player);
             if(achievements!=null && !session.assisted)achievements.summoned(player,roll.rarity());
             if(achievements!=null && !session.assisted && session.arena.lastPurchaseMerged())achievements.enhanced(player);
             session.arena.collectMergedEntities().forEach(entities::remove);

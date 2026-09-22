@@ -23,6 +23,12 @@ public final class TraitBenchmarkMain {
         scenarios.put("combat_three",new TraitLoadout(List.of("round_2000","mythic_1000","true_primordial_100")));
         scenarios.put("forge_three",new TraitLoadout(List.of("enhancement_50000","mythic_1000","true_primordial_100")));
         scenarios.put("boss_three",new TraitLoadout(List.of("round_2000","primordial_100","mythic_1000")));
+        var passives=TraitCatalog.ALL.stream().filter(TraitCatalog.Entry::passive).map(TraitCatalog.Entry::id).toList();
+        scenarios.put("all_passives",new TraitLoadout(passives));
+        var duplicate=new ArrayList<>(passives);duplicate.add("duplicate_10000");
+        scenarios.put("passives_duplicate",new TraitLoadout(duplicate));
+        var investor=new ArrayList<>(passives);investor.add("gold_spent_10000000");
+        scenarios.put("passives_spending",new TraitLoadout(investor));
         if(args.length>4) {
             Set<String> selected=new LinkedHashSet<>(List.of(args[4].split(",")));
             if(!scenarios.keySet().containsAll(selected))throw new IllegalArgumentException("Unknown scenario");
@@ -48,7 +54,7 @@ public final class TraitBenchmarkMain {
                         total+=round;for(int j=0;j<counts.length;j++)if(round>=checkpoints[j])counts[j]++;
                     }
                 }
-                String line=scenario.getKey()+","+String.join("+",scenario.getValue().ids())+","+runs+","+total/(double)runs;
+                String line=scenario.getKey()+","+String.join("+",scenario.getValue().allIds())+","+runs+","+total/(double)runs;
                 for(int value:counts)line+=","+value;
                 summary.add(line);Files.write(output.resolve("summary.csv"),summary,StandardCharsets.UTF_8);
                 System.out.println(line);

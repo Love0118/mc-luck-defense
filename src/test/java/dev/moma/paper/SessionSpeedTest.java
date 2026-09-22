@@ -43,7 +43,7 @@ class SessionSpeedTest {
             assertEquals(9,a.campaign.elapsed()); assertEquals(79,b.campaign.elapsed());
             games.speed(second,2); games.tick();
             assertEquals(11,a.simulationTick); assertEquals(82,b.simulationTick);
-            for(int invalid:new int[]{-1,0,3,9,16,Integer.MAX_VALUE}) assertThrows(IllegalArgumentException.class,()->games.speed(second,invalid));
+            for(int invalid:new int[]{-1,0,3,9,32,Integer.MAX_VALUE}) assertThrows(IllegalArgumentException.class,()->games.speed(second,invalid));
             assertEquals(2,b.speed()); assertEquals(82,b.simulationTick);
             games.spectate(viewer,b.sessionId);
             assertThrows(IllegalArgumentException.class,()->games.speed(viewer,8)); assertEquals(2,b.speed());
@@ -51,7 +51,7 @@ class SessionSpeedTest {
             assertEquals(1,games.session(first).speed()); assertEquals(0,games.session(first).simulationTick);
         }
     }
-    private List<Object> runCombat(int[] frameSpeeds) {
+    private List<Object> runCombat(int[] frameSpeeds,boolean boosted) {
         World world=mock(World.class);
         try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->{
                 long[] nextId={1000};
@@ -61,7 +61,14 @@ class SessionSpeedTest {
             }); var bukkit=mockStatic(Bukkit.class)) {
             GameService games=games(world); Player player=player(world);
             bukkit.when(()->Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
+            if(boosted) {
+                var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
+                AchievementStats.reached(data,100);
+                AchievementStats.add(data,AchievementCatalog.Metric.MYTHIC,1000);
+                TraitSelections.save(data,List.of("mythic_1000"));
+            }
             games.join(player,"a"); GameSession session=games.session(player);
+            assertEquals(boosted?8:0,session.arena.traits().value(TraitCatalog.Family.SPEED));
             when(player.getLocation()).thenReturn(new Location(world,21.99,90,10,135,-30));
             clearInvocations(player);
             session.arena.credit(1000);
@@ -85,10 +92,16 @@ class SessionSpeedTest {
     @Test void acceleratedAndChangingSpeedsMatchEveryCombatAndWaveStepAtEqualGameTime() {
         int[] normal=new int[1600]; Arrays.fill(normal,1);
         int[] fast=new int[200]; Arrays.fill(fast,8);
-        int[] changed=new int[550];
-        Arrays.fill(changed,0,200,4); Arrays.fill(changed,200,250,8); Arrays.fill(changed,250,350,2); Arrays.fill(changed,350,550,1);
-        assertEquals(runCombat(normal),runCombat(fast));
-        assertEquals(runCombat(normal),runCombat(changed));
+        int[] changed=new int[300];
+        Arrays.fill(changed,0,50,16);Arrays.fill(changed,50,100,8);Arrays.fill(changed,100,150,4);
+        Arrays.fill(changed,150,200,2);Arrays.fill(changed,200,300,1);
+        int[] sixteen=new int[100];Arrays.fill(sixteen,16);
+        for(boolean boosted:new boolean[]{false,true}) {
+            var expected=runCombat(normal,boosted);
+            assertEquals(expected,runCombat(fast,boosted));
+            assertEquals(expected,runCombat(sixteen,boosted));
+            assertEquals(expected,runCombat(changed,boosted));
+        }
     }
     @Test void defeatDuringAnAcceleratedFrameStopsTheRemainingStepsAndReturnsOnce() {
         World world=mock(World.class);

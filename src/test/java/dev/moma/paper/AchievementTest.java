@@ -14,11 +14,11 @@ import static org.mockito.Mockito.*;
 
 class AchievementTest {
     @Test void stableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
-        assertEquals(81,AchievementCatalog.ALL.size());
-        assertEquals(81,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
+        assertEquals(90,AchievementCatalog.ALL.size());
+        assertEquals(90,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
         for(Metric metric:Metric.values()) {
             var entries=AchievementCatalog.ALL.stream().filter(e->e.metric()==metric).toList();
-            assertEquals(metric==Metric.ROUND?23:metric==Metric.ENHANCEMENT?5:metric==Metric.SESSION?7:metric.role()?1:10,entries.size());
+            assertEquals(metric==Metric.ROUND?23:metric==Metric.ENHANCEMENT || metric==Metric.GOLD_SPENT?5:metric==Metric.DUPLICATE?4:metric==Metric.SESSION?7:metric.role()?1:10,entries.size());
             long previous=0;
             for(Entry entry:entries) {
                 assertTrue(entry.target()>previous);previous=entry.target();

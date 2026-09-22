@@ -14,28 +14,40 @@ public final class TraitLoadout implements java.io.Serializable {
     private final Rarity purchaseCeiling;
     private final Rarity openingTarget;
     public TraitLoadout(List<String> ids) {
-        if(ids.size()>3)throw new IllegalArgumentException("특성은 최대 3개입니다.");
         List<Entry> selected=new ArrayList<>();Set<Family> families=EnumSet.noneOf(Family.class);AttackRole selectedRole=null;Rarity ceiling=Rarity.LEGENDARY,target=null;
+        Entry promotion=null;Map<Rarity,Entry> opening=new EnumMap<>(Rarity.class);
         for(String id:ids) {
             Entry e=TraitCatalog.find(id);
             if(e==null)throw new IllegalArgumentException("없는 특성입니다.");
-            if(!families.add(e.family()))throw new IllegalArgumentException("같은 계열은 하나만 장착할 수 있습니다.");
-            selected.add(e);values[e.family().ordinal()]=e.value();if(e.role()!=null)selectedRole=e.role();
-            if(e.family()==Family.FIRST_PURCHASE)ceiling=e.purchaseCeiling();
-            if(e.family()==Family.OPENING_ODDS)target=e.openingTarget();
+            if(e.family()==Family.FIRST_PURCHASE) {
+                if(promotion==null || e.purchaseCeiling().ordinal()>promotion.purchaseCeiling().ordinal()
+                        || e.purchaseCeiling()==promotion.purchaseCeiling() && e.value()>promotion.value())promotion=e;
+            } else if(e.family()==Family.OPENING_ODDS) {
+                opening.merge(e.openingTarget(),e,(old,next)->old.value()>=next.value()?old:next);
+            } else {
+                if(!families.add(e.family()))throw new IllegalArgumentException("같은 계열은 하나만 장착할 수 있습니다.");
+                selected.add(e);values[e.family().ordinal()]=e.value();if(e.role()!=null)selectedRole=e.role();
+            }
         }
+        if(selected.size()>3)throw new IllegalArgumentException("특성은 최대 3개입니다.");
+        if(promotion!=null){selected.add(promotion);ceiling=promotion.purchaseCeiling();values[Family.FIRST_PURCHASE.ordinal()]=promotion.value();}
+        for(Entry e:opening.values()){selected.add(e);target=e.openingTarget();values[Family.OPENING_ODDS.ordinal()]=Math.max(values[Family.OPENING_ODDS.ordinal()],e.value());}
         entries=List.copyOf(selected);role=selectedRole;purchaseCeiling=ceiling;openingTarget=target;
     }
     public static TraitLoadout unlocked(List<String> ids,long highestRound,Predicate<Entry> unlocked) {
         TraitLoadout loadout=new TraitLoadout(ids);
-        if(ids.size()>TraitCatalog.slots(highestRound))throw new IllegalArgumentException("아직 열리지 않은 특성 슬롯입니다.");
+        if(loadout.entries().size()>TraitCatalog.slots(highestRound))throw new IllegalArgumentException("아직 열리지 않은 특성 슬롯입니다.");
         for(Entry e:loadout.entries)if(!unlocked.test(e))throw new IllegalArgumentException("아직 해금하지 않은 특성입니다.");
         return loadout;
     }
-    public List<Entry> entries() { return entries; }
-    public List<String> ids() { return entries.stream().map(Entry::id).toList(); }
-    public int value(Family family) { return values[family.ordinal()]; }
+    public List<Entry> entries() { return entries.stream().filter(e->!e.passive()).toList(); }
+    public List<Entry> passives() { return entries.stream().filter(Entry::passive).toList(); }
+    public List<Entry> allEntries() { return entries; }
+    public List<String> allIds() { return entries.stream().map(Entry::id).toList(); }
+    public List<String> ids() { return entries().stream().map(Entry::id).toList(); }
+    public int value(Family family) { return family.ordinal()<values.length?values[family.ordinal()]:0; }
     public Rarity openingTarget() { return openingTarget; }
+    public int openingWeight(Rarity rarity) { return entries.stream().filter(e->e.family()==Family.OPENING_ODDS && e.openingTarget()==rarity).mapToInt(Entry::value).max().orElse(0); }
     public Rarity summonedRarity(Rarity original,long purchaseIndex) {
         return purchaseIndex<value(Family.FIRST_PURCHASE) && original.ordinal()<=Math.min(purchaseCeiling.ordinal(),Rarity.EPIC.ordinal())
                 ? Rarity.values()[original.ordinal()+1]:original;

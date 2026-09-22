@@ -19,6 +19,8 @@ public final class Arena implements java.io.Serializable {
     private int openingDraws;
     private boolean openingHit;
     private boolean openingTraitHit;
+    private EnumSet<Rarity> openingTraitHits=EnumSet.noneOf(Rarity.class);
+    private long spentGold;
     private final TraitLoadout traits;
     private final java.util.random.RandomGenerator traitRandom;
     private long purchases;
@@ -46,14 +48,15 @@ public final class Arena implements java.io.Serializable {
     public List<UUID> collectMergedEntities() { var result=List.copyOf(mergedEntities);mergedEntities.clear();return result; }
     public boolean openingBonusActive() { return summonTier==SummonTier.NORMAL && openingDraws < 3 && !openingHit; }
     public int openingDrawsRemaining() { return openingBonusActive() ? 3 - openingDraws : 0; }
-    public boolean openingTraitActive() { return summonTier==SummonTier.NORMAL && openingDraws<3 && !openingTraitHit && traits.openingTarget()!=null; }
+    public boolean openingTraitActive(Rarity rarity) { return summonTier==SummonTier.NORMAL && openingDraws<3 && !openingTraitHits.contains(rarity) && traits.openingWeight(rarity)>0; }
+    public boolean openingTraitActive() { return Arrays.stream(Rarity.values()).anyMatch(this::openingTraitActive); }
     public int openingTraitRemaining() { return openingTraitActive()?3-openingDraws:0; }
     public int summonWeight(Rarity rarity) {
         int weight=summonTier.weight(rarity,openingBonusActive());
-        if(!openingTraitActive())return weight;
-        Rarity target=traits.openingTarget();
-        int extra=traits.value(TraitCatalog.Family.OPENING_ODDS)-summonTier.weight(target,openingBonusActive());
-        return rarity==target?weight+extra:rarity==Rarity.COMMON?weight-extra:weight;
+        if(openingTraitActive(rarity))return Math.max(weight,traits.openingWeight(rarity));
+        if(rarity==Rarity.COMMON)for(Rarity target:Rarity.values())if(openingTraitActive(target))
+            weight-=Math.max(0,traits.openingWeight(target)-summonTier.weight(target,openingBonusActive()));
+        return weight;
     }
     public Rarity rarityFromRoll(int roll) {
         if(roll<0 || roll>=Rarity.TOTAL_WEIGHT)throw new IllegalArgumentException("Invalid rarity roll");
@@ -69,6 +72,10 @@ public final class Arena implements java.io.Serializable {
 
     private void readObject(java.io.ObjectInputStream input)throws java.io.IOException,ClassNotFoundException {
         input.defaultReadObject();
+        if(openingTraitHits==null) {
+            openingTraitHits=EnumSet.noneOf(Rarity.class);
+            if(openingTraitHit && traits.openingTarget()!=null)openingTraitHits.add(traits.openingTarget());
+        }
         defenderView=Collections.unmodifiableCollection(defenders.values());enemyView=Collections.unmodifiableCollection(enemies.values());
     }
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit) {
@@ -131,13 +138,33 @@ public final class Arena implements java.io.Serializable {
             defenders.put(entity, lastSummoned);
         }
         coinUnits -= Gold.units(summonCost());
+        spentGold=spentGold>Long.MAX_VALUE-summonCost()?Long.MAX_VALUE:spentGold+summonCost();
         purchases++;lastPurchaseMerged=duplicate!=null;
         if (openingDraws < 3) {
             openingDraws++;
             openingHit |= roll.rarity() == Rarity.ANCIENT || roll.rarity() == Rarity.RELIC;
             openingTraitHit |= roll.rarity()==traits.openingTarget();
+            openingTraitHits.add(roll.rarity());
         }
         return Result.OK;
+    }
+    public long spentGold() { return spentGold; }
+    public double damageMultiplier(AttackRole role,boolean boss) {
+        return traits.damageMultiplier(role,boss)+Math.min(traits.value(TraitCatalog.Family.SPENDING_DAMAGE),spentGold/1000)/100.0;
+    }
+    public UnitType summonType(UnitType original,Rarity rawGrade) {
+        int chance=traits.value(TraitCatalog.Family.DUPLICATE_ODDS);
+        if(chance==0)return original;
+        Rarity grade=summonRarity(rawGrade);
+        if(grade.ordinal()<Rarity.LEGENDARY.ordinal())return original;
+        var owned=EnumSet.noneOf(UnitType.class);
+        int highest=-1;
+        for(Defender d:defenders.values())if(d.rarity()==grade) {
+            if(d.enhancement()>highest){highest=d.enhancement();owned.clear();}
+            if(d.enhancement()==highest)owned.add(d.type());
+        }
+        if(owned.isEmpty() || traitRandom.nextInt(100)>=chance)return original;
+        return owned.stream().skip(traitRandom.nextInt(owned.size())).findFirst().orElseThrow();
     }
     private Defender matchingOther(Defender unit) {
         return defenders.values().stream().filter(d->d!=unit && d.type()==unit.type() && d.rarity()==unit.rarity()).findFirst().orElse(null);

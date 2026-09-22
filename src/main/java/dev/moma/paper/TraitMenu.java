@@ -39,7 +39,10 @@ final class TraitMenu implements Listener {
             if(entry.family()==TraitCatalog.Family.FIRST_PURCHASE)lore.add("&7판매가는 원래 뽑힌 등급 기준");
             if(entry.family()==TraitCatalog.Family.OPENING_ODDS)lore.add("&7고대·유물 초반 보정도 유지됩니다.");
             if(entry.family()==TraitCatalog.Family.ENHANCEMENT)lore.add("&7강화당 +100%p → +"+(100+entry.value())+"%p · 승급 시 계승");
-            lore.add(equipped?"&e클릭: 해제":unlocked?"&a클릭: 장착 · 같은 계열은 교체":"&c업적 달성 시 해금");
+            if(entry.passive()) {
+                boolean active=selected.passives().stream().anyMatch(e->e.id().equals(entry.id()));
+                lore.add(!unlocked?"&c업적 달성 시 자동 적용":active?"&a패시브 · 자동 적용 · 슬롯 소모 없음":"&7상위 패시브 적용 중 · 슬롯 소모 없음");
+            } else lore.add(equipped?"&e클릭: 해제":unlocked?"&a클릭: 장착 · 같은 계열은 교체":"&c업적 달성 시 해금");
             holder.inventory.setItem(i,Ui.item(!unlocked?Material.GRAY_DYE:equipped?Material.LIME_DYE:Material.ENCHANTED_BOOK,
                     (equipped?"&a":unlocked?"&d":"&7")+entry.name(),lore.toArray(String[]::new)));
         }
@@ -76,6 +79,7 @@ final class TraitMenu implements Listener {
             if(slot>=0 && slot<holder.entries.size()) {
                 var entry=holder.entries.get(slot);
                 if(!TraitSelections.unlocked(data,entry))throw new IllegalArgumentException("업적을 먼저 달성하세요.");
+                if(entry.passive()){Ui.sound(player,Ui.Cue.CLICK);open(player,holder.page);return;}
                 if(!ids.remove(entry.id())) {
                     ids.removeIf(id->TraitCatalog.find(id).family()==entry.family());ids.add(entry.id());
                 }

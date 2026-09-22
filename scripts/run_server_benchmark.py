@@ -118,5 +118,5 @@ if __name__ == "__main__":
     p.add_argument("--framing", action="store_true")
     p.add_argument("--campaign", action="store_true")
     p.add_argument("--target-tps", type=int, choices=[20, 320], default=320)
-    p.add_argument("--session-speed", type=int, choices=[1, 2, 4, 8], default=1)
+    p.add_argument("--session-speed", type=int, choices=[1, 2, 4, 8, 16], default=1)
     main(p.parse_args())

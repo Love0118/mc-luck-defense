@@ -5,8 +5,9 @@ import dev.moma.core.AchievementCatalog.*;
 
 /** Every reward uses its achievement ID; a family occupies at most one loadout slot. */
 public final class TraitCatalog {
-    public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT }
+    public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT, SPENDING_DAMAGE, DUPLICATE_ODDS }
     public record Entry(String id, String name, Family family, int value, AttackRole role, Rarity purchaseCeiling, Rarity openingTarget, AchievementCatalog.Entry achievement) implements java.io.Serializable {
+        public boolean passive() { return family==Family.FIRST_PURCHASE || family==Family.OPENING_ODDS; }
         public String description() {
             return switch(family) {
                 case START_GOLD -> "시작 골드 +"+value;
@@ -19,6 +20,8 @@ public final class TraitCatalog {
                 case CRITICAL -> "치명타 확률 "+value+"% · 피해 1.5배";
                 case ROLE_DAMAGE -> role.label()+" 피해 +"+value+"%";
                 case ENHANCEMENT -> "강화 +1당 피해 성장 +"+value+"%p";
+                case SPENDING_DAMAGE -> "이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +"+value+"%";
+                case DUPLICATE_ODDS -> "전설 이상 소환 시 "+value+"% 확률로 같은 등급 보유 기물 중 최고 강화 종류 추첨";
             };
         }
     }
@@ -52,6 +55,8 @@ public final class TraitCatalog {
                     case TRUE_PRIMORDIAL -> {family=Family.CRITICAL;value=new int[]{10,11,12,13,14,16,18,20,22,24}[index];name="초월의 일격";}
                     case ENHANCEMENT -> {family=Family.ENHANCEMENT;value=5+index*5;name="담금질";}
                     case SESSION -> {family=Family.OPENING_ODDS;target=new Rarity[]{Rarity.NARRATIVE,Rarity.LEGENDARY,Rarity.EPIC,Rarity.MYTHIC}[index];value=4000;name="다가오는 인연 · "+target.label();}
+                    case GOLD_SPENT -> {family=Family.SPENDING_DAMAGE;value=new int[]{3,5,7,9,12}[index];name="전장의 투자";}
+                    case DUPLICATE -> {family=Family.DUPLICATE_ODDS;value=new int[]{5,8,12,15}[index];name="전우의 재회";}
                     default -> throw new IllegalStateException(a.id());
                 }
             }

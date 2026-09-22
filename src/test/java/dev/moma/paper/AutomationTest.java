@@ -34,6 +34,18 @@ class AutomationTest {
     }
     @AfterEach void close() { bukkit.close(); rolls.close(); adapters.close(); }
     private void draw(Rarity rarity) { rolls.when(() -> SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,rarity)); }
+    @Test void spendingAndHighGradeDuplicatesOnlyCountSuccessfulUnassistedPurchases() {
+        games.achievements=mock(AchievementService.class);draw(Rarity.LEGENDARY);
+        games.summon(player);games.summon(player);games.summon(player);games.summon(player);
+        verify(games.achievements,times(3)).spent(player,10);
+        verify(games.achievements,times(2)).duplicate(player);
+        assertEquals(30,session.arena.spentGold());
+        session.arena.credit(1000);session.assisted=true;games.summon(player);
+        verify(games.achievements,times(3)).spent(player,10);
+        session.assisted=false;session.arena.reachedRound(101);
+        rolls.when(()->SummonRoll.draw(any(),eq(false),eq(SummonTier.ADVANCED))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY));
+        games.summon(player);verify(games.achievements).spent(player,100);
+    }
     @Test void truePrimordialPromotionAwardsOnceAndBroadcastsFinalGrade() {
         session.arena.credit(1000);games.achievements=mock(AchievementService.class);
         for(int i=0;i<20;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL),(t,r,c)->UUID.randomUUID());

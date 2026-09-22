@@ -39,7 +39,7 @@ final class ShopMenu implements Listener {
         Arena arena = holder.arena;
         holder.inventory.clear();
         holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
-                "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 1배"));
+                "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 16 → 1배"));
         holder.inventory.setItem(ODDS, oddsItem(arena));
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &6" + arena.summonCost() + "골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
@@ -98,13 +98,15 @@ final class ShopMenu implements Listener {
                     .divide(java.math.BigDecimal.valueOf(Rarity.TOTAL_WEIGHT)).stripTrailingZeros().toPlainString();
             lore.add(color + rarity.label() + " &f" + percent + "%");
         }
-        lore.add("&7포탑 종류: 각 1/" + UnitType.values().length);
+        int duplicate=arena==null?0:arena.traits().value(TraitCatalog.Family.DUPLICATE_ODDS);
+        lore.add(duplicate==0?"&7포탑 종류: 각 1/"+UnitType.values().length:"&d전우의 재회 · 전설 이상 "+duplicate+"% 확률로 같은 등급 최고 강화 종류 추첨");
         if (openingBonus) {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
             lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
         lore.add(advanced?"&d유물 이상만 등장 · 1회 100골드":"&7101라운드부터 100골드 소환");
-        if(arena!=null && arena.openingTraitActive())lore.add("&d인연 보정 · "+arena.traits().openingTarget().label()+" 획득까지 최대 "+arena.openingTraitRemaining()+"회");
+        if(arena!=null)for(Rarity rarity:Rarity.values())if(arena.openingTraitActive(rarity))
+            lore.add("&d인연 보정 · "+rarity.label()+" 획득까지 최대 "+arena.openingTraitRemaining()+"회");
         lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
         lore.add("&7태초·진 태초는 판매할 수 없습니다.");
         return Ui.item(advanced?Material.ENCHANTED_BOOK:Material.KNOWLEDGE_BOOK,
@@ -134,7 +136,7 @@ final class ShopMenu implements Listener {
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
         if (slot == SUMMON) games.summon(player);
         else if (slot == SELL) games.sell(player);
-        else if (slot == SPEED) games.speed(player, session.speed() == 8 ? 1 : session.speed() * 2);
+        else if (slot == SPEED) games.speed(player, session.speed() == 16 ? 1 : session.speed() * 2);
         else if (slot == BULK_BUY) games.toggleBulkBuy(player);
         else if (slot == AUTO_LAYOUT) games.toggleAutoPlacement(player);
         else games.toggleAutoSell(player, SELLABLE[slot-AUTO_SELL_FIRST]);

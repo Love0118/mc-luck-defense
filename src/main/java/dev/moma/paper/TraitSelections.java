@@ -17,13 +17,14 @@ final class TraitSelections {
     static TraitLoadout load(PersistentDataContainer data) {
         if(data==null)return TraitLoadout.EMPTY;
         String saved=data.get(KEY,PersistentDataType.STRING);
-        if(saved==null || saved.isBlank())return TraitLoadout.EMPTY;
+        if(saved==null)saved="";
         List<String> ids=new ArrayList<>();Set<TraitCatalog.Family> families=EnumSet.noneOf(TraitCatalog.Family.class);
         int slots=TraitCatalog.slots(highest(data));
         for(String id:saved.split(",")) {
             var entry=TraitCatalog.find(id);
-            if(ids.size()<slots && entry!=null && unlocked(data,entry) && families.add(entry.family()))ids.add(id);
+            if(ids.size()<slots && entry!=null && !entry.passive() && unlocked(data,entry) && families.add(entry.family()))ids.add(id);
         }
+        TraitCatalog.ALL.stream().filter(e->e.passive() && unlocked(data,e)).map(TraitCatalog.Entry::id).forEach(ids::add);
         return new TraitLoadout(ids);
     }
     static void save(PersistentDataContainer data,List<String> ids) {

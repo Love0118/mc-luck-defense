@@ -12,15 +12,15 @@ class TraitTest {
         assertEquals(Arena.Result.OK,a.summon(a.owner(),new SummonRoll(UnitType.WOLF,rarity),(t,r,c)->UUID.randomUUID()));
     }
     @Test void catalogHasOneRewardPerChallengeAndLoadoutsRespectSlotsAndFamilies() {
-        assertEquals(62,TraitCatalog.ALL.size());
-        assertEquals(62,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
+        assertEquals(71,TraitCatalog.ALL.size());
+        assertEquals(71,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
         assertEquals(AchievementCatalog.ALL.stream().filter(AchievementCatalog.Entry::challenge).count(),TraitCatalog.ALL.size());
         for(int round:new int[]{99,100,249,250,499,500})
             assertEquals(round<100?0:round<250?1:round<500?2:3,TraitCatalog.slots(round));
         assertThrows(IllegalArgumentException.class,()->new TraitLoadout(List.of("round_100","round_150")));
         assertThrows(IllegalArgumentException.class,()->TraitLoadout.unlocked(List.of("round_100"),99,e->true));
         assertThrows(IllegalArgumentException.class,()->TraitLoadout.unlocked(List.of("round_100"),500,e->false));
-        assertEquals(3,TraitLoadout.unlocked(List.of("round_100","round_125","enhancement_100"),500,e->true).entries().size());
+        assertEquals(2,TraitLoadout.unlocked(List.of("round_100","round_125","enhancement_100"),500,e->true).entries().size());
     }
     @Test void purchaseCeilingTiersKeepTwoUsesAndNeverCreatePrimordial() {
         var legendary=new TraitLoadout(List.of("round_250"));
@@ -31,7 +31,7 @@ class TraitTest {
         assertEquals(Rarity.MYTHIC,epic.summonedRarity(Rarity.EPIC,1));
         assertEquals(Rarity.EPIC,epic.summonedRarity(Rarity.EPIC,2));
         assertEquals(Rarity.PRIMORDIAL,epic.summonedRarity(Rarity.PRIMORDIAL,0));
-        assertThrows(IllegalArgumentException.class,()->new TraitLoadout(List.of("round_250","round_350")));
+        assertEquals(List.of("round_350"),new TraitLoadout(List.of("round_250","round_350")).passives().stream().map(TraitCatalog.Entry::id).toList());
         int extra=0;
         for(int roll=0;roll<Rarity.TOTAL_WEIGHT;roll++){
             Rarity original=Rarity.fromRoll(roll,true);
@@ -78,7 +78,7 @@ class TraitTest {
             assertThrows(IllegalArgumentException.class,()->a.rarityFromRoll(-1));
             assertThrows(IllegalArgumentException.class,()->a.rarityFromRoll(100000));
         }
-        assertThrows(IllegalArgumentException.class,()->new TraitLoadout(List.of("session_100","session_1000")));
+        assertEquals(2,new TraitLoadout(List.of("session_100","session_1000")).passives().size());
     }
     @Test void openingTargetUsesRawDrawAndEndsOnHitOrThirdSuccessWithoutPrimordialUpgrade() {
         Arena a=arena(100,"session_500","round_350");

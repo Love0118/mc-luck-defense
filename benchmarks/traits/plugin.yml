@@ -1,0 +1,5 @@
+name: SpeedAudit
+version: '1.0'
+main: dev.moma.benchmark.SpeedSmokePlugin
+api-version: '1.21'
+depend: [MCLuckDefense]

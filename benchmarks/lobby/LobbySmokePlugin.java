@@ -156,7 +156,8 @@ public final class LobbySmokePlugin extends JavaPlugin {
             firstTick=nextFirst;secondTick=nextSecond;speedChecks++;
             if(waitTicks==16) { expectedSpeed=4; speedClick(); }
             if(waitTicks==32) { expectedSpeed=8; speedClick(); }
-            if(waitTicks==48) { expectedSpeed=1; speedClick(); }
+            if(waitTicks==48) { expectedSpeed=16; speedClick(); }
+            if(waitTicks==64) { expectedSpeed=1; speedClick(); }
             verifyAttackFacing(firstSession);
             for(Enemy enemy:arena(firstSession).activeEnemies()) {
                 var entity=(org.bukkit.entity.LivingEntity)Bukkit.getEntity(enemy.entityId());
@@ -262,7 +263,7 @@ public final class LobbySmokePlugin extends JavaPlugin {
             require(fractionalGold,"Live fractional kill rewards");
             Files.writeString(Path.of("recovery-smoke-passed.json"),"{\"nearestEdge\":true,\"altitudePreserved\":true,\"facingPreserved\":true,\"flightPreserved\":true}");
             Files.writeString(Path.of("lobby-smoke-passed.json"),"{\"blockStates\":"+samples.size()+",\"clients\":3,\"sessionIsolation\":true,\"defeatReturn\":true,\"slotReuse\":true,\"victoryReturn\":true,\"dynamicArena\":true,\"spectatorReturn\":true,\"bulkSale\":true,\"facedMobTypes\":"+facedTypes+",\"actualAttackDirections\":"+checkedAttackDirections+",\"selectedEntityId\":"+selectedEntityId+",\"secondSelectedEntityId\":"+glowClearEntityId+"}");
-            Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,1],\"fGuiSpeed\":true,\"startingGold\":30,\"fractionalRewards\":"+fractionalGold+",\"oddsIcon\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
+            Files.writeString(Path.of("session-speed-smoke-passed.json"),"{\"clients\":3,\"mixedSpeedFrames\":"+speedChecks+",\"speeds\":[2,4,8,16,1],\"fGuiSpeed\":true,\"startingGold\":30,\"fractionalRewards\":"+fractionalGold+",\"oddsIcon\":true,\"saleTool\":true,\"hotbarRestored\":true,\"flightTransitions\":true,\"mobScaleTypes\":"+facedTypes+"}");
             getLogger().info("LOBBY_SMOKE_PASSED"); stage=4; Bukkit.shutdown();
             Files.writeString(Path.of("automation-smoke-passed.json"),"{\"clients\":3,\"autoSaleGui\":true,\"existingAndNewAutoSale\":true,\"bulkBuyGui\":true,\"autoPlacementGui\":true,\"physicalLayout\":true,\"sessionIsolation\":true,\"freshSessionResets\":true}");
         }

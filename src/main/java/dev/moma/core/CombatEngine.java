@@ -43,7 +43,7 @@ public final class CombatEngine {
                     };
                     if (defender.type().role() == AttackRole.MELEE_CLEAVE) target.slow(0.10 + 0.08 * level, tick + 40);
                 }
-                damage*=arena.traits().damageMultiplier(defender.type().role(),target.boss())*critical;
+                damage*=arena.damageMultiplier(defender.type().role(),target.boss())*critical;
                 double effective = Math.min(target.health(), damage);
                 target.damage(damage);
                 arena.recordDamage(defender.type().role(),effective);

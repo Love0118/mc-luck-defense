@@ -22,8 +22,12 @@ final class AchievementStats {
         data.set(key(metric),PersistentDataType.LONG,value);return value;
     }
     static long summoned(PersistentDataContainer data, Metric metric) {
+        return add(data,metric,1);
+    }
+    static long add(PersistentDataContainer data,Metric metric,long amount) {
         if(metric==Metric.ROUND)throw new IllegalArgumentException("Round is a maximum, not a summon counter");
-        long old=get(data,metric),value=old==Long.MAX_VALUE?old:old+1;
+        if(amount<0)throw new IllegalArgumentException("Negative progress");
+        long old=get(data,metric),value=old>Long.MAX_VALUE-amount?Long.MAX_VALUE:old+amount;
         data.set(key(metric),PersistentDataType.LONG,value);return value;
     }
 }

@@ -1,0 +1,9 @@
+scenario,traits,runs,mean_round,reach30,reach60,reach100,reach150,reach200,reach250,reach300,reach500,reach700
+none,,256,119.35546875,226,173,70,53,49,48,17,3,1
+gold_spent_1000,gold_spent_1000,256,135.46484375,226,173,81,65,61,59,21,8,2
+gold_spent_10000000,gold_spent_10000000,256,143.44921875,226,173,86,70,63,60,28,6,3
+duplicate_100,duplicate_100,256,120.66015625,226,173,70,52,49,49,19,4,1
+duplicate_10000,duplicate_10000,256,128.2890625,226,173,70,53,50,49,26,8,2
+all_passives,round_350+session_100+session_250+session_500+session_1000,256,159.48828125,254,236,97,79,72,70,28,6,1
+passives_duplicate,duplicate_10000+round_350+session_100+session_250+session_500+session_1000,256,166.24609375,254,236,96,80,73,70,33,9,2
+passives_spending,gold_spent_10000000+round_350+session_100+session_250+session_500+session_1000,256,200.76953125,254,236,131,99,91,87,42,21,8

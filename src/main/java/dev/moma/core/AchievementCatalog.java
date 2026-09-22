@@ -5,7 +5,7 @@ import java.util.*;
 /** Stable IDs and thresholds; counters are exact-grade lifetime counts, not inventory totals. */
 public final class AchievementCatalog {
     public enum Metric {
-        ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL, ENHANCEMENT, SESSION,
+        ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL, ENHANCEMENT, SESSION, GOLD_SPENT, DUPLICATE,
         ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET;
         public boolean role() { return name().startsWith("ROLE_"); }
         public AttackRole attackRole() { return AttackRole.valueOf(name().substring(5)); }
@@ -15,6 +15,8 @@ public final class AchievementCatalog {
             if(metric.role())return "150라운드 도달 · "+metric.attackRole().label()+" 유효 피해 비중 70% 이상";
             if(metric==Metric.ENHANCEMENT)return "누적 동일 유닛 합성 "+target+"회";
             if(metric==Metric.SESSION)return "누적 게임 시작 "+target+"회";
+            if(metric==Metric.GOLD_SPENT)return "누적 소환 골드 소모 "+target+"골드";
+            if(metric==Metric.DUPLICATE)return "누적 전설 이상 동일 기물 합성 "+target+"회";
             return metric == Metric.ROUND ? target + "라운드 도달"
                     : metric == Metric.TRUE_PRIMORDIAL ? "누적 진 태초 " + target + "회 승급"
                     : "누적 " + Rarity.valueOf(metric.name()).label() + " " + target + "회 소환";
@@ -38,6 +40,10 @@ public final class AchievementCatalog {
                 new String[]{"새로운 도전","다시 출발","도전의 습관","백 번의 출전","끊이지 않는 도전","오백 번의 결심","천 번의 재회"},100);
         add(entries, Metric.ENHANCEMENT, new long[]{100,500,2000,10000,50000},
                 new String[]{"단련의 시작","숙련된 대장장이","강화의 장인","끝없는 단련","완성된 담금질"},0);
+        add(entries, Metric.GOLD_SPENT, new long[]{1000,10000,100000,1000000,10000000},
+                new String[]{"첫 투자","전장의 투자자","황금 보급선","백만의 군자금","끝없는 군자금"},0);
+        add(entries, Metric.DUPLICATE, new long[]{100,500,2000,10000},
+                new String[]{"익숙한 전우","전우의 집결","정예의 재회","운명의 군단"},0);
         String[] roleTitles={"결투의 지휘관","전선의 지휘관","저격의 지휘관","집중 포화","전장의 폭풍","동시 제압"};
         int roleIndex=0;
         for(Metric metric:Metric.values())if(metric.role())
