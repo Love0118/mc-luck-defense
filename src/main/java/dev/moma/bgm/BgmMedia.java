@@ -32,8 +32,20 @@ public final class BgmMedia {
         if(seconds>maximum)throw new RejectedAudio("최대 "+maximum+"초까지 등록할 수 있습니다.");
     }
     private final String downloader,ffmpeg;
+    private final Path cookies;
     public BgmMedia(String downloader,String ffmpeg) { this(downloader,ffmpeg,BgmLimits.DEFAULT); }
-    public BgmMedia(String downloader,String ffmpeg,BgmLimits limits) { this.downloader=downloader;this.ffmpeg=ffmpeg;this.limits=limits; }
+    public BgmMedia(String downloader,String ffmpeg,BgmLimits limits) { this(downloader,ffmpeg,limits,null); }
+    public BgmMedia(String downloader,String ffmpeg,BgmLimits limits,Path cookies) {
+        this.downloader=downloader;this.ffmpeg=ffmpeg;this.limits=limits;this.cookies=cookies;
+    }
+    List<String> downloaderCommand(String... arguments)throws IOException {
+        List<String> command=new ArrayList<>(List.of(downloader,"--ignore-config"));
+        if(cookies!=null) {
+            if(!Files.isRegularFile(cookies) || !Files.isReadable(cookies))throw new IOException("YouTube 쿠키 파일을 읽을 수 없습니다.");
+            command.add("--cookies");command.add(cookies.toAbsolutePath().toString());
+        }
+        command.addAll(List.of(arguments));return command;
+    }
     public record Audio(Path file,String title,double seconds) {}
     public static String youtube(String input) {
         try {
@@ -53,12 +65,12 @@ public final class BgmMedia {
     public Audio download(String url,Path workspace) throws Exception {
         url=youtube(url);
         Path metadata=workspace.resolve("metadata.json");
-        run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
+        run(downloaderCommand("--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
         JsonObject info=JsonParser.parseString(Files.readString(metadata)).getAsJsonObject();
         double duration=checkedDuration(info,limits.durationSeconds());
         String title=info.get("title").getAsString().replaceAll("[\\p{Cntrl}]","");
         if(title.length()>160)title=title.substring(0,160);
-        run(List.of(downloader,"--ignore-config","--js-runtimes","node","--no-playlist","--max-filesize",Long.toString(limits.fileSizeBytes()),"--socket-timeout","20","--retries","2",
+        run(downloaderCommand("--js-runtimes","node","--no-playlist","--max-filesize",Long.toString(limits.fileSizeBytes()),"--socket-timeout","20","--retries","2",
                 "-f","bestaudio","-o",workspace.resolve("source.%(ext)s").toString(),"--",url),workspace.resolve("download.log"),Duration.ofMinutes(8));
         Path source;
         try(var files=Files.list(workspace)) { source=files.filter(p->p.getFileName().toString().startsWith("source.") && !p.toString().endsWith(".part")).findFirst().orElseThrow(()->new IOException("영상 오디오를 다운로드하지 못했습니다.")); }

@@ -96,7 +96,9 @@ final class BgmService implements Listener, AutoCloseable {
         config=new YamlConfiguration();config.loadFromString(preparedConfig==null?prepareConfiguration(plugin):preparedConfig);
         limits=BgmSettings.limits(config);if(preparedConfig==null)config.save(data.resolve("bgm.yml").toFile());
         dropbox=new DropboxBgm(config.getString("refresh-token",""),limits.fileSizeBytes());
-        media=new BgmMedia(config.getString("yt-dlp","yt-dlp"),config.getString("ffmpeg","ffmpeg"),limits);
+        String cookies=config.getString("youtube-cookies-file","").trim();
+        media=new BgmMedia(config.getString("yt-dlp","yt-dlp"),config.getString("ffmpeg","ffmpeg"),limits,
+                cookies.isEmpty()?null:data.resolve(cookies));
         worker.execute(()->{
             try {
                 try(var leftovers=Files.list(work)) {

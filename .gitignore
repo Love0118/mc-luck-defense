@@ -5,6 +5,7 @@ native/mud-combat/target/
 *.iml
 .vscode/
 .runtime/
+*cookies*.txt
 docs/simulation/**/trace-*.jsonl
 docs/simulation/validation/replay.html
 docs/simulation/auto-placement/replay.html
