@@ -52,6 +52,9 @@ class SessionSpeedTest {
         }
     }
     private List<Object> runCombat(int[] frameSpeeds,boolean boosted) {
+        return runCombat(frameSpeeds,boosted,false);
+    }
+    private List<Object> runCombat(int[] frameSpeeds,boolean boosted,boolean income) {
         World world=mock(World.class);
         try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->{
                 long[] nextId={1000};
@@ -61,14 +64,17 @@ class SessionSpeedTest {
             }); var bukkit=mockStatic(Bukkit.class)) {
             GameService games=games(world); Player player=player(world);
             bukkit.when(()->Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
-            if(boosted) {
+            if(boosted || income) {
                 var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
-                AchievementStats.reached(data,100);
+                AchievementStats.reached(data,250);
                 AchievementStats.add(data,AchievementCatalog.Metric.MYTHIC,1000);
-                TraitSelections.save(data,List.of("mythic_1000"));
+                AchievementStats.add(data,AchievementCatalog.Metric.GOLD_SPENT,10000000);
+                var ids=new ArrayList<String>();if(boosted)ids.add("mythic_1000");if(income)ids.add("gold_spent_10000000");
+                TraitSelections.save(data,ids);
             }
             games.join(player,"a"); GameSession session=games.session(player);
             assertEquals(boosted?8:0,session.arena.traits().value(TraitCatalog.Family.SPEED));
+            assertEquals(income?TraitCatalog.find("gold_spent_10000000").value():0,session.arena.traits().value(TraitCatalog.Family.GOLD_INCOME));
             when(player.getLocation()).thenReturn(new Location(world,21.99,90,10,135,-30));
             clearInvocations(player);
             session.arena.credit(1000);
@@ -102,6 +108,11 @@ class SessionSpeedTest {
             assertEquals(expected,runCombat(sixteen,boosted));
             assertEquals(expected,runCombat(changed,boosted));
         }
+    }
+    @Test void fractionalIncomeMatchesAtOneAndSixteenSpeedWithAttackSpeedBonus() {
+        int[] normal=new int[1600];Arrays.fill(normal,1);
+        int[] fast=new int[100];Arrays.fill(fast,16);
+        assertEquals(runCombat(normal,true,true),runCombat(fast,true,true));
     }
     @Test void defeatDuringAnAcceleratedFrameStopsTheRemainingStepsAndReturnsOnce() {
         World world=mock(World.class);

@@ -5,7 +5,7 @@ import dev.moma.core.AchievementCatalog.*;
 
 /** Achievement-backed rewards; equipped families use one slot and opening rewards are passive. */
 public final class TraitCatalog {
-    public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT, SPENDING_DAMAGE, DUPLICATE_ODDS }
+    public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT, SPENDING_DAMAGE, DUPLICATE_ODDS, GOLD_INCOME }
     public record Entry(String id, String name, Family family, int value, AttackRole role, Rarity purchaseCeiling, Rarity openingTarget, AchievementCatalog.Entry achievement) implements java.io.Serializable {
         public boolean passive() { return family==Family.FIRST_PURCHASE || family==Family.OPENING_ODDS; }
         public String description() {
@@ -20,7 +20,7 @@ public final class TraitCatalog {
                 case CRITICAL -> "치명타 확률 "+value+"% · 피해 1.5배";
                 case ROLE_DAMAGE -> role.label()+" 피해 +"+value+"%";
                 case ENHANCEMENT -> "강화 +1당 피해 성장 +"+value+"%p";
-                case SPENDING_DAMAGE -> "이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +"+value+"%";
+                case SPENDING_DAMAGE, GOLD_INCOME -> "적 처치 골드 +"+value+"%";
                 case DUPLICATE_ODDS -> "가장 강화수치가 높은 기물 등장확률 "+value+"%p 증가";
             };
         }
@@ -55,7 +55,7 @@ public final class TraitCatalog {
                     case TRUE_PRIMORDIAL -> {family=Family.CRITICAL;value=new int[]{10,11,12,13,14,16,18,20,22,24}[index];name="초월의 일격";}
                     case ENHANCEMENT -> {family=Family.ENHANCEMENT;value=5+index*5;name="담금질";}
                     case SESSION -> {family=Family.OPENING_ODDS;target=new Rarity[]{Rarity.NARRATIVE,Rarity.LEGENDARY,Rarity.EPIC,Rarity.MYTHIC}[index];value=4000;name="다가오는 인연 · "+target.label();}
-                    case GOLD_SPENT -> {family=Family.SPENDING_DAMAGE;value=new int[]{3,5,7,9,12}[index];name="전장의 투자";}
+                    case GOLD_SPENT -> {family=Family.GOLD_INCOME;value=new int[]{2,3,4,6,8}[index];name="전장의 투자";}
                     case DUPLICATE -> {family=Family.DUPLICATE_ODDS;value=new int[]{10,15,20,25}[index];name="전우의 재회";}
                     default -> throw new IllegalStateException(a.id());
                 }

@@ -41,6 +41,10 @@ public final class TraitLoadout implements java.io.Serializable {
         return loadout;
     }
     public List<Entry> entries() { return entries.stream().filter(e->!e.passive()).toList(); }
+    private Object readResolve() {
+        // Retain the old enum constant so pre-income snapshots can be deserialized and migrated by ID.
+        return entries.stream().anyMatch(e->e.family()==Family.SPENDING_DAMAGE)?new TraitLoadout(allIds()):this;
+    }
     public List<Entry> passives() { return entries.stream().filter(Entry::passive).toList(); }
     public List<Entry> allEntries() { return entries; }
     public List<String> allIds() { return entries.stream().map(Entry::id).toList(); }

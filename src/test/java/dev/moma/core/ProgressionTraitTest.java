@@ -25,7 +25,7 @@ class ProgressionTraitTest {
         buy(a,Rarity.EPIC);assertEquals(Rarity.MYTHIC,a.lastSummoned().rarity());assertTrue(a.openingTraitActive(Rarity.MYTHIC));
         buy(a,Rarity.COMMON);assertFalse(a.openingTraitActive());assertEquals(Rarity.MYTHIC,a.summonRarity(Rarity.MYTHIC));
     }
-    @Test void spendingCountsOnlySuccessfulChargesAndBuffIsCapped() {
+    @Test void spendingCountsOnlySuccessfulChargesWithoutIncreasingDamage() {
         Arena a=arena(20000,"gold_spent_10000000");
         var roll=new SummonRoll(UnitType.WOLF,Rarity.COMMON);
         assertThrows(IllegalStateException.class,()->a.summon(a.owner(),roll,(t,r,c)->{throw new IllegalStateException();}));
@@ -34,7 +34,7 @@ class ProgressionTraitTest {
         a.sellRarity(a.owner(),Rarity.COMMON);assertEquals(10,a.spentGold());
         a.reachedRound(101);
         for(int i=0;i<140;i++)buy(a,Rarity.LEGENDARY);
-        assertEquals(14010,a.spentGold());assertEquals(1.12,a.damageMultiplier(AttackRole.MELEE_SINGLE,true),1e-9);
+        assertEquals(14010,a.spentGold());assertEquals(1,a.damageMultiplier(AttackRole.MELEE_SINGLE,true),1e-9);
         Arena poor=arena(0,"gold_spent_1000");assertEquals(Arena.Result.INSUFFICIENT_COINS,poor.summon(poor.owner(),roll,(t,r,c)->UUID.randomUUID()));
         assertEquals(0,poor.spentGold());
     }

@@ -21,6 +21,8 @@ public final class Arena implements java.io.Serializable {
     private boolean openingTraitHit;
     private EnumSet<Rarity> openingTraitHits=EnumSet.noneOf(Rarity.class);
     private long spentGold;
+    private int incomeRemainder;
+    private boolean mergingDisabled;
     private final TraitLoadout traits;
     private final java.util.random.RandomGenerator traitRandom;
     private long purchases;
@@ -35,6 +37,12 @@ public final class Arena implements java.io.Serializable {
     public Defender lastSummoned() { return lastSummoned; }
     public TraitLoadout traits() { return traits; }
     public boolean lastPurchaseMerged() { return lastPurchaseMerged; }
+    public boolean mergingEnabled() { return !mergingDisabled; }
+    public Result toggleMerging(UUID actor) {
+        Result access=access(actor);
+        if(access==Result.OK)mergingDisabled=!mergingDisabled;
+        return access;
+    }
     public Rarity summonRarity(Rarity original) { return traits.summonedRarity(original,purchases); }
     public boolean criticalAttack() {
         int chance=traits.value(TraitCatalog.Family.CRITICAL);
@@ -119,7 +127,7 @@ public final class Arena implements java.io.Serializable {
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         if (cell == null) return Result.FULL;
         Rarity grade=summonRarity(roll.rarity());
-        Defender duplicate=defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null);
+        Defender duplicate=mergingEnabled()?defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null):null;
         if(duplicate!=null) {
             duplicate.merge(roll.rarity().salePrice().orElse(0));
             Defender match;
@@ -150,7 +158,7 @@ public final class Arena implements java.io.Serializable {
     }
     public long spentGold() { return spentGold; }
     public double damageMultiplier(AttackRole role,boolean boss) {
-        return traits.damageMultiplier(role,boss)+Math.min(traits.value(TraitCatalog.Family.SPENDING_DAMAGE),spentGold/1000)/100.0;
+        return traits.damageMultiplier(role,boss);
     }
     public UnitType summonType(UnitType original,Rarity rawGrade) {
         int chance=traits.value(TraitCatalog.Family.DUPLICATE_ODDS);
@@ -239,6 +247,11 @@ public final class Arena implements java.io.Serializable {
             Enemy enemy = iterator.next();
             if (!enemy.alive()) {
                 long reward = enemy.claimRewardUnits();
+                int bonus=traits.value(TraitCatalog.Family.GOLD_INCOME);
+                long fraction=(reward%100)*bonus+incomeRemainder;
+                long extra=Math.addExact(Math.multiplyExact(reward/100,bonus),fraction/100);
+                incomeRemainder=(int)(fraction%100);
+                reward=Math.addExact(reward,extra);
                 coinUnits = Math.addExact(coinUnits, reward);
                 earnedUnits = Math.addExact(earnedUnits, reward);
                 dead.add(enemy.entityId());

@@ -10,7 +10,7 @@ import java.util.*;
 
 final class ShopMenu implements Listener {
     private static final int SUMMON = 11, DETAILS = 13, SELL = 15, AUTO_SELL_FIRST = 19,
-            SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6;
+            SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6, AUTO_MERGE = 7;
     private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
     private final GameService games;
@@ -41,6 +41,9 @@ final class ShopMenu implements Listener {
         holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
                 "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 16 → 1배"));
         holder.inventory.setItem(ODDS, oddsItem(arena));
+        holder.inventory.setItem(AUTO_MERGE, item(arena.mergingEnabled()?Material.ANVIL:Material.CHIPPED_ANVIL,
+                "&b강화 합성 &7· "+(arena.mergingEnabled()?"&aON":"&cOFF"),
+                "클릭하여 "+(arena.mergingEnabled()?"끄기":"켜기")));
         holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &6" + arena.summonCost() + "골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
         boolean buying = holder.session.bulkBuying, layout = holder.session.autoPlacement;
@@ -130,7 +133,7 @@ final class ShopMenu implements Listener {
         if (session == null || session.arena != holder.arena || session.arena.ended()) return;
         if (event.getClick() != ClickType.LEFT || holder.consumed || Bukkit.getCurrentTick() < nextClick.getOrDefault(holder.owner, 0)) return;
         int slot = event.getRawSlot();
-        if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT
+        if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT && slot != AUTO_MERGE
                 && (slot < AUTO_SELL_FIRST || slot >= AUTO_SELL_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
@@ -139,6 +142,7 @@ final class ShopMenu implements Listener {
         else if (slot == SPEED) games.speed(player, session.speed() == 16 ? 1 : session.speed() * 2);
         else if (slot == BULK_BUY) games.toggleBulkBuy(player);
         else if (slot == AUTO_LAYOUT) games.toggleAutoPlacement(player);
+        else if (slot == AUTO_MERGE) games.toggleMerging(player);
         else games.toggleAutoSell(player, SELLABLE[slot-AUTO_SELL_FIRST]);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (games.session(player) == session && player.getOpenInventory().getTopInventory() == holder.inventory) {

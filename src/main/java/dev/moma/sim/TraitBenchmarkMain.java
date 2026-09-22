@@ -28,7 +28,7 @@ public final class TraitBenchmarkMain {
         var duplicate=new ArrayList<>(passives);duplicate.add("duplicate_10000");
         scenarios.put("passives_duplicate",new TraitLoadout(duplicate));
         var investor=new ArrayList<>(passives);investor.add("gold_spent_10000000");
-        scenarios.put("passives_spending",new TraitLoadout(investor));
+        scenarios.put("passives_income",new TraitLoadout(investor));
         if(args.length>4) {
             Set<String> selected=new LinkedHashSet<>(List.of(args[4].split(",")));
             if(!scenarios.keySet().containsAll(selected))throw new IllegalArgumentException("Unknown scenario");

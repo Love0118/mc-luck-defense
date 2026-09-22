@@ -355,6 +355,10 @@ final class GameService {
         session.layoutDirty = session.autoPlacement;
         Ui.sound(player, Ui.Cue.CLICK);
     }
+    void toggleMerging(Player player) {
+        GameSession session=session(player);
+        if(session!=null && session.arena.toggleMerging(player.getUniqueId())==Arena.Result.OK)Ui.sound(player,Ui.Cue.CLICK);
+    }
     void toggleBulkBuy(Player player) {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) return;

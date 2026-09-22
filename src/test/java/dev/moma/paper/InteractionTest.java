@@ -185,6 +185,42 @@ class InteractionTest {
             }
         }
     }
+    @Test void mergeButtonTogglesOnceWithFeedbackAndRejectsForeignOrStaleClicks() {
+        ShopMenu actualShop=new ShopMenu(plugin,games);World world=mock(World.class);
+        when(player.getLocation()).thenReturn(new Location(world,0,70,0));when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
+        GameSession session=new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
+        doReturn(session).when(games).session(player);
+        Inventory inventory=mock(Inventory.class);InventoryView view=mock(InventoryView.class);
+        when(view.getTopInventory()).thenReturn(inventory);when(player.getOpenInventory()).thenReturn(view);
+        var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);var tasks=new ArrayList<Runnable>();
+        when(scheduler.runTaskLater(eq(plugin),any(Runnable.class),eq(1L))).thenAnswer(call->{tasks.add(call.getArgument(1));return null;});
+        int[] tick={10};
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenAnswer(call->tick[0]);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(27),any(net.kyori.adventure.text.Component.class)))
+                    .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
+            var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
+            try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {
+                actualShop.open(player);verify(inventory).setItem(eq(7),any(ItemStack.class));
+                var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
+                when(event.getRawSlot()).thenReturn(7);when(event.getClick()).thenReturn(ClickType.SHIFT_LEFT);
+                actualShop.click(event);assertTrue(session.arena.mergingEnabled());
+                when(event.getClick()).thenReturn(ClickType.LEFT);when(event.getRawSlot()).thenReturn(34);
+                actualShop.click(event);assertTrue(session.arena.mergingEnabled());
+                Player stranger=mock(Player.class);when(stranger.getUniqueId()).thenReturn(UUID.randomUUID());
+                when(event.getRawSlot()).thenReturn(7);when(event.getWhoClicked()).thenReturn(stranger);
+                actualShop.click(event);assertTrue(session.arena.mergingEnabled());
+                when(event.getWhoClicked()).thenReturn(player);
+                for(boolean expected:new boolean[]{false,true}) {
+                    actualShop.click(event);actualShop.click(event);assertEquals(expected,session.arena.mergingEnabled());
+                    tick[0]++;tasks.removeFirst().run();
+                }
+                verify(player,times(2)).playSound(any(Location.class),eq(Ui.Cue.CLICK.sound),eq(SoundCategory.MASTER),eq(Ui.Cue.CLICK.volume),eq(Ui.Cue.CLICK.pitch));
+                doReturn(new GameSession(player,session.map,CampaignRules.standard())).when(games).session(player);
+                actualShop.click(event);verify(games,times(2)).toggleMerging(player);
+            }
+        }
+    }
     @Test void viewerBedUsesMainHandOnceAndBlocksOtherInteractions() {
         doReturn(true).when(games).watching(player);
         doReturn(true).when(games).usingLeaveTool(player);
