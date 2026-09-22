@@ -48,6 +48,23 @@ Fabric은 15:20:09, Paper는 15:20:18에 시작 완료 로그를 남겼다. 이 
 
 재발 방지로 [needrestart 설정](../scripts/needrestart-minecraft.conf)을 `/etc/needrestart/conf.d/99-minecraft.conf`에 설치했다. `override_rc`에서 Paper·Fabric·Velocity 세 서비스의 자동 재시작만 보류한다. 보안 패키지 업데이트와 다른 서비스 정책은 유지하며, 향후 Java·공유 라이브러리 업데이트는 계획된 점검 시간에 게임 서버를 재시작하여 적용한다. 실제 전체 needrestart 설정을 파싱하고 세 서비스에만 정확히 보류 규칙이 매칭되는지 검증했다.
 
+### 접속자 없는 시간의 자동 업데이트
+
+이후 사용자 요청으로 수동 점검 대기 정책을 **Paper와 Fabric 모두 접속자 0명일 때만 자동 설치**하도록 확장했다. `apt-daily-upgrade.timer`는 15분 간격에 최대 2분의 지연을 더해 확인한다. 마지막 정상 unattended 업그레이드로부터 24시간이 지나야 설치를 시도한다. 패키지 목록 갱신·미리 다운로드하는 `apt-daily.service`는 그대로 유지한다.
+
+- [관리 스크립트](../scripts/maintenance/minecraft_idle_upgrade.py): `/usr/local/sbin/minecraft-idle-upgrade`
+- [서비스 설정](../scripts/maintenance/apt-daily-upgrade-service.conf): `/etc/systemd/system/apt-daily-upgrade.service.d/90-minecraft-idle.conf`
+- [타이머 설정](../scripts/maintenance/apt-daily-upgrade-timer.conf): `/etc/systemd/system/apt-daily-upgrade.timer.d/90-minecraft-idle.conf`
+- [재시작 정책](../scripts/needrestart-minecraft.conf): `/etc/needrestart/conf.d/99-minecraft.conf`
+
+Paper `10.0.0.217:25566`, Fabric `127.0.0.1:25566`의 로컬 서버 상태 프로토콜로 인원수를 확인한다. 한 명이라도 있거나 응답 실패·잘못된 응답이면 설치를 보류한다. RCON 활성화나 비밀번호가 필요하지 않다.
+
+0명 확인 후 별도 nftables 테이블 `inet minecraft_idle_upgrade`로 외부의 신규 게임 TCP 연결(25565·25566·25569)을 잠시 막는다. SSH와 기존 연결에는 해당 규칙을 적용하지 않는다. 5초 뒤 인원수를 다시 확인하고 로그인 진행 중 TCP 연결까지 없을 때만 APT 설치를 실행한다. 이 기간에만 root 전용 `/run/minecraft-idle-upgrade/allow-restarts` 파일을 통해 세 게임 서비스의 needrestart 재시작을 허용한다. 완료·실패 시 스크립트의 정리 처리와 systemd `ExecStopPost`가 허용 파일·임시 방화벽 테이블을 제거한다. 빈 서버를 확인할 수 없는 장애 상황에서도 업데이트를 강행하지 않는다. OS 자동 재부팅은 기존처럼 비활성 상태다.
+
+검증: Windows와 실제 Semion에서 Python 검사 8개 통과. 서버 상태 패킷 분할 수신, 잘못된 인원 값, 24시간 경계, 접속자 유무, 검사 중 신규 접속, 성공·실패·예외 정리를 확인했다. nftables는 적용 없이 문법 검사했고 systemd 설정 검사도 통과했다. 실제 조회는 Paper 3명/Fabric 0명으로 보류됐으며, 당일 설치 완료 상태에서는 실행 경로가 APT를 호출하지 않는 것도 확인했다. 게임 서버 PID는 바뀌지 않았고, 검증 목적으로 실제 업그레이드나 임시 접속 차단을 실행하지 않았다.
+
+수동 상태 확인: `sudo /usr/local/sbin/minecraft-idle-upgrade check`. 예약·로그는 `systemctl list-timers apt-daily-upgrade.timer`와 `journalctl -u apt-daily-upgrade.service`로 확인한다. 자동 설치 중인 APT를 강제 종료하지 말고 완료를 기다린다. 업데이트 패키지 설치 후 필요한 재시작이 일어나므로 유지보수 중에는 게임 접속이 잠시 제한된다.
+
 일반적인 플러그인 업데이트는 관리자 **`/mud update` 한 번**으로 진행한다. GitHub의 테스트를 통과한 beta JAR 다운로드 → 해시·버전·커밋 검사 → 세션 호환성 검사 → 안전 리로드가 포함되며, 수동 파일 복사가 필요하지 않다. 명령은 설치된 0.17.0 로더에 이미 포함되어 있다.
 
 2026-09-22 확인 시 semion에 수동으로 준비했던 0.17.2 중복 JAR는 `/home/ubuntu/mc-luck-defense-deploy/manual-staging-backup`으로 보관 이동했다. 이후 새 beta 배포와 수동 예정 파일의 충돌을 피하기 위한 조치다. 서버 재시작이나 라이브 리로드는 실행하지 않았다. 로컬 Windows의 최초 설치용 update 파일은 유지한다.

@@ -5,6 +5,7 @@ native/mud-combat/target/
 *.iml
 .vscode/
 .runtime/
+__pycache__/
 *cookies*.txt
 docs/simulation/**/trace-*.jsonl
 docs/simulation/validation/replay.html
