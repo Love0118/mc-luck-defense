@@ -1,0 +1,72 @@
+id	family	value	description
+round_100	START_GOLD	10	시작 골드 +10
+round_125	FIRST_PURCHASE	1	첫 성공 구매 · 전설 이하 등급 +1
+round_150	START_GOLD	15	시작 골드 +15
+round_200	DAMAGE	4	모든 아군 피해 +4%
+round_250	FIRST_PURCHASE	2	처음 2번 성공 구매 · 전설 이하 등급 +1
+round_300	DAMAGE	5	모든 아군 피해 +5%
+round_350	FIRST_PURCHASE	2	처음 2번 성공 구매 · 에픽 이하 등급 +1
+round_400	START_GOLD	20	시작 골드 +20
+round_500	DAMAGE	6	모든 아군 피해 +6%
+round_600	DAMAGE	7	모든 아군 피해 +7%
+round_700	DAMAGE	8	모든 아군 피해 +8%
+round_750	START_GOLD	25	시작 골드 +25
+round_1000	DAMAGE	9	모든 아군 피해 +9%
+round_1500	DAMAGE	10	모든 아군 피해 +10%
+round_2000	DAMAGE	12	모든 아군 피해 +12%
+epic_100	NORMAL_DAMAGE	2	일반 적 피해 +2%
+epic_250	NORMAL_DAMAGE	4	일반 적 피해 +4%
+epic_500	NORMAL_DAMAGE	6	일반 적 피해 +6%
+epic_1000	NORMAL_DAMAGE	8	일반 적 피해 +8%
+epic_2500	NORMAL_DAMAGE	10	일반 적 피해 +10%
+mythic_10	SPEED	2	공격속도 +2%
+mythic_25	SPEED	3	공격속도 +3%
+mythic_50	SPEED	4	공격속도 +4%
+mythic_100	SPEED	5	공격속도 +5%
+mythic_250	SPEED	6	공격속도 +6%
+mythic_500	SPEED	7	공격속도 +7%
+mythic_1000	SPEED	8	공격속도 +8%
+primordial_1	BOSS_DAMAGE	6	보스 피해 +6%
+primordial_2	BOSS_DAMAGE	8	보스 피해 +8%
+primordial_3	BOSS_DAMAGE	10	보스 피해 +10%
+primordial_5	BOSS_DAMAGE	12	보스 피해 +12%
+primordial_10	BOSS_DAMAGE	14	보스 피해 +14%
+primordial_20	BOSS_DAMAGE	16	보스 피해 +16%
+primordial_30	BOSS_DAMAGE	18	보스 피해 +18%
+primordial_50	BOSS_DAMAGE	20	보스 피해 +20%
+primordial_75	BOSS_DAMAGE	22	보스 피해 +22%
+primordial_100	BOSS_DAMAGE	24	보스 피해 +24%
+true_primordial_1	CRITICAL	10	치명타 확률 10% · 피해 1.5배
+true_primordial_2	CRITICAL	11	치명타 확률 11% · 피해 1.5배
+true_primordial_3	CRITICAL	12	치명타 확률 12% · 피해 1.5배
+true_primordial_5	CRITICAL	13	치명타 확률 13% · 피해 1.5배
+true_primordial_10	CRITICAL	14	치명타 확률 14% · 피해 1.5배
+true_primordial_20	CRITICAL	16	치명타 확률 16% · 피해 1.5배
+true_primordial_30	CRITICAL	18	치명타 확률 18% · 피해 1.5배
+true_primordial_50	CRITICAL	20	치명타 확률 20% · 피해 1.5배
+true_primordial_75	CRITICAL	22	치명타 확률 22% · 피해 1.5배
+true_primordial_100	CRITICAL	24	치명타 확률 24% · 피해 1.5배
+enhancement_100	ENHANCEMENT	5	강화 +1당 피해 성장 +5%p
+enhancement_500	ENHANCEMENT	10	강화 +1당 피해 성장 +10%p
+enhancement_2000	ENHANCEMENT	15	강화 +1당 피해 성장 +15%p
+enhancement_10000	ENHANCEMENT	20	강화 +1당 피해 성장 +20%p
+enhancement_50000	ENHANCEMENT	25	강화 +1당 피해 성장 +25%p
+session_100	OPENING_ODDS	4000	첫 3회 구매 · 서사 확률 4% · 획득 시 종료
+session_250	OPENING_ODDS	4000	첫 3회 구매 · 전설 확률 4% · 획득 시 종료
+session_500	OPENING_ODDS	4000	첫 3회 구매 · 에픽 확률 4% · 획득 시 종료
+session_1000	OPENING_ODDS	4000	첫 3회 구매 · 신화 확률 4% · 획득 시 종료
+gold_spent_1000	SPENDING_DAMAGE	3	이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +3%
+gold_spent_10000	SPENDING_DAMAGE	5	이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +5%
+gold_spent_100000	SPENDING_DAMAGE	7	이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +7%
+gold_spent_1000000	SPENDING_DAMAGE	9	이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +9%
+gold_spent_10000000	SPENDING_DAMAGE	12	이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +12%
+duplicate_100	DUPLICATE_ODDS	10	전설 이상 · 같은 등급 최고 강화 1종에 10% 배정 · 나머지 확률은 전체 종류가 균등 공유
+duplicate_500	DUPLICATE_ODDS	15	전설 이상 · 같은 등급 최고 강화 1종에 15% 배정 · 나머지 확률은 전체 종류가 균등 공유
+duplicate_2000	DUPLICATE_ODDS	20	전설 이상 · 같은 등급 최고 강화 1종에 20% 배정 · 나머지 확률은 전체 종류가 균등 공유
+duplicate_10000	DUPLICATE_ODDS	25	전설 이상 · 같은 등급 최고 강화 1종에 25% 배정 · 나머지 확률은 전체 종류가 균등 공유
+role_melee_single_150	ROLE_DAMAGE	12	근거리 · 단일 피해 +12%
+role_melee_cleave_150	ROLE_DAMAGE	12	근거리 · 광역 피해 +12%
+role_ranged_single_150	ROLE_DAMAGE	12	원거리 · 단일 피해 +12%
+role_small_area_150	ROLE_DAMAGE	12	원거리 · 준광역 피해 +12%
+role_large_area_150	ROLE_DAMAGE	12	원거리 · 대광역 피해 +12%
+role_multi_target_150	ROLE_DAMAGE	12	원거리 · 다중 피해 +12%

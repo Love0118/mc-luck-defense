@@ -46,7 +46,7 @@ class ProgressionTraitTest {
         assertEquals(UnitType.PANDA,boosted.summonType(UnitType.PANDA,Rarity.MYTHIC));
         int wolves=0;
         for(int i=0;i<100000;i++)if(boosted.summonType(UnitType.PANDA,Rarity.PRIMORDIAL)==UnitType.WOLF)wolves++;
-        assertEquals(15000,wolves,500);
+        assertEquals(25000,wolves,500);
         boosted.sellRarity(boosted.owner(),Rarity.PRIMORDIAL); // unsellable; the owned pool remains
         assertEquals(1,boosted.defenderCount());
     }
@@ -62,5 +62,35 @@ class ProgressionTraitTest {
         for(int i=0;i<3;i++)a.summon(a.owner(),new SummonRoll(UnitType.PANDA,Rarity.PRIMORDIAL),(t,r,c)->UUID.randomUUID());
         assertEquals(UnitType.PANDA,a.summonType(UnitType.WOLF,Rarity.PRIMORDIAL));
         assertEquals(UnitType.WOLF,a.summonType(UnitType.WOLF,Rarity.MYTHIC));
+    }
+    @Test void singleTargetGetsBonusPlusItsShareOfTheRemainingPoolAtEveryTier() {
+        String[] ids={"duplicate_100","duplicate_500","duplicate_2000","duplicate_10000"};
+        int[] bonuses={10,15,20,25},roll={0};
+        var random=new java.util.random.RandomGenerator() {
+            public long nextLong(){throw new AssertionError();}
+            public int nextInt(int bound){assertEquals(100,bound);return roll[0];}
+        };
+        for(int tier=0;tier<ids.length;tier++) {
+            Arena a=new Arena("a",new UUID(0,1),new Grid(6),100,100,new TraitLoadout(List.of(ids[tier])),random);
+            buy(a,Rarity.PRIMORDIAL);
+            a.summon(a.owner(),new SummonRoll(UnitType.PANDA,Rarity.PRIMORDIAL),(t,r,c)->UUID.randomUUID());
+            int[] counts=new int[UnitType.values().length];
+            for(roll[0]=0;roll[0]<100;roll[0]++)for(UnitType original:UnitType.values())counts[a.summonType(original,Rarity.PRIMORDIAL).ordinal()]++;
+            assertEquals(2400,Arrays.stream(counts).sum());
+            for(UnitType type:UnitType.values())assertEquals(type==UnitType.WOLF?100+23*bonuses[tier]:100-bonuses[tier],counts[type.ordinal()]);
+            roll[0]=0;
+            a.summon(a.owner(),new SummonRoll(UnitType.PANDA,Rarity.PRIMORDIAL),(t,r,c)->UUID.randomUUID());
+            assertEquals(UnitType.PANDA,a.summonType(UnitType.WOLF,Rarity.PRIMORDIAL));
+        }
+    }
+    @Test void epicPromotionPassiveUpgradesEveryLowerGradeForTheFirstTwoPurchases() {
+        var traits=new TraitLoadout(List.of("round_125","round_250","round_350"));
+        assertEquals(1,traits.passives().size());
+        for(Rarity grade:Rarity.values()) {
+            Rarity expected=grade.ordinal()<=Rarity.EPIC.ordinal()?Rarity.values()[grade.ordinal()+1]:grade;
+            assertEquals(expected,traits.summonedRarity(grade,0));
+            assertEquals(expected,traits.summonedRarity(grade,1));
+            assertEquals(grade,traits.summonedRarity(grade,2));
+        }
     }
 }

@@ -157,14 +157,11 @@ public final class Arena implements java.io.Serializable {
         if(chance==0)return original;
         Rarity grade=summonRarity(rawGrade);
         if(grade.ordinal()<Rarity.LEGENDARY.ordinal())return original;
-        var owned=EnumSet.noneOf(UnitType.class);
-        int highest=-1;
-        for(Defender d:defenders.values())if(d.rarity()==grade) {
-            if(d.enhancement()>highest){highest=d.enhancement();owned.clear();}
-            if(d.enhancement()==highest)owned.add(d.type());
-        }
-        if(owned.isEmpty() || traitRandom.nextInt(100)>=chance)return original;
-        return owned.stream().skip(traitRandom.nextInt(owned.size())).findFirst().orElseThrow();
+        Defender target=null;
+        // Equal enhancements keep the first acquired tower as the single bonus recipient.
+        for(Defender d:defenders.values())if(d.rarity()==grade && (target==null || d.enhancement()>target.enhancement()))target=d;
+        // The original draw contributes (100-chance)/24 to every type, including the target.
+        return target!=null && traitRandom.nextInt(100)<chance?target.type():original;
     }
     private Defender matchingOther(Defender unit) {
         return defenders.values().stream().filter(d->d!=unit && d.type()==unit.type() && d.rarity()==unit.rarity()).findFirst().orElse(null);

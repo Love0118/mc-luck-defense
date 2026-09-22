@@ -1,0 +1,8 @@
+scenario,traits,runs,mean_round,reach30,reach60,reach100,reach150,reach200,reach250,reach300,reach500,reach700
+none,,256,119.35546875,226,173,70,53,49,48,17,3,1
+duplicate_100,duplicate_100,256,121.64453125,226,173,69,50,47,46,19,6,1
+duplicate_500,duplicate_500,256,123.46484375,226,173,69,51,48,47,21,5,2
+duplicate_2000,duplicate_2000,256,123.921875,226,173,69,51,49,48,19,6,3
+duplicate_10000,duplicate_10000,256,128.8828125,226,173,69,51,49,47,23,10,5
+all_passives,round_350+session_100+session_250+session_500+session_1000,256,159.48828125,254,236,97,79,72,70,28,6,1
+passives_duplicate,duplicate_10000+round_350+session_100+session_250+session_500+session_1000,256,168.70703125,254,236,99,82,72,69,30,12,6

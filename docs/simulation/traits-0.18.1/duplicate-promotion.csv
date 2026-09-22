@@ -1,0 +1,6 @@
+trait,runs,mean_primordial_arrivals,p50,p95
+none,2000,315.328,318,367
+duplicate_100,2000,140.8785,139,192
+duplicate_500,2000,106.3005,105,141
+duplicate_2000,2000,86.002,86,114
+duplicate_10000,2000,72.057,72,96
