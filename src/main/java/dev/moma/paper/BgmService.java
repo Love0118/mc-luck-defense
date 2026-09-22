@@ -49,6 +49,8 @@ final class BgmService implements Listener, AutoCloseable {
     private static final class Playback implements java.io.Serializable {
         private static final long serialVersionUID=1L;
         UUID session;String lastCue,currentSound,continuousTrack,observedTrack;boolean readyNotified,migrationNotified;
+        long segmentEndsNanos;
+        int segmentIndex;
         final Map<UUID,PackState> packs=new LinkedHashMap<>();
         final Set<UUID> required=new HashSet<>();
     }
@@ -379,16 +381,34 @@ final class BgmService implements Listener, AutoCloseable {
                 continue;
             }
             String cueId=timeline.revision()+":"+cue.identity();
+            if(state.lastCue!=null && trackId.equals(state.observedTrack)) {
+                if(state.segmentEndsNanos==0) {
+                    // A snapshot from before segment deadlines resumes at its next timeline boundary.
+                    state.segmentIndex=cue.segment();
+                    state.segmentEndsNanos=nowNanos+(BgmTimeline.SEGMENT_MILLIS-cue.lateMillis())*1_000_000;
+                }
+                if(nowNanos<state.segmentEndsNanos)continue;
+                int next=Math.max(state.segmentIndex+1,cue.segment());
+                if(next*BgmTimeline.SEGMENT_MILLIS>=Math.round(cue.track().seconds()*1000))continue;
+                playSegment(player,state,cue.track(),trackId,next,nowNanos);
+                continue;
+            }
             if(!cueId.equals(state.lastCue)) {
                 silence(player,state);
                 state.observedTrack=trackId;
-                // Do not replay a past section when a pack finishes loading or the server stalls.
+                // Align a new listener at a boundary; established playback must not skip late clips.
                 if(cue.lateMillis()>150)continue;
-                player.playSound(net.kyori.adventure.sound.Sound.sound(net.kyori.adventure.key.Key.key(cue.sound()),net.kyori.adventure.sound.Sound.Source.RECORD,1f,1f),net.kyori.adventure.sound.Sound.Emitter.self());
-                state.lastCue=cueId;state.currentSound=cue.sound();
+                playSegment(player,state,cue.track(),trackId,cue.segment(),nowNanos);
             }
         }
         timelines.keySet().retainAll(liveSessions);
+    }
+    private void playSegment(Player player,Playback state,Track track,String trackId,int segment,long nowNanos) {
+        String sound=track.segmentSound(segment);
+        player.playSound(net.kyori.adventure.sound.Sound.sound(net.kyori.adventure.key.Key.key(sound),net.kyori.adventure.sound.Sound.Source.RECORD,1f,1f),net.kyori.adventure.sound.Sound.Emitter.self());
+        state.lastCue=trackId+":"+segment;state.currentSound=sound;state.observedTrack=trackId;state.segmentIndex=segment;
+        long duration=Math.min(BgmTimeline.SEGMENT_MILLIS,Math.round(track.seconds()*1000)-segment*BgmTimeline.SEGMENT_MILLIS);
+        state.segmentEndsNanos=nowNanos+duration*1_000_000;
     }
     private boolean loaded(Player player,UUID pack) {
         Playback state=playback.get(player.getUniqueId());PackState value=state==null?null:state.packs.get(pack);
@@ -398,6 +418,7 @@ final class BgmService implements Listener, AutoCloseable {
         if(state==null)return;
         if(state.currentSound!=null)player.stopSound(state.currentSound,SoundCategory.RECORDS);
         state.currentSound=null;state.lastCue=null;state.continuousTrack=null;state.observedTrack=null;
+        state.segmentEndsNanos=0;state.segmentIndex=0;
     }
     void stop(Player player) {
         Playback state=playback.get(player.getUniqueId());if(state==null)return;

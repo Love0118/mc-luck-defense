@@ -64,6 +64,50 @@ class BgmServiceTest {
             }
         }
     }
+    @Test void lateSegmentTicksDoNotDropClipsOrCutPreviousPlaybackAndDeadlinesSurviveReload()throws Exception {
+        Files.writeString(temp.resolve("bgm.yml"),"refresh-token: ''");
+        var plugin=mock(MomaPlugin.class);when(plugin.getDataFolder()).thenReturn(temp.toFile());when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
+        World world=mock(World.class);Player owner=player(world),viewer=player(world);var games=mock(GameService.class);
+        var session=new GameSession(owner,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
+        when(games.listeningSession(owner)).thenReturn(session);when(games.listeningSession(viewer)).thenReturn(session);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,viewer));long[] now={0};
+            try(var service=new BgmService(plugin,games,()->now[0])) {
+                var initialized=BgmService.class.getDeclaredField("catalogLoaded");initialized.setAccessible(true);
+                long end=System.nanoTime()+5_000_000_000L;while(!(boolean)initialized.get(service) && System.nanoTime()<end)Thread.sleep(10);
+                assertTrue((boolean)initialized.get(service));
+                Track track=new Track("default",new UUID(0,0),"server","song","","https://www.dropbox.com/a?dl=1","a".repeat(40),11.3);
+                var catalog=BgmService.class.getDeclaredField("tracks");catalog.setAccessible(true);catalog.set(service,List.of(track));
+                var tick=BgmService.class.getDeclaredMethod("tick");tick.setAccessible(true);tick.invoke(service);
+                service.packStatus(new PlayerResourcePackStatusEvent(owner,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));tick.invoke(service);
+                now[0]=1_000_000_000L;service.packStatus(new PlayerResourcePackStatusEvent(viewer,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));tick.invoke(service);
+                now[0]=2_000_000_000L;tick.invoke(service);
+                verify(viewer).playSound(argThat(s->s.name().asString().equals(track.segmentSound(1))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=4_400_000_000L;tick.invoke(service);tick.invoke(service);
+                verify(viewer,times(1)).playSound(argThat(s->s.name().asString().equals(track.segmentSound(2))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=6_000_000_000L;tick.invoke(service);
+                verify(viewer,never()).playSound(argThat(s->s.name().asString().equals(track.segmentSound(3))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=6_400_000_000L;tick.invoke(service);
+                verify(viewer).playSound(argThat(s->s.name().asString().equals(track.segmentSound(3))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                var bytes=new java.io.ByteArrayOutputStream();
+                try(var output=new java.io.ObjectOutputStream(bytes)){output.writeObject(service.saveState());}
+                try(var input=new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes.toByteArray()))){service.restoreState((BgmService.Saved)input.readObject());}
+                now[0]=8_000_000_000L;tick.invoke(service);
+                verify(viewer,never()).playSound(argThat(s->s.name().asString().equals(track.segmentSound(4))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=8_400_000_000L;tick.invoke(service);
+                verify(viewer).playSound(argThat(s->s.name().asString().equals(track.segmentSound(4))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=10_600_000_000L;tick.invoke(service);
+                verify(viewer).playSound(argThat(s->s.name().asString().equals(track.segmentSound(5))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                verify(viewer,never()).stopSound(anyString(),any(SoundCategory.class));
+                now[0]=11_800_000_000L;tick.invoke(service);
+                verify(viewer).stopSound(track.segmentSound(5),SoundCategory.RECORDS);
+                verify(viewer).playSound(argThat(s->s.name().asString().equals(track.sound())),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                now[0]=14_200_000_000L;tick.invoke(service);
+                verify(viewer,times(6)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+            }
+        }
+    }
     @Test void oldPackIsRebuiltEvenWhenItsDownloadUrlIsHealthyAndClientsRequestTheNewHash()throws Exception {
         Files.writeString(temp.resolve("bgm.yml"),"refresh-token: ''");UUID ownerId=UUID.randomUUID();
         Track old=new Track("old_song",ownerId,"owner","old","https://www.youtube.com/watch?v=abcdefghijk","https://www.dropbox.com/old?dl=1","b".repeat(40),8,2);
