@@ -1,9 +1,6 @@
 # OAuth app credentials are built in; this file holds only your account authorization.
 refresh-token: ''
 yt-dlp: 'yt-dlp'
-# Optional Netscape cookie file; absolute path or relative to the plugin data folder.
-# Store the file privately outside Git; only its path belongs in this configuration.
-youtube-cookies-file: ''
 ffmpeg: 'ffmpeg'
 default-duration-seconds: 110.82
 health-check-minutes: 30
