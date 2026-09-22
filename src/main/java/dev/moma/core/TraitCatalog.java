@@ -3,7 +3,7 @@ package dev.moma.core;
 import java.util.*;
 import dev.moma.core.AchievementCatalog.*;
 
-/** Every reward uses its achievement ID; a family occupies at most one loadout slot. */
+/** Achievement-backed rewards; equipped families use one slot and opening rewards are passive. */
 public final class TraitCatalog {
     public enum Family { START_GOLD, FIRST_PURCHASE, OPENING_ODDS, DAMAGE, NORMAL_DAMAGE, SPEED, BOSS_DAMAGE, CRITICAL, ROLE_DAMAGE, ENHANCEMENT, SPENDING_DAMAGE, DUPLICATE_ODDS }
     public record Entry(String id, String name, Family family, int value, AttackRole role, Rarity purchaseCeiling, Rarity openingTarget, AchievementCatalog.Entry achievement) implements java.io.Serializable {
