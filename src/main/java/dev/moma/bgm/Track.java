@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public record Track(String id, UUID uploader, String uploaderName, String title, String youtubeUrl,
                     String deliveryUrl, String sha1, double seconds, int packVersion) implements java.io.Serializable {
-    public static final int CURRENT_PACK_VERSION = 2;
+    public static final int CURRENT_PACK_VERSION = 3;
     public Track(String id, UUID uploader, String uploaderName, String title, String youtubeUrl,
                  String deliveryUrl, String sha1, double seconds) {
         this(id,uploader,uploaderName,title,youtubeUrl,deliveryUrl,sha1,seconds,CURRENT_PACK_VERSION);

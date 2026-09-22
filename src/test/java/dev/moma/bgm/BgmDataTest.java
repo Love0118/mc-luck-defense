@@ -34,9 +34,9 @@ class BgmDataTest {
         assertThrows(BgmMedia.RejectedAudio.class,()->media.convert(temp.resolve("absent"),temp,"long",11));
         assertThrows(BgmMedia.RejectedAudio.class,()->media.synchronizedPack("long",temp.resolve("absent"),11,temp));
         Path audio=temp.resolve("a.ogg");Files.write(audio,new byte[]{1,2,3});
-        Path zip=BgmMedia.pack("a",List.of(audio),temp,10000);long size=Files.size(zip);
-        BgmMedia.pack("a",List.of(audio),temp,size);
-        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.pack("a",List.of(audio),temp,size-1));
+        Path zip=BgmMedia.pack("a",audio,List.of(audio),temp,10000);long size=Files.size(zip);
+        BgmMedia.pack("a",audio,List.of(audio),temp,size);
+        assertThrows(BgmMedia.RejectedAudio.class,()->BgmMedia.pack("a",audio,List.of(audio),temp,size-1));
     }
     @Test void configuredUploadLimitSurvivesRestartAndLoweringStillAllowsRepair()throws Exception {
         UUID owner=UUID.randomUUID();Path file=temp.resolve("custom.db");
@@ -82,8 +82,8 @@ class BgmDataTest {
         try(var zip=new ZipFile(archive.toFile())) {
             assertEquals(3,zip.size());
             var sounds=JsonParser.parseString(new String(zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds.json")).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-            assertTrue(sounds.getAsJsonObject("track_default_part_0").getAsJsonArray("sounds").get(0).getAsJsonObject().get("stream").getAsBoolean());
-            assertArrayEquals(audio,zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds/tracks/default_part_0.ogg")).readAllBytes());
+            assertTrue(sounds.getAsJsonObject("track_default").getAsJsonArray("sounds").get(0).getAsJsonObject().get("stream").getAsBoolean());
+            assertArrayEquals(audio,zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds/tracks/default.ogg")).readAllBytes());
         }
         assertTrue(new String(audio,java.nio.charset.StandardCharsets.ISO_8859_1).contains("vorbis"));
         BgmMedia.cleanup(work);assertFalse(Files.exists(work));assertTrue(Files.exists(original));
@@ -109,5 +109,19 @@ class BgmDataTest {
             assertTrue(store.list().getFirst().ready());assertFalse(store.list().getFirst().synchronizedReady());store.savePlaylist(owner,playlist);
         }
         try(var store=new BgmStore(file)){assertEquals(playlist,store.playlists().get(owner));}
+    }
+    @Test void splitOnlyV2RequiresRebuildAndCombinedPackContainsBothPlaybackModes()throws Exception {
+        Track legacy=new Track("song",UUID.randomUUID(),"owner","song","","https://www.dropbox.com/a?dl=1","a".repeat(40),8,2);
+        assertTrue(legacy.ready());assertFalse(legacy.synchronizedReady());
+        Path full=Files.write(temp.resolve("full.ogg"),new byte[]{1,2,3,4});
+        Path part=Files.write(temp.resolve("part.ogg"),new byte[]{1,2});
+        Path pack=BgmMedia.pack("song",full,List.of(part),temp,10000);
+        try(var zip=new ZipFile(pack.toFile())) {
+            assertArrayEquals(Files.readAllBytes(full),zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds/tracks/song.ogg")).readAllBytes());
+            var sounds=JsonParser.parseString(new String(zip.getInputStream(zip.getEntry("assets/mud_bgm/sounds.json")).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+            assertTrue(sounds.has("track_song"));assertTrue(sounds.has("track_song_part_0"));
+        }
+        Track replacement=new Track(legacy.id(),legacy.uploader(),"owner","song","",legacy.deliveryUrl(),BgmMedia.sha1(pack),8);
+        assertTrue(replacement.synchronizedReady());assertNotEquals(legacy.packId(),replacement.packId());
     }
 }

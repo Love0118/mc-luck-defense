@@ -48,7 +48,7 @@ final class BgmService implements Listener, AutoCloseable {
     private long nextHealthCheck;
     private static final class Playback implements java.io.Serializable {
         private static final long serialVersionUID=1L;
-        UUID session;String lastCue,currentSound;boolean readyNotified;
+        UUID session;String lastCue,currentSound,continuousTrack;boolean readyNotified,migrationNotified;
         final Map<UUID,PackState> packs=new LinkedHashMap<>();
         final Set<UUID> required=new HashSet<>();
     }
@@ -333,6 +333,10 @@ final class BgmService implements Listener, AutoCloseable {
                 stop(player);state.session=session.sessionId;
             }
             List<Track> preload=preloadTracks(session);
+            boolean migrating=preload.stream().anyMatch(t->t.ready() && !t.synchronizedReady());
+            if(migrating && !state.migrationNotified)
+                player.sendMessage(Ui.text("&eBGM 업데이트 준비 중입니다. 변환이 끝나면 새 리소스팩을 내려받습니다."));
+            state.migrationNotified=migrating;
             state.required.clear();
             for(Track track:preload)if(track.synchronizedReady())state.required.add(track.packId());
             for(Track track:preload) {
@@ -358,6 +362,15 @@ final class BgmService implements Listener, AutoCloseable {
             if(ownerReady)timeline.start(nowNanos);
             BgmTimeline.Cue cue=timeline.at(nowNanos);
             if(!allReady || muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
+            String trackId=timeline.revision()+":"+cue.trackIdentity();
+            // Once started, the client owns continuous playback until this song actually changes.
+            if(trackId.equals(state.continuousTrack))continue;
+            if(cue.offsetMillis()<=150 || state.continuousTrack!=null) {
+                silence(player,state);
+                player.playSound(net.kyori.adventure.sound.Sound.sound(net.kyori.adventure.key.Key.key(cue.track().sound()),net.kyori.adventure.sound.Sound.Source.RECORD,1f,1f),net.kyori.adventure.sound.Sound.Emitter.self());
+                state.continuousTrack=trackId;state.currentSound=cue.track().sound();
+                continue;
+            }
             String cueId=timeline.revision()+":"+cue.identity();
             if(!cueId.equals(state.lastCue)) {
                 silence(player,state);
@@ -376,7 +389,7 @@ final class BgmService implements Listener, AutoCloseable {
     private void silence(Player player,Playback state) {
         if(state==null)return;
         if(state.currentSound!=null)player.stopSound(state.currentSound,SoundCategory.RECORDS);
-        state.currentSound=null;state.lastCue=null;
+        state.currentSound=null;state.lastCue=null;state.continuousTrack=null;
     }
     void stop(Player player) {
         Playback state=playback.get(player.getUniqueId());if(state==null)return;

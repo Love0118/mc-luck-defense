@@ -81,7 +81,7 @@ public final class BgmMedia {
         } finally { if(process.isAlive()){process.descendants().forEach(ProcessHandle::destroyForcibly);process.destroyForcibly();} }
     }
     public static Path pack(String id,Path audio,Path workspace) throws IOException {
-        return pack(id,List.of(audio),workspace,BgmLimits.DEFAULT.fileSizeBytes());
+        return pack(id,audio,List.of(),workspace,BgmLimits.DEFAULT.fileSizeBytes());
     }
     public Path synchronizedPack(String id,Path audio,double seconds,Path workspace)throws Exception {
         validateDuration(seconds,limits.durationSeconds());
@@ -93,9 +93,9 @@ public final class BgmMedia {
                     workspace.resolve("segment.log"),Duration.ofSeconds(30));
             segments.add(segment);
         }
-        return pack(id,segments,workspace,limits.fileSizeBytes());
+        return pack(id,audio,segments,workspace,limits.fileSizeBytes());
     }
-    static Path pack(String id,List<Path> segments,Path workspace,long maximumBytes)throws IOException {
+    static Path pack(String id,Path fullAudio,List<Path> segments,Path workspace,long maximumBytes)throws IOException {
         if(!id.matches("[a-z0-9_]+"))throw new IllegalArgumentException("Invalid track id");
         Path zip=workspace.resolve("pack.zip");
         try(var output=new ZipOutputStream(Files.newOutputStream(zip))) {
@@ -105,16 +105,23 @@ public final class BgmMedia {
             format.addProperty("description","MC Luck Defense BGM");metadata.add("pack",format);
             entry(output,"pack.mcmeta",metadata.toString().getBytes(StandardCharsets.UTF_8));
             JsonObject sounds=new JsonObject();
+            if(fullAudio!=null) {
+                addSound(sounds,"track_"+id,"mud_bgm:tracks/"+id);
+                output.putNextEntry(new ZipEntry("assets/mud_bgm/sounds/tracks/"+id+".ogg"));Files.copy(fullAudio,output);output.closeEntry();
+            }
             for(int i=0;i<segments.size();i++) {
                 String name=id+"_part_"+i;
-                JsonObject event=new JsonObject(),sound=new JsonObject();JsonArray variants=new JsonArray();
-                sound.addProperty("name","mud_bgm:tracks/"+name);sound.addProperty("stream",true);variants.add(sound);event.add("sounds",variants);sounds.add("track_"+name,event);
+                addSound(sounds,"track_"+name,"mud_bgm:tracks/"+name);
                 output.putNextEntry(new ZipEntry("assets/mud_bgm/sounds/tracks/"+name+".ogg"));Files.copy(segments.get(i),output);output.closeEntry();
             }
             entry(output,"assets/mud_bgm/sounds.json",sounds.toString().getBytes(StandardCharsets.UTF_8));
         }
         if(Files.size(zip)>maximumBytes)throw new RejectedAudio("리소스팩이 "+(maximumBytes/1024/1024)+"MB를 초과합니다.");
         return zip;
+    }
+    private static void addSound(JsonObject sounds,String key,String resource) {
+        JsonObject event=new JsonObject(),sound=new JsonObject();JsonArray variants=new JsonArray();
+        sound.addProperty("name",resource);sound.addProperty("stream",true);variants.add(sound);event.add("sounds",variants);sounds.add(key,event);
     }
     private static void entry(ZipOutputStream output,String name,byte[] data)throws IOException { output.putNextEntry(new ZipEntry(name));output.write(data);output.closeEntry(); }
     public static String sha1(Path file)throws Exception {return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(Files.readAllBytes(file)));}

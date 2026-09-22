@@ -10,6 +10,7 @@ public final class BgmTimeline implements java.io.Serializable {
     public record Cue(Track track, int segment, long cycle, long offsetMillis, long lateMillis) {
         public String sound() { return track.segmentSound(segment); }
         public String identity() { return track.id()+":"+track.sha1()+":"+cycle+":"+segment; }
+        public String trackIdentity() { return track.id()+":"+track.sha1()+":"+cycle; }
     }
     private List<Track> tracks=List.of();
     private String signature="";
