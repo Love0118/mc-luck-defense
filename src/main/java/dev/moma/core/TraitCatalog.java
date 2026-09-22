@@ -12,7 +12,7 @@ public final class TraitCatalog {
             return switch(family) {
                 case START_GOLD -> "시작 골드 +"+value;
                 case FIRST_PURCHASE -> (value==1?"첫 성공 구매":"처음 "+value+"번 성공 구매")+" · "+purchaseCeiling.label()+" 이하 등급 +1";
-                case OPENING_ODDS -> "첫 3회 구매 · "+openingTarget.label()+" 확률 "+java.math.BigDecimal.valueOf(value,3).stripTrailingZeros().toPlainString()+"% · 획득 시 종료";
+                case OPENING_ODDS -> "첫 3회 소환 · "+openingTarget.label()+" 확률 "+java.math.BigDecimal.valueOf(value,3).stripTrailingZeros().toPlainString()+"%";
                 case DAMAGE -> "모든 아군 피해 +"+value+"%";
                 case NORMAL_DAMAGE -> "일반 적 피해 +"+value+"%";
                 case BOSS_DAMAGE -> "보스 피해 +"+value+"%";
@@ -21,7 +21,7 @@ public final class TraitCatalog {
                 case ROLE_DAMAGE -> role.label()+" 피해 +"+value+"%";
                 case ENHANCEMENT -> "강화 +1당 피해 성장 +"+value+"%p";
                 case SPENDING_DAMAGE -> "이번 게임 소환에 1,000골드 소모마다 피해 +1% · 최대 +"+value+"%";
-                case DUPLICATE_ODDS -> "전설 이상 · 같은 등급 최고 강화 1종에 "+value+"% 배정 · 나머지 확률은 전체 종류가 균등 공유";
+                case DUPLICATE_ODDS -> "가장 강화수치가 높은 기물 등장확률 "+value+"%p 증가";
             };
         }
     }
@@ -60,7 +60,7 @@ public final class TraitCatalog {
                     default -> throw new IllegalStateException(a.id());
                 }
             }
-            entries.add(new Entry(a.id(),family==Family.OPENING_ODDS?name:name+" · "+value+(family==Family.START_GOLD?"골드":family==Family.FIRST_PURCHASE?"회":family==Family.ENHANCEMENT?"%p":"%"),family,value,role,ceiling,target,a));
+            entries.add(new Entry(a.id(),family==Family.OPENING_ODDS?name:name+" · "+value+(family==Family.START_GOLD?"골드":family==Family.FIRST_PURCHASE?"회":family==Family.ENHANCEMENT || family==Family.DUPLICATE_ODDS?"%p":"%"),family,value,role,ceiling,target,a));
         }
         ALL=List.copyOf(entries);
         var map=new LinkedHashMap<String,Entry>();for(Entry e:ALL)if(map.put(e.id(),e)!=null)throw new IllegalStateException(e.id());

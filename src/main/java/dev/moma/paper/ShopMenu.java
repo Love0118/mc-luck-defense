@@ -100,18 +100,13 @@ final class ShopMenu implements Listener {
         }
         int duplicate=arena==null?0:arena.traits().value(TraitCatalog.Family.DUPLICATE_ODDS);
         if(duplicate==0)lore.add("&7포탑 종류: 각 1/"+UnitType.values().length);
-        else {
-            var shared=java.math.BigDecimal.valueOf(100-duplicate).divide(java.math.BigDecimal.valueOf(UnitType.values().length),4,java.math.RoundingMode.HALF_UP);
-            lore.add("&d전우의 재회 · 전설 이상 · 대상 보유 시");
-            lore.add("&7최고 강화 1종 "+shared.add(java.math.BigDecimal.valueOf(duplicate)).stripTrailingZeros().toPlainString()+"% · 나머지 각 "+shared.stripTrailingZeros().toPlainString()+"%");
-        }
+        else lore.add("&d가장 강화수치가 높은 기물 등장확률 "+duplicate+"%p 증가");
         if (openingBonus) {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
-            lore.add("&7고대·유물 획득 시 기본 확률로 복귀");
         }
         lore.add(advanced?"&d유물 이상만 등장 · 1회 100골드":"&7101라운드부터 100골드 소환");
         if(arena!=null)for(Rarity rarity:Rarity.values())if(arena.openingTraitActive(rarity))
-            lore.add("&d인연 보정 · "+rarity.label()+" 획득까지 최대 "+arena.openingTraitRemaining()+"회");
+            lore.add("&d인연 보정 · "+rarity.label()+" · "+arena.openingTraitRemaining()+"회 남음");
         lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
         lore.add("&7태초·진 태초는 판매할 수 없습니다.");
         return Ui.item(advanced?Material.ENCHANTED_BOOK:Material.KNOWLEDGE_BOOK,
