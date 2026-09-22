@@ -189,11 +189,11 @@ class BgmServiceTest {
                 for(Player listener:List.of(owner,viewer))for(Track track:catalog)
                     verify(listener,times(1)).addResourcePack(eq(track.packId()),eq(track.deliveryUrl()),any(byte[].class),anyString(),eq(false));
                 service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(0).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
-                tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
-                service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
-                tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
-                for(int i:new int[]{1,2})service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
                 tick.invoke(service);verify(owner,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(owner,times(2)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                for(int i:new int[]{1,2})service.packStatus(new PlayerResourcePackStatusEvent(owner,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);verify(owner,times(3)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 assertEquals("song0",service.nowPlaying(session.sessionId));
                 now[0]=10_000_000_000L;
                 assertEquals("song3",service.nowPlaying(session.sessionId));
@@ -203,14 +203,18 @@ class BgmServiceTest {
                 for(Track track:catalog)service.packStatus(new PlayerResourcePackStatusEvent(viewer,track.packId(),PlayerResourcePackStatusEvent.Status.DOWNLOADED));
                 tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 for(int i=0;i<3;i++)service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(i).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
-                tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                tick.invoke(service);verify(viewer,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.FAILED_RELOAD));
                 service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
-                tick.invoke(service);verify(viewer,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                tick.invoke(service);verify(viewer,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                verify(viewer,never()).stopSound(anyString(),any(SoundCategory.class));
+                now[0]=10_000_000_000L;tick.invoke(service);
+                verify(viewer).stopSound(catalog.get(0).sound(),SoundCategory.RECORDS);
+                verify(viewer,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 service.toggle(viewer);service.toggle(viewer);tick.invoke(service);
                 verify(viewer,times(5)).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
                 service.packStatus(new PlayerResourcePackStatusEvent(viewer,catalog.get(3).packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
-                tick.invoke(service);verify(viewer,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                tick.invoke(service);verify(viewer,times(2)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
                 lists.set(service,Map.of(owner.getUniqueId(),new dev.moma.bgm.BgmPlaylist(List.of("track0"),dev.moma.bgm.BgmTimeline.Mode.SINGLE,"track0")));
                 tick.invoke(service);
                 verify(owner,never()).removeResourcePack(any());
@@ -220,6 +224,55 @@ class BgmServiceTest {
                 service.stop(owner);tick.invoke(service);
                 verify(owner,never()).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
                 verify(owner).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+            }
+        }
+    }
+
+    @Test void singleSongPlaysWhileUnselectedLibraryTracksAreMigratingOrFailToLoad()throws Exception {
+        Files.writeString(temp.resolve("bgm.yml"),"refresh-token: ''");
+        var plugin=mock(MomaPlugin.class);when(plugin.getDataFolder()).thenReturn(temp.toFile());when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
+        World world=mock(World.class);Player owner=player(world),viewer=player(world);var games=mock(GameService.class);
+        var session=new GameSession(owner,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
+        when(games.listeningSession(owner)).thenReturn(session);when(games.listeningSession(viewer)).thenReturn(session);
+        Track selected=new Track("default",new UUID(0,0),"server","default","","https://www.dropbox.com/default","a".repeat(40),20);
+        Track pending=new Track("pending",owner.getUniqueId(),"owner","pending","","https://www.dropbox.com/pending","b".repeat(40),20,2);
+        Track failed=new Track("failed",owner.getUniqueId(),"owner","failed","","https://www.dropbox.com/failed","c".repeat(40),20);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,viewer));long[] now={0};
+            try(var service=new BgmService(plugin,games,()->now[0])) {
+                var initialized=BgmService.class.getDeclaredField("catalogLoaded");initialized.setAccessible(true);
+                long deadline=System.nanoTime()+5_000_000_000L;while(!(boolean)initialized.get(service) && System.nanoTime()<deadline)Thread.sleep(10);
+                assertTrue((boolean)initialized.get(service));
+                var catalog=BgmService.class.getDeclaredField("tracks");catalog.setAccessible(true);catalog.set(service,List.of(selected,pending,failed));
+                var tick=BgmService.class.getDeclaredMethod("tick");tick.setAccessible(true);tick.invoke(service);
+                for(Player p:List.of(owner,viewer)) {
+                    service.packStatus(new PlayerResourcePackStatusEvent(p,selected.packId(),PlayerResourcePackStatusEvent.Status.DOWNLOADED));
+                    verify(p,never()).addResourcePack(eq(pending.packId()),anyString(),any(byte[].class),anyString(),anyBoolean());
+                }
+                tick.invoke(service);verify(owner,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                for(Player p:List.of(owner,viewer))service.packStatus(new PlayerResourcePackStatusEvent(p,selected.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);
+                for(Player p:List.of(owner,viewer)) {
+                    verify(p).playSound(argThat(s->s.name().asString().equals(selected.sound())),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                    service.packStatus(new PlayerResourcePackStatusEvent(p,failed.packId(),PlayerResourcePackStatusEvent.Status.ACCEPTED));
+                    service.packStatus(new PlayerResourcePackStatusEvent(p,failed.packId(),PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD));
+                }
+                now[0]=4_000_000_000L;tick.invoke(service);
+                for(Player p:List.of(owner,viewer)) {
+                    verify(p,never()).stopSound(anyString(),any(SoundCategory.class));
+                    verify(p,times(1)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                }
+                Track converted=new Track(pending.id(),pending.uploader(),"owner","pending","",pending.deliveryUrl(),"d".repeat(40),20);
+                catalog.set(service,List.of(selected,converted,failed));tick.invoke(service);
+                for(Player p:List.of(owner,viewer))service.packStatus(new PlayerResourcePackStatusEvent(p,converted.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                tick.invoke(service);
+                for(Player p:List.of(owner,viewer)) {
+                    verify(p).playSound(argThat(s->s.name().asString().equals(selected.segmentSound(2))),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                    service.packStatus(new PlayerResourcePackStatusEvent(p,converted.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));
+                }
+                tick.invoke(service);
+                for(Player p:List.of(owner,viewer))verify(p,times(2)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
             }
         }
     }

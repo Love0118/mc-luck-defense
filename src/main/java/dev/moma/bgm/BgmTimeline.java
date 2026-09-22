@@ -35,6 +35,7 @@ public final class BgmTimeline implements java.io.Serializable {
     }
     public void start(long nowNanos) { if(!started && !tracks.isEmpty()){startedNanos=nowNanos;started=true;} }
     public boolean started(){return started;}
+    public Track firstTrack(){return tracks.isEmpty()?null:tracks.getFirst();}
     public Cue at(long nowNanos) {
         if(!started || tracks.isEmpty())return null;
         long total=tracks.stream().mapToLong(BgmTimeline::length).sum();

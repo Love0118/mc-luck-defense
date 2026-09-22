@@ -340,13 +340,16 @@ final class BgmService implements Listener, AutoCloseable {
                 player.sendMessage(Ui.text("&eBGM 업데이트 준비 중입니다. 변환이 끝나면 새 리소스팩을 내려받습니다."));
             state.migrationNotified=migrating;
             state.required.clear();
-            for(Track track:preload)if(track.synchronizedReady())state.required.add(track.packId());
+            BgmTimeline.Cue currentCue=timeline.at(nowNanos);
+            Track required=currentCue==null?timeline.firstTrack():currentCue.track();
+            if(required!=null)state.required.add(required.packId());
             for(Track track:preload) {
                 if(!track.synchronizedReady())continue;
                 // Keep other songs applied, but retire old revisions sharing this song's sound keys.
                 for(UUID id:List.copyOf(state.packs.keySet())) {
                     if(state.packs.get(id).track.id().equals(track.id()) && !id.equals(track.packId())) {
-                        state.packs.remove(id);player.removeResourcePack(id);silence(player,state);
+                        state.packs.remove(id);player.removeResourcePack(id);
+                        if(state.currentSound!=null && (state.currentSound.equals(track.sound()) || state.currentSound.startsWith(track.sound()+"_part_")))silence(player,state);
                     }
                 }
                 PackState pack=state.packs.get(track.packId());
@@ -360,10 +363,11 @@ final class BgmService implements Listener, AutoCloseable {
             boolean allReady=!preload.isEmpty() && preload.stream().allMatch(t->t.synchronizedReady() && loaded(player,t.packId()));
             if(allReady && !state.readyNotified)player.sendMessage(Ui.text("&aBGM 리소스팩 적용 완료. 재생 위치에 동기화합니다."));
             state.readyNotified=allReady;
-            boolean ownerReady=player.getUniqueId().equals(session.arena.owner()) && allReady && !sequence.isEmpty();
+            Track first=timeline.firstTrack();
+            boolean ownerReady=player.getUniqueId().equals(session.arena.owner()) && first!=null && loaded(player,first.packId());
             if(ownerReady)timeline.start(nowNanos);
             BgmTimeline.Cue cue=timeline.at(nowNanos);
-            if(!allReady || muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
+            if(muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
             String trackId=timeline.revision()+":"+cue.trackIdentity();
             // Once started, the client owns continuous playback until this song actually changes.
             if(trackId.equals(state.continuousTrack))continue;
@@ -403,7 +407,13 @@ final class BgmService implements Listener, AutoCloseable {
         Playback state=playback.get(event.getPlayer().getUniqueId());PackState pack=state==null?null:state.packs.get(event.getID());if(pack==null)return;
         boolean required=state.required.contains(event.getID());
         switch(event.getStatus()) {
-            case SUCCESSFULLY_LOADED -> {if(!pack.failed)pack.loaded=true;}
+            case SUCCESSFULLY_LOADED -> {
+                if(!pack.failed && !pack.loaded) {
+                    pack.loaded=true;
+                    // Applying any new pack reloads client sounds; rejoin the current timeline once.
+                    silence(event.getPlayer(),state);
+                }
+            }
             case ACCEPTED, DOWNLOADED -> {pack.loaded=false;if(required)silence(event.getPlayer(),state);}
             case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
                 pack.failed=true;pack.loaded=false;
