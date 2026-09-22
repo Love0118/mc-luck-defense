@@ -50,7 +50,9 @@ class BgmServiceTest {
                     verify(p,never()).stopSound(anyString(),any(SoundCategory.class));
                 }
                 verify(late,atLeastOnce()).playSound(argThat(s->s.name().asString().contains("_part_")),any(net.kyori.adventure.sound.Sound.Emitter.class));
-                now[0]=20_000_000_000L;tick.invoke(service);clearInvocations(owner,early,late);
+                now[0]=20_800_000_000L;tick.invoke(service);
+                verify(late).playSound(argThat(s->s.name().asString().equals(track.sound())),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                clearInvocations(owner,early,late);
                 for(long millis:new long[]{22000,24500,30000,39500}){now[0]=millis*1_000_000;tick.invoke(service);}
                 for(Player p:List.of(owner,early,late)) {
                     verify(p,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
