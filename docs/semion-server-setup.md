@@ -40,6 +40,10 @@ UFW에 `enp0s6` 인터페이스의 `10.0.0.217:25566/TCP` 허용 규칙을 추�
 
 ## 운영
 
+일반적인 플러그인 업데이트는 관리자 **`/mud update` 한 번**으로 진행한다. GitHub의 테스트를 통과한 beta JAR 다운로드 → 해시·버전·커밋 검사 → 세션 호환성 검사 → 안전 리로드가 포함되며, 수동 파일 복사가 필요하지 않다. 명령은 설치된 0.17.0 로더에 이미 포함되어 있다.
+
+2026-09-22 확인 시 semion에 수동으로 준비했던 0.17.2 중복 JAR는 `/home/ubuntu/mc-luck-defense-deploy/manual-staging-backup`으로 보관 이동했다. 이후 새 beta 배포와 수동 예정 파일의 충돌을 피하기 위한 조치다. 서버 재시작이나 라이브 리로드는 실행하지 않았다. 로컬 Windows의 최초 설치용 update 파일은 유지한다.
+
 ```sh
 sudo systemctl status mc-luck-defense.service
 sudo journalctl -u mc-luck-defense.service -f
