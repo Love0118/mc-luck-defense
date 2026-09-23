@@ -24,8 +24,11 @@ class AutomationTest {
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getLocation()).thenReturn(new Location(world,0,65,0));
         when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
-        adapters = mockConstruction(EntityAdapter.class,(adapter,context) ->
-                when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call -> UUID.randomUUID()));
+        adapters = mockConstruction(EntityAdapter.class,(adapter,context) -> {
+            when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call -> UUID.randomUUID());
+            when(adapter.spawnReserve(any(),any(),any(),any(),anyInt())).thenAnswer(call -> UUID.randomUUID());
+            when(adapter.moveDefender(any(),any())).thenReturn(true);
+        });
         rolls = mockStatic(SummonRoll.class,CALLS_REAL_METHODS); bukkit = mockStatic(Bukkit.class);
         games = spy(new GameService(plugin,mock(ArenaMaps.class),CampaignRules.standard()));
         session = new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
@@ -175,25 +178,27 @@ class AutomationTest {
         games.processAutomation(player,session);
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
     }
-    @Test void reservePurchaseHasNoEntityUntilGradeFirstDeploymentAndCanBeBenchedAgain() {
+    @Test void reservePurchaseIsVisibleAndRetainsItsEntityThroughDeploymentAndBenching() {
         session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
         for(int i=0;i<36;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
         draw(Rarity.MIRACLE);games.summon(player);
         Defender d=session.arena.lastSummoned();UUID logical=d.entityId();assertFalse(d.deployed());assertEquals(1,session.arena.reserveCount());
         verify(games.entities,never()).spawnDefender(any(),any(),any(),any(),any());
         games.toggleAutoPlacement(player);games.processAutomation(player,session);
-        assertTrue(d.deployed());assertNotEquals(logical,d.entityId());assertEquals(36,session.arena.defenderCount());assertEquals(1,session.arena.reserveCount());
+        assertTrue(d.deployed());assertEquals(logical,d.entityId());assertEquals(36,session.arena.defenderCount());assertEquals(1,session.arena.reserveCount());
         UUID owner=player.getUniqueId();
-        verify(games.entities).spawnDefender(any(),eq(owner),eq(UnitType.WOLF),eq(Rarity.MIRACLE),any());
+        verify(games.entities).spawnReserve(any(),eq(owner),eq(UnitType.WOLF),eq(Rarity.MIRACLE),eq(0));
         games.toggleAutoPlacement(player);games.select(player,d.entityId());games.benchSelected(player);
-        assertFalse(d.deployed());assertEquals(2,session.arena.reserveCount());verify(games.entities).remove(d.entityId());
+        assertFalse(d.deployed());assertEquals(2,session.arena.reserveCount());verify(games.entities,never()).remove(d.entityId());
+        verify(games.entities).moveDefender(d.entityId(),session.map.reserveLocation(0));
+        assertTrue(session.arena.selected().isEmpty());
     }
     @Test void failedReserveDeploymentLeavesBothRostersAndCurrencyIntact() {
         session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
         for(int i=0;i<36;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
         draw(Rarity.MIRACLE);games.summon(player);double coins=session.arena.coins();
         var field=session.arena.defenders();var reserve=session.arena.reserveUnits();
-        when(games.entities.spawnDefender(any(),any(),any(),any(),any())).thenThrow(new IllegalStateException("fixture"));
+        when(games.entities.moveDefender(eq(reserve.getFirst().entityId()),any())).thenReturn(false);
         games.toggleAutoPlacement(player);games.processAutomation(player,session);
         assertEquals(field,session.arena.defenders());assertEquals(reserve,session.arena.reserveUnits());assertEquals(coins,session.arena.coins());
         assertFalse(session.arena.ended());verify(games.entities,never()).remove(any());
@@ -207,6 +212,38 @@ class AutomationTest {
             double before=session.arena.coins();games.select(player,d.entityId());games.sell(player);
             assertEquals(before+d.saleValue(),session.arena.coins());assertEquals(0,session.arena.unitCount());
         }
+    }
+    @Test void selectingAnotherUnitSwapsFieldAndReserveWithoutRespawningAndSameClickDeselects() {
+        session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
+        for(int i=0;i<37;i++)games.summon(player);
+        Defender field=session.arena.defenders().getFirst(),bench=session.arena.reserveUnits().getFirst();Cell cell=field.cell();
+        long cooldown=field.nextAttackTick();clearInvocations(games.entities);
+        games.select(player,field.entityId());games.select(player,bench.entityId());
+        assertEquals(cell,bench.cell());assertFalse(field.deployed());assertEquals(cooldown,field.nextAttackTick());
+        assertTrue(session.arena.selected().isEmpty());
+        verify(games.entities).moveDefender(field.entityId(),session.map.reserveLocation(0));
+        verify(games.entities).moveDefender(bench.entityId(),session.map.location(cell.point()));
+        verify(games.entities,never()).remove(any());verify(games.entities,never()).spawnDefender(any(),any(),any(),any(),any());
+        games.select(player,field.entityId());verify(games.entities,times(2)).selectGlow(player,field.entityId());
+        games.select(player,field.entityId());assertTrue(session.arena.selected().isEmpty());
+    }
+    @Test void failedSwapForeignTargetAndAutomaticPlacementKeepOriginalSelectionAndState() {
+        games.summon(player);draw(Rarity.RARE);games.summon(player);
+        Defender first=session.arena.defenders().getFirst(),second=session.arena.defenders().getLast();Cell cell=first.cell();
+        games.select(player,first.entityId());games.select(player,UUID.randomUUID());
+        assertSame(first,session.arena.selected().orElseThrow());
+        games.toggleAutoPlacement(player);games.select(player,second.entityId());assertEquals(cell,first.cell());
+        games.toggleAutoPlacement(player);
+        when(games.entities.moveDefender(eq(second.entityId()),any())).thenReturn(false);
+        games.select(player,second.entityId());assertEquals(cell,first.cell());assertSame(first,session.arena.selected().orElseThrow());
+    }
+    @Test void directReserveSaleDoesNotSwapWithPreviouslySelectedFieldUnit() {
+        session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());for(int i=0;i<37;i++)games.summon(player);
+        Defender field=session.arena.defenders().getFirst(),bench=session.arena.reserveUnits().getFirst();Cell original=field.cell();
+        games.select(player,field.entityId());double coins=session.arena.coins();
+        games.sell(player,bench.entityId());games.sell(player,bench.entityId());
+        assertEquals(coins+bench.saleValue(),session.arena.coins());assertEquals(original,field.cell());assertEquals(0,session.arena.reserveCount());
+        verify(games.entities,times(1)).remove(bench.entityId());
     }
     @Test void layoutRecomputesAfterSalesButOffKeepsManualPositions() {
         games.summon(player); draw(Rarity.RARE); games.summon(player);

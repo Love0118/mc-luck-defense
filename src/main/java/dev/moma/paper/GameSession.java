@@ -56,7 +56,7 @@ final class GameSession {
         returnAllowFlight=saved.returnFlight();returnFlying=saved.returnFlying();assisted=saved.assisted();announcedRound=saved.announcedRound();
         simulationTick=saved.simulationTick();speed(saved.speed());autoSell.addAll(saved.autoSell());autoPlacement=saved.autoPlacement();
         layoutDirty=saved.layoutDirty();bulkBuying=saved.bulkBuying();bulkPurchases=saved.bulkPurchases();bgmTrack=saved.bgmTrack();
-        for(int x=(map.originX()-6)>>4;x<=(map.originX()+map.maxOffset())>>4;x++)for(int z=(map.originZ()-6)>>4;z<=(map.originZ()+map.maxOffset())>>4;z++) {
+        for(int x=(map.originX()-6)>>4;x<=(map.originX()+map.maxOffset())>>4;x++)for(int z=(map.originZ()+map.minZOffset())>>4;z<=(map.originZ()+map.maxOffset())>>4;z++) {
             if(!map.world().isChunkLoaded(x,z))throw new IllegalArgumentException("진행 중인 전장 청크가 없습니다.");
             tickets.add(map.world().getChunkAt(x,z));
         }

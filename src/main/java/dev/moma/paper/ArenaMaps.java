@@ -21,7 +21,9 @@ final class ArenaMaps {
         if (!file.exists()) return;
         var yaml = YamlConfiguration.loadConfiguration(file);
         for (String id : yaml.getKeys(false)) {
-            maps.put(id, new ArenaMap(id, world(), yaml.getInt(id + ".x"), 64, yaml.getInt(id + ".z"), new Grid(yaml.getInt(id + ".size"))));
+            ArenaMap map=new ArenaMap(id, world(), yaml.getInt(id + ".x"), 64, yaml.getInt(id + ".z"), new Grid(yaml.getInt(id + ".size")));
+            map.buildReserve();
+            maps.put(id,map);
         }
     }
     private World world() {
@@ -47,9 +49,9 @@ final class ArenaMaps {
         ArenaMap map = new ArenaMap(id, world(), originX, 64, 0, new Grid(size));
         // Never overwrite blocks, including when a different plugin created this world.
         for (int x = -6; x <= map.maxOffset(); x++) {
-            for (int z = -6; z <= map.maxOffset(); z++) {
+            for (int z = map.minZOffset(); z <= map.maxOffset(); z++) {
                 for (int y = 64; y <= 74; y++) {
-                    if (!map.world().getBlockAt(map.originX() + x, y, z).isEmpty())
+                    if (!map.world().getBlockAt(map.originX() + x, y, map.originZ()+z).isEmpty())
                         throw new IllegalArgumentException("생성 영역에 기존 블록이 있어 전장을 만들 수 없습니다.");
                 }
             }

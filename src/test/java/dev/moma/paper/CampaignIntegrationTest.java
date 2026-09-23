@@ -26,9 +26,11 @@ class CampaignIntegrationTest {
         World world = mock(World.class);
         var floor = mock(org.bukkit.block.Block.class);
         when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(floor);
+        when(floor.isEmpty()).thenReturn(true);
         var map = new ArenaMap("a", world, 128, 64, 0, new Grid(6));
         map.build();
         verify(floor, times(36)).setType(Material.LIGHT_BLUE_CONCRETE, false);
+        verify(floor,times(48)).setType(Material.PURPLE_CONCRETE,false);
         assertEquals(84, map.grid().route().length());
         assertTrue(map.contains(new Location(world, 149.99, 65, 21.99)));
         assertFalse(map.contains(new Location(world, 150, 65, 0)));

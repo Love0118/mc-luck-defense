@@ -156,7 +156,7 @@ class InteractionTest {
             verify(games,times(1)).toggleAutoSell(player,Rarity.RARE);verify(event,times(4)).setCancelled(true);
         }
     }
-    @Test void speedButtonCyclesOncePerClickAndRejectsMenusFromAnOldSession() {
+    @Test void speedButtonRejectsMenusFromAnOldSessionBeforeOpeningPicker() {
         ShopMenu actualShop=new ShopMenu(plugin,games); World world=mock(World.class);
         when(player.getLocation()).thenReturn(new Location(world,0,70,0));
         when(player.getGameMode()).thenReturn(GameMode.ADVENTURE);
@@ -164,11 +164,8 @@ class InteractionTest {
         doReturn(session).when(games).session(player);
         Inventory inventory=mock(Inventory.class); InventoryView view=mock(InventoryView.class);
         when(view.getTopInventory()).thenReturn(inventory);when(player.getOpenInventory()).thenReturn(view);
-        var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);var tasks=new ArrayList<Runnable>();
-        when(scheduler.runTaskLater(eq(plugin),any(Runnable.class),eq(1L))).thenAnswer(call->{tasks.add(call.getArgument(1));return null;});
-        int[] tick={10};
         try(var bukkit=mockStatic(Bukkit.class)) {
-            bukkit.when(Bukkit::getCurrentTick).thenAnswer(call->tick[0]);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(10);
             bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(36),any(net.kyori.adventure.text.Component.class)))
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
@@ -176,12 +173,9 @@ class InteractionTest {
                 actualShop.open(player);
                 var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
                 when(event.getRawSlot()).thenReturn(8);when(event.getClick()).thenReturn(ClickType.LEFT);
-                for(int expected:new int[]{2,4,8,16,32,1}) {
-                    actualShop.click(event);actualShop.click(event);assertEquals(expected,session.speed());
-                    tick[0]++;tasks.removeFirst().run();
-                }
                 doReturn(new GameSession(player,session.map,CampaignRules.standard())).when(games).session(player);
-                actualShop.click(event);verify(games,times(6)).speed(eq(player),anyInt());
+                actualShop.click(event);verify(games,never()).speed(eq(player),anyInt());
+                bukkit.verify(()->Bukkit.createInventory(any(InventoryHolder.class),eq(27),any(net.kyori.adventure.text.Component.class)),never());
             }
         }
     }

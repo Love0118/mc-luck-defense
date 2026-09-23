@@ -37,7 +37,7 @@ final class GameService {
             var session=new GameSession(saved,maps.get(saved.map()));
             if(Bukkit.getPlayer(session.arena.owner())==null || !mapsSeen.add(saved.map()) || sessions.put(session.arena.owner(),session)!=null
                     || bySession.put(session.sessionId,session)!=null)throw new IllegalArgumentException("중복되거나 접속자가 없는 세션입니다.");
-            var ids=new ArrayList<UUID>();session.arena.activeDefenders().forEach(d->ids.add(d.entityId()));session.arena.activeEnemies().forEach(e->ids.add(e.entityId()));
+            var ids=new ArrayList<UUID>();session.arena.units().forEach(d->ids.add(d.entityId()));session.arena.activeEnemies().forEach(e->ids.add(e.entityId()));
             for(UUID id:ids) {
                 Entity entity=Bukkit.getEntity(id);
                 if(!entitiesSeen.add(id) || entity==null || !entity.isValid() || !entity.getWorld().equals(session.map.world()) || !entities.managed(entity))
@@ -175,7 +175,7 @@ final class GameService {
         if (watching(player)) stopWatching(player, true);
         GameSession session = new GameSession(player, map, settings);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
-            for (int z = (map.originZ() - 6) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
+            for (int z = (map.originZ() + map.minZOffset()) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
                 Chunk chunk = map.world().getChunkAt(x, z);
                 chunk.addPluginChunkTicket(plugin); session.tickets.add(chunk);
             }
@@ -231,7 +231,7 @@ final class GameService {
                 stopWatching(viewer, true);
             }
         }
-        session.arena.defenders().forEach(d -> entities.remove(d.entityId()));
+        session.arena.units().forEach(d -> entities.remove(d.entityId()));
         session.arena.enemies().forEach(e -> entities.remove(e.entityId()));
         session.tickets.forEach(c -> c.removePluginChunkTicket(plugin));
     }
@@ -258,7 +258,8 @@ final class GameService {
         Arena.Result result;
         try {
             result = session.arena.summon(player.getUniqueId(), roll,
-                    (type, rarity, cell) -> autoSell || cell==null ? UUID.randomUUID()
+                    (type, rarity, cell) -> autoSell ? UUID.randomUUID()
+                            : cell==null?entities.spawnReserve(session.map,player.getUniqueId(),type,rarity,session.arena.reserveCount())
                             : entities.spawnDefender(session.map, player.getUniqueId(), type, rarity, cell));
         } catch (RuntimeException exception) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Defender spawn failed", exception);
@@ -295,7 +296,7 @@ final class GameService {
                 }
                 if(session.autoSell.contains(d.rarity()))session.arena.sellRarity(player.getUniqueId(),d.rarity()).entities().forEach(entities::remove);
             }
-            entities.selectGlow(player,session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
+            entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
             session.layoutDirty = true;
             if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
                 Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
@@ -322,13 +323,18 @@ final class GameService {
     void sell(Player player) {
         GameSession session = session(player);
         if (session == null) return;
-        UUID selected = session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null);
+        UUID selected = session.arena.selected().map(Defender::entityId).orElse(null);
         Arena.Result result = session.arena.sellSelected(player.getUniqueId());
         if (result == Arena.Result.OK) {
             entities.remove(selected); entities.selectGlow(player, null);
             session.layoutDirty = true; Ui.sound(player,Ui.Cue.SELL);
         }
         tell(player, result);
+    }
+    void sell(Player player, UUID unit) {
+        GameSession session=session(player);if(session==null)return;
+        Arena.Result result=session.arena.select(player.getUniqueId(),unit);
+        if(result==Arena.Result.OK)sell(player);else tell(player,result);
     }
     void sellRarity(Player player, Rarity rarity) {
         GameSession session = session(player); if (session == null) return;
@@ -403,22 +409,30 @@ final class GameService {
     }
     private boolean applyLayout(Player player,GameSession session,Map<UUID,Cell> layout) {
         Arena arena=session.arena;
-        Map<UUID,UUID> spawned=new LinkedHashMap<>();
-        Set<UUID> previous=new HashSet<>();for(Defender d:arena.defenders())previous.add(d.entityId());
-        try {
-            for(Defender d:arena.reserveUnits())if(layout.containsKey(d.entityId()))
-                spawned.put(d.entityId(),entities.spawnDefender(session.map,arena.owner(),d.type(),d.rarity(),layout.get(d.entityId())));
-        } catch(RuntimeException error) {
-            spawned.values().forEach(entities::remove);Ui.sound(player,Ui.Cue.ERROR);
-            plugin.getLogger().log(java.util.logging.Level.WARNING,"Reserve deployment failed",error);return false;
+        Arena.Result result=arena.validateLayout(player.getUniqueId(),layout);
+        if(result!=Arena.Result.OK){tell(player,result);return false;}
+        int slot=0;
+        for(Defender d:arena.units()) {
+            Cell cell=layout.get(d.entityId());
+            Location destination=cell==null?session.map.reserveLocation(slot++):session.map.location(cell.point());
+            if(!entities.moveDefender(d.entityId(),destination)) {
+                positionUnits(session);Ui.sound(player,Ui.Cue.ERROR);return false;
+            }
         }
-        Arena.Result result=arena.rearrange(player.getUniqueId(),layout);
-        if(result!=Arena.Result.OK){spawned.values().forEach(entities::remove);tell(player,result);return false;}
-        previous.stream().filter(id->!layout.containsKey(id)).forEach(entities::remove);
-        spawned.forEach(arena::bindEntity);
-        for(Defender d:arena.defenders()){entities.updateDefenderName(d);entities.moveDefender(d.entityId(),session.map.location(d.position()));}
-        entities.selectGlow(player,arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
+        arena.rearrange(player.getUniqueId(),layout);
+        arena.units().forEach(entities::updateDefenderName);
+        entities.selectGlow(player,arena.selected().map(Defender::entityId).orElse(null));
         return true;
+    }
+    private Location unitLocation(GameSession session,Defender d) {
+        return d.deployed()?session.map.location(d.position()):session.map.reserveLocation(session.arena.reserveUnits().indexOf(d));
+    }
+    private boolean positionUnits(GameSession session) {
+        boolean intact=true;
+        for(Defender d:session.arena.activeDefenders())intact&=entities.moveDefender(d.entityId(),session.map.location(d.position()));
+        int slot=0;
+        for(Defender d:session.arena.reserveUnits())intact&=entities.moveDefender(d.entityId(),session.map.reserveLocation(slot++));
+        return intact;
     }
     void benchSelected(Player player) {
         GameSession session=session(player);if(session==null || session.arena.ended())return;
@@ -427,15 +441,37 @@ final class GameService {
         if(session.arena.reserveCount()>=Arena.RESERVE_CAPACITY){tell(player,Arena.Result.FULL);return;}
         Map<UUID,Cell> layout=new LinkedHashMap<>();
         for(Defender d:session.arena.defenders())if(d!=selected)layout.put(d.entityId(),d.cell());
-        if(applyLayout(player,session,layout))Ui.sound(player,Ui.Cue.CLICK);
+        if(applyLayout(player,session,layout)) {
+            session.arena.clearSelection(player.getUniqueId());entities.selectGlow(player,null);Ui.sound(player,Ui.Cue.CLICK);
+        }
     }
     void select(Player player, UUID entity) {
         GameSession session = session(player);
         if (session == null) return;
+        Defender previous=session.arena.selected().orElse(null);
+        if(previous!=null) {
+            Defender target=session.arena.units().stream().filter(d->d.entityId().equals(entity)).findFirst().orElse(null);
+            if(target==null){tell(player,Arena.Result.NOT_OWNER);return;}
+            if(previous==target) {
+                session.arena.clearSelection(player.getUniqueId());entities.selectGlow(player,null);Ui.sound(player,Ui.Cue.CLICK);return;
+            }
+            if(session.autoPlacement) {
+                player.sendMessage(Ui.text("&e직접 배치하려면 자동 배치를 꺼주세요."));Ui.sound(player,Ui.Cue.ERROR);return;
+            }
+            Location from=unitLocation(session,previous),to=unitLocation(session,target);
+            if(!entities.moveDefender(previous.entityId(),to) || !entities.moveDefender(target.entityId(),from)) {
+                positionUnits(session);Ui.sound(player,Ui.Cue.ERROR);return;
+            }
+            Arena.Result swapped=session.arena.swapSelected(player.getUniqueId(),entity);
+            if(swapped!=Arena.Result.OK){positionUnits(session);tell(player,swapped);return;}
+            entities.updateDefenderName(previous);entities.updateDefenderName(target);
+            entities.selectGlow(player,null);Ui.sound(player,Ui.Cue.CLICK);return;
+        }
         Arena.Result result = session.arena.select(player.getUniqueId(), entity);
         tell(player, result);
         if (result == Arena.Result.OK) {
-            entities.selectGlow(player,session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
+            entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
+            Ui.sound(player,Ui.Cue.CLICK);
             session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.label() + " · " + d.type().role().label())));
         }
     }
@@ -453,7 +489,9 @@ final class GameService {
             Map<UUID,Cell> layout=new LinkedHashMap<>();
             for(Defender d:session.arena.defenders())if(!d.cell().equals(destination))layout.put(d.entityId(),d.cell());
             layout.put(selected.entityId(),destination);
-            if(applyLayout(player,session,layout))Ui.sound(player,Ui.Cue.CLICK);
+            if(applyLayout(player,session,layout)) {
+                session.arena.clearSelection(player.getUniqueId());entities.selectGlow(player,null);Ui.sound(player,Ui.Cue.CLICK);
+            }
             return;
         }
         Arena.Result result = session.arena.moveSelected(player.getUniqueId(), destination);
@@ -500,15 +538,13 @@ final class GameService {
             session.attackEffects.render(session.map, viewers(player, session));
             if (session.arena.ended()) { finish(player, session); continue; }
             boolean intact = entities.advanceAll(session.arena, session.map);
-            // Anchor unusual vanilla bodies such as shulkers as well as ordinary mobs.
-            for (Defender defender : session.arena.activeDefenders())
-                intact &= entities.moveDefender(defender.entityId(), session.map.location(defender.position()));
+            intact &= positionUnits(session);
             if (!intact) {
                 player.sendMessage(Component.text("게임 엔티티가 사라져 전장을 종료했습니다.", NamedTextColor.RED));
                 leave(player); continue;
             }
             if (tick % 10 == 0) {
-                session.arena.selected().filter(Defender::deployed).ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
+                session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, unitLocation(session,d).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
                 player.sendActionBar(Component.text("R" + session.campaign.round() + " · " + session.speed() + "배 · " + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }

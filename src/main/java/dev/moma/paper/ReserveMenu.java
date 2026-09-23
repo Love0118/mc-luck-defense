@@ -46,8 +46,9 @@ final class ReserveMenu {
         if(slot>=0 && slot<h.units.size()) {
             UUID id=h.units.get(slot);
             if(h.session.arena.reserveUnits().stream().noneMatch(d->d.entityId().equals(id)))return true;
-            h.consumed=true;games.select(p,id);
-            if(event.getClick()==ClickType.RIGHT){games.sell(p);open(p,h.page);}else {p.getInventory().setHeldItemSlot(1);p.closeInventory();}
+            h.consumed=true;
+            if(event.getClick()==ClickType.RIGHT){games.sell(p,id);open(p,h.page);}
+            else {games.select(p,id);p.getInventory().setHeldItemSlot(1);p.closeInventory();}
         } else if(event.getClick()==ClickType.LEFT) {
             if(slot==49){h.consumed=true;shop.open(p);}
             else if(slot==46){h.consumed=true;games.benchSelected(p);open(p,h.page);}

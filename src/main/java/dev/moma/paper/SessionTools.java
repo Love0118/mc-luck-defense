@@ -45,7 +45,7 @@ final class SessionTools {
         data.set(heldKey,PersistentDataType.INTEGER,inventory.getHeldItemSlot());
         if (!viewer && !lobby) {
         inventory.setItem(0,tool(Material.NETHER_STAR,"manage","&e세션 관리","&7우클릭: 소환·판매·배속 메뉴","&7F키로도 열 수 있습니다."));
-        inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 아군 선택 → 빈 배치 칸으로 이동"));
+        inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 선택 → 빈 칸 이동 / 다른 기물과 교환","&7같은 기물 다시 클릭: 선택 해제"));
         inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&7진 태초·미라클: 수동판매"));
         }
         if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));

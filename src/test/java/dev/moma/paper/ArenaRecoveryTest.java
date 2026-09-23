@@ -20,7 +20,7 @@ class ArenaRecoveryTest {
         World world=mock(World.class);
         ArenaMap map=new ArenaMap("a",world,128,64,256,new Grid(6));
         for(Location current:new Location[]{new Location(world,121.99,88,262,72,-24),
-                new Location(world,150,88,262,72,-24), new Location(world,133,88,249.99,72,-24),
+                new Location(world,150,88,262,72,-24), new Location(world,133,88,222.99,72,-24),
                 new Location(world,133,88,278,72,-24)}) for(boolean spectator:new boolean[]{false,true}) {
             Location fixed=map.recovery(current,spectator);
             assertTrue(map.contains(fixed)); assertTrue(fixed.distance(current)<1);

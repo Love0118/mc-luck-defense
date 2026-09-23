@@ -33,7 +33,7 @@ final class EntityAdapter {
     void selectGlow(Player player, UUID entity) { if (presentationMetadata != null) presentationMetadata.select(player, entity); }
     void close() { if (presentationMetadata != null) presentationMetadata.close(); }
     void restore(Arena arena) {
-        for(Defender defender:arena.activeDefenders()) {
+        for(Defender defender:arena.units()) {
             Entity entity=java.util.Objects.requireNonNull(Bukkit.getEntity(defender.entityId()));defenderYaw.put(defender.entityId(),entity.getYaw());
         }
         if(presentationMetadata!=null)for(var enemy:arena.activeEnemies())presentationMetadata.spawned(java.util.Objects.requireNonNull(Bukkit.getEntity(enemy.entityId())));
@@ -47,6 +47,10 @@ final class EntityAdapter {
         return spawn(map, owner, EntityType.valueOf(type.name()), Faction.DEFENDER, map.location(cell.point()),
                 rarityName(rarity,"["+rarity.label()+"] "+type.label())).getUniqueId();
     }
+    UUID spawnReserve(ArenaMap map, UUID owner, UnitType type, Rarity rarity, int slot) {
+        return spawn(map,owner,EntityType.valueOf(type.name()),Faction.DEFENDER,map.reserveLocation(slot),
+                rarityName(rarity,"[대기] ["+rarity.label()+"] "+type.label())).getUniqueId();
+    }
     UUID spawnEnemy(ArenaMap map, UUID owner, EnemyType type, boolean boss) {
         LivingEntity enemy=spawn(map, owner, EntityType.valueOf(type.name()), Faction.ENEMY, map.location(map.grid().route().at(0)),
                 Component.text(boss ? "[적·보스] " + type.label() : "[적] " + type.label(), NamedTextColor.RED));
@@ -54,7 +58,7 @@ final class EntityAdapter {
     }
     void updateDefenderName(Defender defender) {
         Entity entity=Bukkit.getEntity(defender.entityId());
-        if(entity!=null)entity.customName(rarityName(defender.rarity(),"["+defender.rarity().label()+"] "+defender.label()));
+        if(entity!=null)entity.customName(rarityName(defender.rarity(),(defender.deployed()?"":"[대기] ")+"["+defender.rarity().label()+"] "+defender.label()));
     }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {

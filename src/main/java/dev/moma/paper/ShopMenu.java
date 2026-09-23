@@ -15,6 +15,7 @@ final class ShopMenu implements Listener {
     private final MomaPlugin plugin;
     private final GameService games;
     private final ReserveMenu reserveMenu;
+    private final SpeedMenu speedMenu;
     private final Map<UUID, Integer> nextClick = new HashMap<>();
 
     private static final class Holder implements InventoryHolder {
@@ -26,7 +27,9 @@ final class ShopMenu implements Listener {
         Holder(UUID owner, GameSession session) { this.owner = owner; this.session = session; this.arena = session.arena; }
         @Override public Inventory getInventory() { return inventory; }
     }
-    ShopMenu(MomaPlugin plugin, GameService games) { this.plugin = plugin; this.games = games;this.reserveMenu=new ReserveMenu(games,this); }
+    ShopMenu(MomaPlugin plugin, GameService games) {
+        this.plugin=plugin;this.games=games;reserveMenu=new ReserveMenu(games,this);speedMenu=new SpeedMenu(games,this);
+    }
     void open(Player player) {
         GameSession session = games.session(player);
         if (session == null || session.arena.ended()) return;
@@ -40,7 +43,7 @@ final class ShopMenu implements Listener {
         Arena arena = holder.arena;
         holder.inventory.clear();
         holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
-                "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 16 → 32 → 1배"));
+                "클릭하여 속도 선택"));
         holder.inventory.setItem(ODDS, oddsItem(arena));
         holder.inventory.setItem(RESERVE,item(Material.CHEST,"&b대기열 &f"+arena.reserveCount()+"/48","클릭하여 관리"));
         holder.inventory.setItem(AUTO_MERGE, item(arena.mergingEnabled()?Material.ANVIL:Material.CHIPPED_ANVIL,
@@ -126,7 +129,7 @@ final class ShopMenu implements Listener {
         }
     }
     @EventHandler public void click(InventoryClickEvent event) {
-        if(reserveMenu.click(event))return;
+        if(reserveMenu.click(event) || speedMenu.click(event))return;
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || !player.getUniqueId().equals(holder.owner)) return;
@@ -139,9 +142,9 @@ final class ShopMenu implements Listener {
         holder.consumed = true;
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
         if(slot==RESERVE){reserveMenu.open(player,0);return;}
+        if(slot==SPEED){speedMenu.open(player);return;}
         if (slot == SUMMON) games.summon(player);
         else if (slot == SELL) games.sell(player);
-        else if (slot == SPEED) games.speed(player, session.speed() == 32 ? 1 : session.speed() * 2);
         else if (slot == BULK_BUY) games.toggleBulkBuy(player);
         else if (slot == AUTO_LAYOUT) games.toggleAutoPlacement(player);
         else if (slot == AUTO_MERGE) games.toggleMerging(player);
@@ -154,9 +157,11 @@ final class ShopMenu implements Listener {
     }
     @EventHandler public void drag(InventoryDragEvent event) {
         reserveMenu.drag(event);
+        speedMenu.drag(event);
         if (event.getView().getTopInventory().getHolder() instanceof Holder) event.setCancelled(true);
     }
     @EventHandler public void close(InventoryCloseEvent event) {
+        speedMenu.close(event);
         if (event.getInventory().getHolder() instanceof Holder holder) holder.consumed = true;
     }
     @EventHandler public void quit(org.bukkit.event.player.PlayerQuitEvent event) { nextClick.remove(event.getPlayer().getUniqueId()); }

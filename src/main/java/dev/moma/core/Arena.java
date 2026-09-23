@@ -8,7 +8,7 @@ public final class Arena implements java.io.Serializable {
     public static final long SUMMON_COST = 10;
     public static final int RESERVE_CAPACITY=48;
     public enum Result { OK, NOT_OWNER, ENDED, INSUFFICIENT_COINS, FULL, INVALID_CELL, OCCUPIED, NO_SELECTION, NOT_SELLABLE }
-    /** A null cell allocates a reserve identity without spawning a world entity. */
+    /** A null cell places the unit in the non-combat reserve. */
     @FunctionalInterface public interface Spawner { UUID spawn(UnitType type, Rarity rarity, Cell cell); }
     private final String id;
     private final UUID owner;
@@ -218,6 +218,31 @@ public final class Arena implements java.io.Serializable {
         selected = entity;
         return Result.OK;
     }
+    public Result clearSelection(UUID actor) {
+        Result access=access(actor);
+        if(access==Result.OK)selected=null;
+        return access;
+    }
+    public Result swapSelected(UUID actor, UUID targetId) {
+        Result access=access(actor);if(access!=Result.OK)return access;
+        Defender first=unit(selected),second=unit(targetId);
+        if(first==null)return Result.NO_SELECTION;
+        if(second==null)return Result.NOT_OWNER;
+        if(first==second){selected=null;return Result.OK;}
+        Cell firstCell=first.cell(),secondCell=second.cell();
+        var reordered=new LinkedHashMap<UUID,Defender>();
+        for(Defender d:reserve.values()) {
+            Defender replacement=d==first?second:d==second?first:d;
+            reordered.put(replacement.entityId(),replacement);
+        }
+        first.move(secondCell);second.move(firstCell);
+        defenders.remove(first.entityId());defenders.remove(second.entityId());
+        if(first.deployed())defenders.put(first.entityId(),first);
+        if(second.deployed())defenders.put(second.entityId(),second);
+        reserve.clear();reserve.putAll(reordered);
+        selected=null;
+        return Result.OK;
+    }
     public Result moveSelected(UUID actor, Cell destination) {
         Result access = access(actor);
         if (access != Result.OK) return access;
@@ -254,17 +279,21 @@ public final class Arena implements java.io.Serializable {
         defenders.remove(d.entityId());d.move(null);reserve.put(d.entityId(),d);selected=null;return Result.OK;
     }
     public Result rearrange(UUID actor,Map<UUID,Cell> layout) {
-        Result access=access(actor);if(access!=Result.OK)return access;
+        Result result=validateLayout(actor,layout);if(result!=Result.OK)return result;
         List<Defender> all=units();
-        if(layout.size()>grid.size()*grid.size() || all.size()-layout.size()>RESERVE_CAPACITY)return Result.FULL;
+        defenders.clear();reserve.clear();
+        for(Defender d:all){Cell cell=layout.get(d.entityId());d.move(cell);(cell==null?reserve:defenders).put(d.entityId(),d);}
+        return Result.OK;
+    }
+    public Result validateLayout(UUID actor,Map<UUID,Cell> layout) {
+        Result access=access(actor);if(access!=Result.OK)return access;
+        if(layout.size()>grid.size()*grid.size() || unitCount()-layout.size()>RESERVE_CAPACITY)return Result.FULL;
         for(UUID id:layout.keySet())if(unit(id)==null)return Result.NOT_OWNER;
         Set<Cell> destinations=new HashSet<>();
         for(Cell cell:layout.values()) {
             if(!grid.contains(cell))return Result.INVALID_CELL;
             if(!destinations.add(cell))return Result.OCCUPIED;
         }
-        defenders.clear();reserve.clear();
-        for(Defender d:all){Cell cell=layout.get(d.entityId());d.move(cell);(cell==null?reserve:defenders).put(d.entityId(),d);}
         return Result.OK;
     }
     public record BulkSale(Result result, List<UUID> entities, long income) {}

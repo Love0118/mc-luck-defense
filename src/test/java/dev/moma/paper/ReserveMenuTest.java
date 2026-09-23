@@ -46,7 +46,7 @@ class ReserveMenuTest {
         GameSession s=new GameSession(p,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());s.arena.credit(10);
         s.arena.summon(owner,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL),(t,r,c)->UUID.randomUUID());
         s.arena.select(owner,s.arena.lastSummoned().entityId());s.arena.benchSelected(owner);
-        when(games.session(p)).thenReturn(s);doAnswer(call->{s.arena.select(owner,call.getArgument(1));return null;}).when(games).select(eq(p),any());var menu=new ReserveMenu(games,mock(ShopMenu.class));
+        when(games.session(p)).thenReturn(s);var menu=new ReserveMenu(games,mock(ShopMenu.class));
         InventoryView view=mock(InventoryView.class);when(p.getOpenInventory()).thenReturn(view);
         try(var bukkit=mockStatic(Bukkit.class);var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(mock(org.bukkit.inventory.meta.ItemMeta.class)))) {
             bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(54),any(net.kyori.adventure.text.Component.class))).thenAnswer(call->{
@@ -54,10 +54,10 @@ class ReserveMenuTest {
             });
             doAnswer(call->{when(view.getTopInventory()).thenReturn(call.getArgument(0));return view;}).when(p).openInventory(any(Inventory.class));
             menu.open(p,0);Inventory original=view.getTopInventory();InventoryView oldView=mock(InventoryView.class);when(oldView.getTopInventory()).thenReturn(original);
-            doAnswer(call->{s.arena.sellSelected(owner);return null;}).when(games).sell(p);
+            doAnswer(call->{s.arena.select(owner,call.getArgument(1));s.arena.sellSelected(owner);return null;}).when(games).sell(eq(p),any());
             var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(oldView);when(event.getWhoClicked()).thenReturn(p);
             when(event.getClick()).thenReturn(ClickType.RIGHT);when(event.getRawSlot()).thenReturn(0);
-            menu.click(event);menu.click(event);verify(games,times(1)).sell(p);assertEquals(0,s.arena.reserveCount());
+            menu.click(event);menu.click(event);verify(games,times(1)).sell(eq(p),any());verify(games,never()).select(any(),any());assertEquals(0,s.arena.reserveCount());
         }
     }
     @Test void miracleNamesCarrySeveralColorsAndNoItalic() {
