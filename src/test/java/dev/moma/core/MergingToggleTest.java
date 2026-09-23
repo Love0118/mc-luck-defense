@@ -32,10 +32,10 @@ class MergingToggleTest {
     }
     @Test void disabledMergingRespectsCapacityAndAutoSaleCanStillFreeSlots() {
         Arena arena=arena();arena.toggleMerging(arena.owner());
-        for(int i=0;i<36;i++)assertEquals(Arena.Result.OK,buy(arena,Rarity.COMMON));
+        for(int i=0;i<84;i++)assertEquals(Arena.Result.OK,buy(arena,Rarity.COMMON));
         assertEquals(36,arena.defenderCount());assertEquals(36,arena.defenders().stream().map(Defender::cell).distinct().count());
-        assertEquals(Arena.Result.FULL,buy(arena,Rarity.COMMON));assertEquals(640,arena.coins());
-        assertEquals(36,arena.sellRarity(arena.owner(),Rarity.COMMON).entities().size());assertEquals(676,arena.coins());
+        assertEquals(Arena.Result.FULL,buy(arena,Rarity.COMMON));assertEquals(160,arena.coins());
+        assertEquals(84,arena.sellRarity(arena.owner(),Rarity.COMMON).entities().size());assertEquals(244,arena.coins());
         assertEquals(Arena.Result.OK,buy(arena,Rarity.COMMON));assertFalse(arena.lastPurchaseMerged());
     }
     @Test void onlyOwnerOfActiveArenaCanToggleAndStateSurvivesSerialization()throws Exception {

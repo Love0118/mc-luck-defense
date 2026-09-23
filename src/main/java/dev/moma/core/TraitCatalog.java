@@ -42,7 +42,7 @@ public final class TraitCatalog {
                     name=switch(round){case 125->"첫 인연";case 250->"준비된 인연";default->"신화의 인연";};
                 } else {
                     family=Family.DAMAGE;name="수비 교본";
-                    value=switch(round){case 200->4;case 300->5;case 500->6;case 600->7;case 700->8;case 1000->9;case 1500->10;case 2000->12;default->throw new IllegalStateException(a.id());};
+                    value=switch(round){case 200->4;case 300->5;case 500->6;case 600->7;case 700->8;case 1000->9;case 1500->10;case 2000->12;case 2250->13;case 2500->14;case 3000->15;case 4000->16;case 5000->17;case 6000->18;case 7500->19;case 9000->20;case 10000->21;default->throw new IllegalStateException(a.id());};
                 }
             } else if(a.metric().role()) {
                 family=Family.ROLE_DAMAGE;value=12;role=a.metric().attackRole();name=a.title()+" 교본";
@@ -56,6 +56,7 @@ public final class TraitCatalog {
                     case ENHANCEMENT -> {family=Family.ENHANCEMENT;value=5+index*5;name="담금질";}
                     case SESSION -> {family=Family.OPENING_ODDS;target=new Rarity[]{Rarity.NARRATIVE,Rarity.LEGENDARY,Rarity.EPIC,Rarity.MYTHIC}[index];value=4000;name="다가오는 인연 · "+target.label();}
                     case GOLD_SPENT -> {family=Family.GOLD_INCOME;value=new int[]{2,3,4,6,8}[index];name="전장의 투자";}
+                    case MIRACLE -> {family=Family.ENHANCEMENT;value=new int[]{26,27,28,29,30}[index];name="기적의 담금질";}
                     case DUPLICATE -> {family=Family.DUPLICATE_ODDS;value=new int[]{10,15,20,25}[index];name="전우의 재회";}
                     default -> throw new IllegalStateException(a.id());
                 }

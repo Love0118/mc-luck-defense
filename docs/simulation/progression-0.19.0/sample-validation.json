@@ -1,0 +1,23 @@
+{
+  "none": {
+    "runs": 1000,
+    "maximum_round": 373,
+    "reached_10000": 0,
+    "completed_10000": 0,
+    "sha256": "7822e942e0cc7f96b90d74dbe1906f2ac1a5ff9ecbe154a834cea57ae3974ca8"
+  },
+  "top_growth": {
+    "runs": 1000,
+    "maximum_round": 10000,
+    "reached_10000": 1,
+    "completed_10000": 1,
+    "sha256": "f3bb89f31dd3f70791e06c1109084b164ae65ca4da931eac6bd00e1a7090800e"
+  },
+  "top_combat": {
+    "runs": 1000,
+    "maximum_round": 10000,
+    "reached_10000": 2,
+    "completed_10000": 2,
+    "sha256": "107a2f81b04d6710c6e7bc0e5c78ad8d5a8278e3ff8371889a3ee2fa72754c74"
+  }
+}

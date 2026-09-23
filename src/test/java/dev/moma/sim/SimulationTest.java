@@ -30,9 +30,9 @@ class SimulationTest {
             assertTrue(trace.get(i).earned() >= trace.get(i - 1).earned());
         }
     }
-    @Test void noMovementPolicyAndWilsonBoundsBehaveAsDeclared() {
+    @Test void automaticPlacementAndWilsonBoundsBehaveAsDeclared() {
         var result = Simulation.run(456, CampaignRules.standard(), AutoPlayer.Strategy.AUTO_PLACE, null);
-        assertEquals(0, result.moves());
+        assertTrue(result.moves()>0);
         double[] interval = SimulatorMain.wilson(100, 10_000);
         assertTrue(interval[0] < 0.01 && interval[1] > 0.01);
         assertTrue(SimulatorMain.wilson(0, 100)[1] > 0);

@@ -6,7 +6,7 @@ import java.util.*;
 public final class AchievementCatalog {
     public enum Metric {
         ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL, ENHANCEMENT, SESSION, GOLD_SPENT, DUPLICATE,
-        ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET;
+        ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET, MIRACLE;
         public boolean role() { return name().startsWith("ROLE_"); }
         public AttackRole attackRole() { return AttackRole.valueOf(name().substring(5)); }
     }
@@ -18,7 +18,7 @@ public final class AchievementCatalog {
             if(metric==Metric.GOLD_SPENT)return "누적 소환 골드 소모 "+target+"골드";
             if(metric==Metric.DUPLICATE)return "누적 전설 이상 동일 기물 합성 "+target+"회";
             return metric == Metric.ROUND ? target + "라운드 도달"
-                    : metric == Metric.TRUE_PRIMORDIAL ? "누적 진 태초 " + target + "회 승급"
+                    : metric == Metric.TRUE_PRIMORDIAL ? "누적 진 태초 " + target + "회 획득"
                     : "누적 " + Rarity.valueOf(metric.name()).label() + " " + target + "회 소환";
         }
     }
@@ -48,6 +48,9 @@ public final class AchievementCatalog {
         int roleIndex=0;
         for(Metric metric:Metric.values())if(metric.role())
             add(entries,metric,new long[]{150},new String[]{roleTitles[roleIndex++]},0);
+        add(entries,Metric.ROUND,new long[]{2250,2500,3000,4000,5000,6000,7500,9000,10000},
+                new String[]{"초월의 전선","기적의 문","삼천의 수호자","사천의 성벽","절반의 무한","육천의 지평","끝나지 않는 의지","만 라운드의 문턱","만전의 기적"},0);
+        add(entries,Metric.MIRACLE,new long[]{1,3,10,25,100},new String[]{"첫 미라클","기적의 삼중주","열 번의 기적 너머","기적의 군단","백 번의 미라클"},0);
         entries.sort(Comparator.comparing(Entry::metric).thenComparingLong(Entry::target));
         ALL = List.copyOf(entries);
     }

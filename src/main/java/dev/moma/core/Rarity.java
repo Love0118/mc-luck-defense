@@ -11,8 +11,9 @@ public enum Rarity {
     LEGENDARY("전설", 500, 60, 8.0, 1.2, 1.4, 1),
     EPIC("에픽", 200, 300, 24.0, 1.25, 1.6, 2),
     MYTHIC("신화", 80, 750, 120.0, 1.3, 1.9, 3),
-    PRIMORDIAL("태초", 19, -1, 4800.0, 1.4, 2.3, 4),
-    TRUE_PRIMORDIAL("진 태초", 0, -1, 163200.0, 1.4, 2.3, 4);
+    PRIMORDIAL("태초", 19, 1000, 4800.0, 1.4, 2.3, 4),
+    TRUE_PRIMORDIAL("진 태초", 0, 20000, 163200.0, 1.4, 2.3, 4),
+    MIRACLE("미라클", 0, 420000, 5548800.0, 1.4, 2.3, 5);
 
     public static final int TOTAL_WEIGHT = 100_000;
     private final String label;
@@ -36,6 +37,7 @@ public enum Rarity {
         };
     }
     public OptionalInt salePrice() { return salePrice < 0 ? OptionalInt.empty() : OptionalInt.of(salePrice); }
+    public boolean autoSellable() { return ordinal()<=PRIMORDIAL.ordinal(); }
     public int abilityLevel() { return abilityLevel; }
     public double damageMultiplier() { return damageMultiplier; }
     public double rangeMultiplier() { return rangeMultiplier; }

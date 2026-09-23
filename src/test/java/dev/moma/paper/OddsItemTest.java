@@ -36,7 +36,7 @@ class OddsItemTest {
             arena.reachedRound(101);ShopMenu.oddsItem(arena);
             assertEquals(List.of(org.bukkit.Material.KNOWLEDGE_BOOK,org.bukkit.Material.ENCHANTED_BOOK),materials);
             var name=org.mockito.ArgumentCaptor.forClass(Component.class);verify(metas.getLast()).displayName(name.capture());
-            assertTrue(LegacyComponentSerializer.legacyAmpersand().serialize(name.getValue()).contains("&d&l후반 소환 확률"));
+            assertTrue(LegacyComponentSerializer.legacyAmpersand().serialize(name.getValue()).contains("&d소환 확률"));
             var lore=org.mockito.ArgumentCaptor.forClass(List.class);verify(metas.getLast()).lore(lore.capture());
             String text=lore.getValue().toString();
             for(String expected:List.of("32.01%","35%","30%","2%","0.8%","0.19%","100골드"))assertTrue(text.contains(expected));

@@ -10,10 +10,11 @@ import java.util.*;
 
 final class ShopMenu implements Listener {
     private static final int SUMMON = 11, DETAILS = 13, SELL = 15, AUTO_SELL_FIRST = 19,
-            SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6, AUTO_MERGE = 7;
-    private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(r -> r.salePrice().isPresent()).toArray(Rarity[]::new);
+            SPEED = 8, ODDS = 0, BULK_BUY = 10, AUTO_LAYOUT = 6, AUTO_MERGE = 7, RESERVE = 5;
+    private static final Rarity[] SELLABLE = Arrays.stream(Rarity.values()).filter(Rarity::autoSellable).toArray(Rarity[]::new);
     private final MomaPlugin plugin;
     private final GameService games;
+    private final ReserveMenu reserveMenu;
     private final Map<UUID, Integer> nextClick = new HashMap<>();
 
     private static final class Holder implements InventoryHolder {
@@ -25,12 +26,12 @@ final class ShopMenu implements Listener {
         Holder(UUID owner, GameSession session) { this.owner = owner; this.session = session; this.arena = session.arena; }
         @Override public Inventory getInventory() { return inventory; }
     }
-    ShopMenu(MomaPlugin plugin, GameService games) { this.plugin = plugin; this.games = games; }
+    ShopMenu(MomaPlugin plugin, GameService games) { this.plugin = plugin; this.games = games;this.reserveMenu=new ReserveMenu(games,this); }
     void open(Player player) {
         GameSession session = games.session(player);
         if (session == null || session.arena.ended()) return;
         var holder = new Holder(player.getUniqueId(), session);
-        holder.inventory = Bukkit.createInventory(holder, 27, Ui.text("&6운빨 디펜스 &8· &e소환과 판매"));
+        holder.inventory = Bukkit.createInventory(holder, 36, Ui.text("&6운빨 디펜스 &8· &e소환과 판매"));
         render(holder);
         player.openInventory(holder.inventory);
         Ui.sound(player,Ui.Cue.OPEN);
@@ -39,8 +40,9 @@ final class ShopMenu implements Listener {
         Arena arena = holder.arena;
         holder.inventory.clear();
         holder.inventory.setItem(SPEED, item(Material.CLOCK, "&b게임 배속: &e" + holder.session.speed() + "배",
-                "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 16 → 1배"));
+                "클릭하여 속도 변경", "1 → 2 → 4 → 8 → 16 → 32 → 1배"));
         holder.inventory.setItem(ODDS, oddsItem(arena));
+        holder.inventory.setItem(RESERVE,item(Material.CHEST,"&b대기열 &f"+arena.reserveCount()+"/48","클릭하여 관리"));
         holder.inventory.setItem(AUTO_MERGE, item(arena.mergingEnabled()?Material.ANVIL:Material.CHIPPED_ANVIL,
                 "&b강화 합성 &7· "+(arena.mergingEnabled()?"&aON":"&cOFF"),
                 "클릭하여 "+(arena.mergingEnabled()?"끄기":"켜기")));
@@ -60,7 +62,7 @@ final class ShopMenu implements Listener {
             String color = "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(rarity).value());
             holder.inventory.setItem(AUTO_SELL_FIRST+i, item(enabled ? Material.LIME_DYE : Material.GRAY_DYE,
                     color + rarity.label() + " &f자동판매 &7· " + (enabled ? "&aON" : "&cOFF"),
-                    "마리당 &6+" + rarity.salePrice().getAsInt() + "골드", "켜면 보유·소환한 이 등급을 자동판매",
+                    "기본 판매 &6+" + arena.summonTier().saleValue(rarity) + "골드", "켜면 보유·소환한 이 등급을 자동판매",
                     "클릭하여 " + (enabled ? "끄기" : "켜기")));
         }
         Optional<Defender> selected = arena.selected();
@@ -70,7 +72,7 @@ final class ShopMenu implements Listener {
             String sale = d.rarity().salePrice().isPresent() ? d.saleValue() + "골드" : "판매 불가";
             holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"&l":"") + "[" + d.rarity().label() + "] " + d.label(),
                     d.type().role().label(),
-                    "강화 +" + d.enhancement() + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"":" · +20 달성 시 다음 등급"),
+                    "강화 +" + d.enhancement() + (d.rarity()==Rarity.MIRACLE?"":" · +20 달성 시 다음 등급"),
                     "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()),
                     "특성 적용 · 일반 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),false))
                             +" / 보스 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),true)),
@@ -91,7 +93,6 @@ final class ShopMenu implements Listener {
     static ItemStack oddsItem(Arena arena) {
         boolean openingBonus = arena != null && arena.openingBonusActive();
         SummonTier tier=arena==null?SummonTier.NORMAL:arena.summonTier();
-        boolean advanced=tier==SummonTier.ADVANCED;
         var lore = new ArrayList<String>();
         for (Rarity rarity : Rarity.values()) {
             int weight=arena==null?tier.weight(rarity,openingBonus):arena.summonWeight(rarity);
@@ -107,13 +108,12 @@ final class ShopMenu implements Listener {
         if (openingBonus) {
             lore.add("&a초반 보정 · 최대 " + arena.openingDrawsRemaining() + "회 남음");
         }
-        lore.add(advanced?"&d유물 이상만 등장 · 1회 100골드":"&7101라운드부터 100골드 소환");
+        lore.add("&e1회 "+tier.cost()+"골드");
         if(arena!=null)for(Rarity rarity:Rarity.values())if(arena.openingTraitActive(rarity))
             lore.add("&d인연 보정 · "+rarity.label()+" · "+arena.openingTraitRemaining()+"회 남음");
-        lore.add("&4&l진 태초 &7· 태초 +20 승급 전용");
-        lore.add("&7태초·진 태초는 판매할 수 없습니다.");
-        return Ui.item(advanced?Material.ENCHANTED_BOOK:Material.KNOWLEDGE_BOOK,
-                advanced?"&d&l후반 소환 확률 · 100골드":"&a소환 확률 · 10골드",lore.toArray(String[]::new));
+        lore.add("&7진 태초·미라클: 수동판매만 가능");
+        return Ui.item(switch(tier){case NORMAL->Material.KNOWLEDGE_BOOK;case ADVANCED->Material.ENCHANTED_BOOK;case ASCENDED->Material.WRITABLE_BOOK;case MIRACLE->Material.WRITTEN_BOOK;},
+                "&d소환 확률 · "+tier.cost()+"골드",lore.toArray(String[]::new));
     }
     private ItemStack item(Material material, String title, String... lore) {
         return Ui.item(material, "&6" + title, Arrays.stream(lore).map(s -> "&7" + s).toArray(String[]::new));
@@ -126,6 +126,7 @@ final class ShopMenu implements Listener {
         }
     }
     @EventHandler public void click(InventoryClickEvent event) {
+        if(reserveMenu.click(event))return;
         if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || !player.getUniqueId().equals(holder.owner)) return;
@@ -133,13 +134,14 @@ final class ShopMenu implements Listener {
         if (session == null || session.arena != holder.arena || session.arena.ended()) return;
         if (event.getClick() != ClickType.LEFT || holder.consumed || Bukkit.getCurrentTick() < nextClick.getOrDefault(holder.owner, 0)) return;
         int slot = event.getRawSlot();
-        if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT && slot != AUTO_MERGE
+        if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT && slot != AUTO_MERGE && slot != RESERVE
                 && (slot < AUTO_SELL_FIRST || slot >= AUTO_SELL_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
+        if(slot==RESERVE){reserveMenu.open(player,0);return;}
         if (slot == SUMMON) games.summon(player);
         else if (slot == SELL) games.sell(player);
-        else if (slot == SPEED) games.speed(player, session.speed() == 16 ? 1 : session.speed() * 2);
+        else if (slot == SPEED) games.speed(player, session.speed() == 32 ? 1 : session.speed() * 2);
         else if (slot == BULK_BUY) games.toggleBulkBuy(player);
         else if (slot == AUTO_LAYOUT) games.toggleAutoPlacement(player);
         else if (slot == AUTO_MERGE) games.toggleMerging(player);
@@ -151,6 +153,7 @@ final class ShopMenu implements Listener {
         }, 1);
     }
     @EventHandler public void drag(InventoryDragEvent event) {
+        reserveMenu.drag(event);
         if (event.getView().getTopInventory().getHolder() instanceof Holder) event.setCancelled(true);
     }
     @EventHandler public void close(InventoryCloseEvent event) {

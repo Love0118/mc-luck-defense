@@ -44,14 +44,14 @@ class RosterTest {
         }
     }
     @Test void saleTableAndExpectedRecovery() {
-        int[] expected = {1, 3, 5, 24, 35, 60, 300, 750};
+        int[] expected = {1, 3, 5, 24, 35, 60, 300, 750,1000,20000,420000};
         double mean = 0;
         for (Rarity rarity : Rarity.values()) {
             if (rarity.ordinal() < expected.length) assertEquals(expected[rarity.ordinal()], rarity.salePrice().orElseThrow());
             else assertTrue(rarity.salePrice().isEmpty());
             mean += rarity.weight() / 100_000.0 * rarity.salePrice().orElse(0);
         }
-        assertEquals(5.00701, mean, 1e-9);
+        assertEquals(5.19701, mean, 1e-9);
         assertTrue(mean < Arena.SUMMON_COST);
     }
     @ParameterizedTest @EnumSource(UnitType.class)

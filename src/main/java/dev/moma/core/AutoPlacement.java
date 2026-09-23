@@ -26,8 +26,11 @@ public final class AutoPlacement {
     }
 
     public Map<UUID, Cell> arrange(List<Defender> units) {
-        int n = units.size(), m = grid.placementOrder().size();
-        if (n > m) throw new IllegalArgumentException("Too many defenders");
+        int m=grid.placementOrder().size();
+        units=units.stream().sorted(Comparator.comparingInt((Defender d)->d.rarity().ordinal()).reversed()
+                .thenComparing(Comparator.comparingDouble((Defender d)->d.profile().damage()/d.profile().intervalTicks()).reversed()))
+                .limit(m).toList();
+        int n=units.size();
         double[][] cost = new double[n][m];
         double maximum = 1;
         for (int i = 0; i < n; i++) for (int j = 0; j < m; j++) {
@@ -39,7 +42,7 @@ public final class AutoPlacement {
             // Equal-coverage ties keep ranged units inside and avoid unnecessary moves.
             cost[i][j] = cost[i][j] / maximum
                     + (units.get(i).type().role().melee() == grid.perimeter(cell) ? 0 : 1e-10)
-                    + (units.get(i).cell().equals(cell) ? 0 : 1e-12);
+                    + (Objects.equals(units.get(i).cell(),cell) ? 0 : 1e-12);
         }
         // Rectangular Hungarian assignment: each defender gets exactly one distinct cell.
         double[] u = new double[n + 1], v = new double[m + 1];

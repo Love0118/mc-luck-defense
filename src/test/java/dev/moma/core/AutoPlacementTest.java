@@ -46,7 +46,7 @@ class AutoPlacementTest {
         assertEquals(INVALID_CELL,arena.rearrange(owner,invalid));
         invalid.put(first.entityId(),units.getLast().cell());
         assertEquals(OCCUPIED,arena.rearrange(owner,invalid));
-        invalid.remove(first.entityId()); assertEquals(NOT_OWNER,arena.rearrange(owner,invalid));
+        invalid.remove(first.entityId());invalid.put(UUID.randomUUID(),first.cell()); assertEquals(NOT_OWNER,arena.rearrange(owner,invalid));
         for (Defender d : units) assertEquals(layout.get(d.entityId()),d.cell());
         AutoPlacement optimizer = new AutoPlacement(arena.grid());
         assertEquals(OK,arena.rearrange(owner,optimizer.arrange(units)));

@@ -6,19 +6,16 @@ import java.util.function.Supplier;
 
 /** Observable-state-only policy: no future rolls, enemy health scaling, or seed inspection. */
 public final class AutoPlayer {
-    public static final int TRANSACTION_INTERVAL = 2;
+    public static final int TRANSACTION_INTERVAL = 1;
     public enum Strategy { BALANCED, AUTO_PLACE }
     private final HashRandom random;
-    private final Strategy strategy;
     private final Arena.Spawner spawner;
     private final java.util.function.Consumer<UUID> remove;
-    private final double[][] coverage;
-    private record Coverage(double[][] cells,double[] best) {}
-    private static final Map<Integer,Coverage> COVERAGE=new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<Integer,double[]> COVERAGE=new java.util.concurrent.ConcurrentHashMap<>();
     private final double[] bestCoverage;
     private final int[] rarities = new int[Rarity.values().length];
     private int summons, sales, moves;
-    private boolean placementChecked;
+    private final AutoPlacement placement;
     private final int primordialCap;
 
     public AutoPlayer(long seed, Strategy strategy, Grid grid, Supplier<UUID> ids) {
@@ -29,12 +26,11 @@ public final class AutoPlayer {
     }
     public AutoPlayer(long seed, Strategy strategy, Grid grid, Arena.Spawner spawner, java.util.function.Consumer<UUID> remove, int primordialCap) {
         if (primordialCap < 0) throw new IllegalArgumentException("Negative primordial cap");
-        this.primordialCap = primordialCap;
-        random = new HashRandom(seed); this.strategy = strategy; this.spawner = spawner; this.remove = remove;
-        Coverage cached=COVERAGE.computeIfAbsent(grid.size(),size->coverageFor(grid));
-        coverage=cached.cells();bestCoverage=cached.best();
+        this.primordialCap = primordialCap;placement=new AutoPlacement(grid);
+        random = new HashRandom(seed); this.spawner = spawner; this.remove = remove;
+        bestCoverage=COVERAGE.computeIfAbsent(grid.size(),size->coverageFor(grid));
     }
-    private static Coverage coverageFor(Grid grid) {
+    private static double[] coverageFor(Grid grid) {
         double[][] coverage = new double[UnitType.values().length * Rarity.values().length][grid.size() * grid.size()];
         for (UnitType type : UnitType.values()) for (Rarity rarity : Rarity.values()) {
             double range = type.profile().at(rarity).range();
@@ -46,14 +42,13 @@ public final class AutoPlayer {
         }
         double[] best=new double[coverage.length];
         for(int i=0;i<best.length;i++)best[i]=Arrays.stream(coverage[i]).max().orElse(0);
-        return new Coverage(coverage,best);
+        return best;
     }
     public int summons() { return summons; }
     public int sales() { return sales; }
     public int moves() { return moves; }
     public int[] rarities() { return rarities.clone(); }
     private static int index(UnitType type, Rarity rarity) { return type.ordinal() * Rarity.values().length + rarity.ordinal(); }
-    private double coverage(Defender d, Cell cell, Grid grid) { return coverage[index(d.type(), d.rarity())][cell.row() * grid.size() + cell.column()]; }
     private double score(Defender d) {
         double best = bestCoverage[index(d.type(), d.rarity())];
         CombatProfile p = d.profile();
@@ -66,43 +61,30 @@ public final class AutoPlayer {
         };
         return p.damage() * 20 / p.intervalTicks() * best * targets;
     }
-    /** Up to ten transactions per second at 1x, below the live GUI's twenty; moves use legal empty cells. */
-    public void act(Arena arena, long tick) {
-        if (arena.ended() || tick % TRANSACTION_INTERVAL != 0) return;
-        List<Defender> units = arena.defenders();
-        if (units.size() == arena.grid().size() * arena.grid().size()) {
-            var worst = units.stream().filter(d -> d.rarity().salePrice().isPresent()
-                    && arena.coins() + d.saleValue() >= arena.summonCost()).min(Comparator.comparingDouble(this::score));
-            if (worst.isPresent()) { sell(arena, worst.orElseThrow()); return; }
-        }
-        if (strategy == Strategy.BALANCED && tick % 40 == 0 && improvePlacement(arena, units)) return;
-        if (arena.coins() >= arena.summonCost() && units.size() < arena.grid().size() * arena.grid().size()) {
-            SummonRoll roll = SummonRoll.draw(random, arena);
-            // Stress-test intervention only: spend the same draw but downgrade excess Primordials.
-            if (roll.rarity() == Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()] >= primordialCap)
-                roll = new SummonRoll(roll.type(), Rarity.MYTHIC);
-            if (arena.summon(arena.owner(), roll, spawner) == Arena.Result.OK) {
-                summons++; rarities[roll.rarity().ordinal()]++; arena.collectMergedEntities().forEach(remove);placementChecked=false;
+    /** Every game tick executes the same bounded purchase budget at any simulator batch size. */
+    public void act(Arena arena,long tick) {
+        if(arena.ended())return;
+        boolean dirty=false;
+        for(int action=0;action<4;action++) {
+            if(arena.coins()<arena.summonCost() || arena.unitCount()>=arena.grid().size()*arena.grid().size()+Arena.RESERVE_CAPACITY) {
+                var worst=arena.reserveUnits().stream().filter(d->d.rarity().autoSellable()).min(Comparator.comparingDouble(this::score));
+                if(worst.isPresent()){sell(arena,worst.orElseThrow());dirty=true;continue;}
+                break;
             }
+            SummonRoll roll=SummonRoll.draw(random,arena);
+            if(roll.rarity()==Rarity.PRIMORDIAL && rarities[Rarity.PRIMORDIAL.ordinal()]>=primordialCap)
+                roll=new SummonRoll(roll.type(),Rarity.MYTHIC);
+            if(arena.summon(arena.owner(),roll,spawner)!=Arena.Result.OK)break;
+            summons++;rarities[roll.rarity().ordinal()]++;arena.collectMergedEntities().forEach(remove);dirty=true;
+        }
+        if(dirty) {
+            var layout=placement.arrange(arena.units());
+            for(Defender d:arena.units())if(!Objects.equals(d.cell(),layout.get(d.entityId())))moves++;
+            arena.rearrange(arena.owner(),layout);
         }
     }
     private void sell(Arena arena, Defender d) {
         arena.select(arena.owner(), d.entityId());
-        if (arena.sellSelected(arena.owner()) == Arena.Result.OK) { sales++; remove.accept(d.entityId());placementChecked=false; }
-    }
-    private boolean improvePlacement(Arena arena, List<Defender> units) {
-        if(placementChecked)return false;
-        if(units.size()==arena.grid().size()*arena.grid().size()){placementChecked=true;return false;}
-        Set<Cell> occupied = new HashSet<>(); for (Defender d : units) occupied.add(d.cell());
-        Defender best = null; Cell destination = null; double improvement = 0.01;
-        for (Defender d : units) for (Cell cell : arena.grid().placementOrder()) {
-            if (occupied.contains(cell)) continue;
-            double gain = (coverage(d, cell, arena.grid()) - coverage(d, d.cell(), arena.grid())) * d.profile().damage() / d.profile().intervalTicks();
-            if (gain > improvement) { best = d; destination = cell; improvement = gain; }
-        }
-        if (best == null) {placementChecked=true;return false;}
-        arena.select(arena.owner(), best.entityId());
-        if (arena.moveSelected(arena.owner(), destination) != Arena.Result.OK) throw new IllegalStateException("Illegal bot move");
-        moves++; return true;
+        if (arena.sellSelected(arena.owner()) == Arena.Result.OK) { sales++; remove.accept(d.entityId()); }
     }
 }

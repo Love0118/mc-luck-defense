@@ -47,8 +47,8 @@ class ProgressionTraitTest {
         int wolves=0;
         for(int i=0;i<100000;i++)if(boosted.summonType(UnitType.PANDA,Rarity.PRIMORDIAL)==UnitType.WOLF)wolves++;
         assertEquals(25000,wolves,500);
-        boosted.sellRarity(boosted.owner(),Rarity.PRIMORDIAL); // unsellable; the owned pool remains
-        assertEquals(1,boosted.defenderCount());
+        boosted.sellRarity(boosted.owner(),Rarity.PRIMORDIAL);
+        assertEquals(0,boosted.defenderCount());
     }
     @Test void duplicateBiasTargetsHighestEnhancementAndLeavesLowerGradesUniform() {
         var always=new java.util.random.RandomGenerator() {

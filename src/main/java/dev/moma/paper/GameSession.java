@@ -28,8 +28,8 @@ final class GameSession {
 
     int speed() { return speed; }
     void speed(int value) {
-        if (value != 1 && value != 2 && value != 4 && value != 8 && value != 16)
-            throw new IllegalArgumentException("배속은 1, 2, 4, 8, 16 중에서 선택하세요.");
+        if (value != 1 && value != 2 && value != 4 && value != 8 && value != 16 && value != 32)
+            throw new IllegalArgumentException("배속은 1, 2, 4, 8, 16, 32 중에서 선택하세요.");
         speed = value;
     }
 

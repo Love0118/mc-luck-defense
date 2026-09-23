@@ -19,13 +19,13 @@ class ProgressionTest {
         }
     }
     @Test void advancedWeightsStartAtRelicAndPreserveTopThreeYieldPerGold() {
-        int[] advanced={0,0,0,32010,35000,30000,2000,800,190,0};
+        int[] advanced={0,0,0,32010,35000,30000,2000,800,190,0,0};
         for(SummonTier tier:SummonTier.values()) {
             int[] counts=new int[Rarity.values().length];
             for(int i=0;i<Rarity.TOTAL_WEIGHT;i++)counts[tier.rarity(i,false).ordinal()]++;
             assertEquals(100000,Arrays.stream(counts).sum());
             for(Rarity rarity:Rarity.values())assertEquals(tier.weight(rarity,false),counts[rarity.ordinal()]);
-            assertEquals(0,counts[Rarity.TRUE_PRIMORDIAL.ordinal()]);
+            if(tier.ordinal()<SummonTier.ASCENDED.ordinal())assertEquals(0,counts[Rarity.TRUE_PRIMORDIAL.ordinal()]);
             if(tier==SummonTier.ADVANCED)assertArrayEquals(advanced,counts);
         }
         for(Rarity rarity:List.of(Rarity.EPIC,Rarity.MYTHIC,Rarity.PRIMORDIAL))
@@ -50,8 +50,8 @@ class ProgressionTest {
             d.attackAt(100,40);UUID target=UUID.randomUUID();d.hitTarget(target);
             double previous=d.profile().damage();
             for(int i=0;i<20;i++){d.merge();assertTrue(d.profile().damage()>=previous);previous=d.profile().damage();}
-            assertEquals(rarity==Rarity.TRUE_PRIMORDIAL?rarity:Rarity.values()[rarity.ordinal()+1],d.rarity());
-            assertEquals(rarity==Rarity.TRUE_PRIMORDIAL?20:0,d.enhancement());
+            assertEquals(rarity==Rarity.MIRACLE?rarity:Rarity.values()[rarity.ordinal()+1],d.rarity());
+            assertEquals(rarity==Rarity.MIRACLE?20:0,d.enhancement());
             assertEquals(140,d.nextAttackTick());assertEquals(1,d.consecutiveHits());
             assertEquals(d.rarity().salePrice().isEmpty()?0:rarity.salePrice().orElse(0)*21L,d.saleValue());
         }

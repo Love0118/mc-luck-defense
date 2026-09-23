@@ -4,7 +4,8 @@ import java.util.UUID;
 
 public final class Defender implements java.io.Serializable {
     private static final long serialVersionUID=1L;
-    private final UUID entityId, ownerId;
+    private UUID entityId;
+    private final UUID ownerId;
     private final String arenaId;
     private final UnitType type;
     private Rarity rarity;
@@ -18,6 +19,7 @@ public final class Defender implements java.io.Serializable {
     private int consecutiveHits;
     private final double enhancementBonus;
     private double attackRemainder;
+    private long acquisitionOrder;
 
     public Defender(UUID entityId, UUID ownerId, String arenaId, UnitType type, Rarity rarity, Cell cell) {
         this(entityId,ownerId,arenaId,type,rarity,cell,0,rarity.salePrice().orElse(0));
@@ -29,6 +31,14 @@ public final class Defender implements java.io.Serializable {
         this.saleValue=saleValue;this.enhancementBonus=enhancementBonus;
     }
     public UUID entityId() { return entityId; }
+    void bindEntity(UUID id) { entityId=id; }
+    public boolean deployed() { return cell!=null; }
+    long acquisitionOrder() { return acquisitionOrder; }
+    void acquisitionOrder(long value) { acquisitionOrder=value; }
+    private void readObject(java.io.ObjectInputStream input)throws java.io.IOException,ClassNotFoundException {
+        input.defaultReadObject();
+        if(saleValue==0 && rarity.ordinal()>=Rarity.PRIMORDIAL.ordinal())saleValue=rarity.salePrice().orElse(0);
+    }
     public UUID ownerId() { return ownerId; }
     public String arenaId() { return arenaId; }
     public Faction faction() { return Faction.DEFENDER; }
@@ -56,7 +66,7 @@ public final class Defender implements java.io.Serializable {
     private void addEnhancement(int amount,double inherited) {
         inheritedDamage+=inherited;
         enhancement=Math.addExact(enhancement,amount);
-        while(enhancement>=20 && rarity!=Rarity.TRUE_PRIMORDIAL) {
+        while(enhancement>=20 && rarity!=Rarity.MIRACLE) {
             // Carry the +20 damage forward; promotion must never weaken an existing tower.
             inheritedDamage=Math.max(inheritedDamage+type.profile().at(rarity).damage()*(23+20*enhancementBonus),
                     type.profile().at(Rarity.values()[rarity.ordinal()+1]).damage());

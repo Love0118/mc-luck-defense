@@ -11,19 +11,25 @@ final class AttackEffects {
     record SoundProfile(String key, float volume) {}
     private final Map<Defender, List<Point>> attacks = new LinkedHashMap<>();
     private final Set<Defender> currentStep = new HashSet<>();
+    private final Map<Defender,Point> origins=new HashMap<>();
     private static final Particle.DustOptions[] COLORS = Arrays.stream(Rarity.values())
             .map(r -> new Particle.DustOptions(Color.fromRGB(EntityAdapter.rarityColor(r).value()), 0.8f))
             .toArray(Particle.DustOptions[]::new);
-    void clear() { attacks.clear(); currentStep.clear(); }
+    void clear() { attacks.clear(); currentStep.clear();origins.clear(); }
     void beginStep() { currentStep.clear(); }
     boolean hit(Defender defender, Point target) {
         List<Point> targets = attacks.computeIfAbsent(defender, key -> new ArrayList<>());
         boolean primary = currentStep.add(defender);
-        if (primary) targets.clear();
+        if (primary) { targets.clear();origins.put(defender,defender.position()); }
         targets.add(target); return primary;
     }
     void forEachPrimary(java.util.function.BiConsumer<Defender, Point> action) {
         attacks.forEach((defender, targets) -> action.accept(defender, targets.getFirst()));
+    }
+    void retainActive(Collection<Defender> active) {
+        Set<Defender> present=new HashSet<>(active);
+        attacks.keySet().removeIf(d->!present.contains(d) || !d.deployed() || !Objects.equals(origins.get(d),d.position()));
+        origins.keySet().retainAll(attacks.keySet());
     }
     void render(ArenaMap map, List<Player> viewers) {
         for (var attack : attacks.entrySet()) {

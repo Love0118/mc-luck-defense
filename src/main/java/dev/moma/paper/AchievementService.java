@@ -35,7 +35,7 @@ final class AchievementService implements Listener {
     static String definition(Entry entry,String parent) {
         JsonObject json=new JsonObject(),display=new JsonObject(),icon=new JsonObject(),criterion=new JsonObject(),criteria=new JsonObject();
         if(parent!=null)json.addProperty("parent","mcluckdefense:"+parent);
-        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";case TRUE_PRIMORDIAL->"minecraft:end_crystal";case ENHANCEMENT->"minecraft:anvil";default->"minecraft:iron_sword";});
+        icon.addProperty("id",switch(entry.metric()) {case ROUND->"minecraft:shield";case EPIC->"minecraft:amethyst_shard";case MYTHIC->"minecraft:nether_star";case PRIMORDIAL->"minecraft:dragon_egg";case TRUE_PRIMORDIAL->"minecraft:end_crystal";case MIRACLE->"minecraft:beacon";case ENHANCEMENT->"minecraft:anvil";default->"minecraft:iron_sword";});
         var trait=TraitCatalog.find(entry.id());
         display.add("icon",icon);display.addProperty("title",entry.title());
         display.addProperty("description",entry.description()+(trait==null?"":" · 특성: "+trait.name()));
@@ -46,13 +46,14 @@ final class AchievementService implements Listener {
         return json.toString();
     }
     void summoned(Player player,Rarity rarity) {
-        Metric metric=switch(rarity) {case EPIC->Metric.EPIC;case MYTHIC->Metric.MYTHIC;case PRIMORDIAL->Metric.PRIMORDIAL;default->null;};
+        Metric metric=switch(rarity) {case EPIC->Metric.EPIC;case MYTHIC->Metric.MYTHIC;case PRIMORDIAL->Metric.PRIMORDIAL;case TRUE_PRIMORDIAL->Metric.TRUE_PRIMORDIAL;case MIRACLE->Metric.MIRACLE;default->null;};
         if(metric!=null)award(player,metric,AchievementStats.summoned(player.getPersistentDataContainer(),metric));
     }
     void reached(Player player,int round) { award(player,Metric.ROUND,AchievementStats.reached(player.getPersistentDataContainer(),round)); }
     void truePrimordialPromoted(Player player) {
         award(player,Metric.TRUE_PRIMORDIAL,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.TRUE_PRIMORDIAL));
     }
+    void miracleObtained(Player player) { award(player,Metric.MIRACLE,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.MIRACLE)); }
     void enhanced(Player player) {
         award(player,Metric.ENHANCEMENT,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.ENHANCEMENT));
     }

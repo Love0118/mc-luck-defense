@@ -12,8 +12,8 @@ class TraitTest {
         assertEquals(Arena.Result.OK,a.summon(a.owner(),new SummonRoll(UnitType.WOLF,rarity),(t,r,c)->UUID.randomUUID()));
     }
     @Test void catalogHasOneRewardPerChallengeAndLoadoutsRespectSlotsAndFamilies() {
-        assertEquals(71,TraitCatalog.ALL.size());
-        assertEquals(71,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
+        assertEquals(85,TraitCatalog.ALL.size());
+        assertEquals(85,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
         assertEquals(AchievementCatalog.ALL.stream().filter(AchievementCatalog.Entry::challenge).count(),TraitCatalog.ALL.size());
         for(int round:new int[]{99,100,249,250,499,500})
             assertEquals(round<100?0:round<250?1:round<500?2:3,TraitCatalog.slots(round));

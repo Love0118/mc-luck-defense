@@ -26,7 +26,7 @@ class BulkSaleTest {
             arena.summon(owner,new SummonRoll(UnitType.WOLF,grade),(t,r,c)->UUID.randomUUID());
         double coins=arena.coins(); var units=arena.defenders();
         assertEquals(Arena.Result.NOT_OWNER,arena.sellRarity(UUID.randomUUID(),Rarity.COMMON).result());
-        assertEquals(Arena.Result.NOT_SELLABLE,arena.sellRarity(owner,Rarity.PRIMORDIAL).result());
+        assertEquals(Arena.Result.NOT_SELLABLE,arena.sellRarity(owner,Rarity.TRUE_PRIMORDIAL).result());
         arena.finish(Arena.Outcome.ENEMY_LIMIT);
         assertEquals(Arena.Result.ENDED,arena.sellRarity(owner,Rarity.COMMON).result());
         assertEquals(coins,arena.coins()); assertEquals(units,arena.defenders());

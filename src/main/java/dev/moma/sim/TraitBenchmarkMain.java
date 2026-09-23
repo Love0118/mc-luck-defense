@@ -13,7 +13,7 @@ public final class TraitBenchmarkMain {
         int runs=args.length>0?Integer.parseInt(args[0]):256,cap=args.length>1?Integer.parseInt(args[1]):300;
         long seed=args.length>2?Long.parseLong(args[2]):23000000;
         Path output=Path.of(args.length>3?args[3]:"target/trait-benchmark");Files.createDirectories(output);
-        if(runs<1 || runs>10000 || cap<1 || cap>2000)throw new IllegalArgumentException("Invalid benchmark size");
+        if(runs<1 || runs>10000 || cap<1 || cap>10000)throw new IllegalArgumentException("Invalid benchmark size");
         Map<String,TraitLoadout> scenarios=new LinkedHashMap<>();scenarios.put("none",TraitLoadout.EMPTY);
         for(var trait:TraitCatalog.ALL)scenarios.put(trait.id(),new TraitLoadout(List.of(trait.id())));
         scenarios.put("start_two",new TraitLoadout(List.of("round_150","round_250")));

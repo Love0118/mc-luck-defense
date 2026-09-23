@@ -6,13 +6,18 @@ import java.util.*;
 public final class Arena implements java.io.Serializable {
     private static final long serialVersionUID=1L;
     public static final long SUMMON_COST = 10;
+    public static final int RESERVE_CAPACITY=48;
     public enum Result { OK, NOT_OWNER, ENDED, INSUFFICIENT_COINS, FULL, INVALID_CELL, OCCUPIED, NO_SELECTION, NOT_SELLABLE }
+    /** A null cell allocates a reserve identity without spawning a world entity. */
     @FunctionalInterface public interface Spawner { UUID spawn(UnitType type, Rarity rarity, Cell cell); }
     private final String id;
     private final UUID owner;
     private final Grid grid;
     private final int enemyLimit;
     private final LinkedHashMap<UUID, Defender> defenders = new LinkedHashMap<>();
+    private LinkedHashMap<UUID, Defender> reserve=new LinkedHashMap<>();
+    private List<Rarity> lastPromotions=List.of();
+    private boolean acquisitionOrderRecorded=true;
     private final LinkedHashMap<UUID, Enemy> enemies = new LinkedHashMap<>();
     private long coinUnits;
     private UUID selected;
@@ -33,7 +38,7 @@ public final class Arena implements java.io.Serializable {
     private final List<UUID> mergedEntities=new ArrayList<>();
     public SummonTier summonTier() { return summonTier; }
     public long summonCost() { return summonTier.cost(); }
-    public void reachedRound(int round) { if(round>100)summonTier=SummonTier.ADVANCED; }
+    public void reachedRound(int round) { SummonTier next=SummonTier.atRound(round);if(next.ordinal()>summonTier.ordinal())summonTier=next; }
     public Defender lastSummoned() { return lastSummoned; }
     public TraitLoadout traits() { return traits; }
     public boolean lastPurchaseMerged() { return lastPurchaseMerged; }
@@ -80,6 +85,12 @@ public final class Arena implements java.io.Serializable {
 
     private void readObject(java.io.ObjectInputStream input)throws java.io.IOException,ClassNotFoundException {
         input.defaultReadObject();
+        if(reserve==null)reserve=new LinkedHashMap<>();
+        if(lastPromotions==null)lastPromotions=List.of();
+        if(!acquisitionOrderRecorded) {
+            long order=0;for(Defender d:units())d.acquisitionOrder(order++);
+            acquisitionOrderRecorded=true;
+        }
         if(openingTraitHits==null) {
             openingTraitHits=EnumSet.noneOf(Rarity.class);
             if(openingTraitHit && traits.openingTarget()!=null)openingTraitHits.add(traits.openingTarget());
@@ -108,6 +119,20 @@ public final class Arena implements java.io.Serializable {
     public void finish(Outcome result) { if (!ended() && result != Outcome.PLAYING) outcome = result; }
     public int enemyCount() { return enemies.size(); }
     public int defenderCount() { return defenders.size(); }
+    public int reserveCount() { return reserve.size(); }
+    public int unitCount() { return defenders.size()+reserve.size(); }
+    public List<Defender> reserveUnits() { return List.copyOf(reserve.values()); }
+    public List<Defender> units() { var all=new ArrayList<>(defenders.values());all.addAll(reserve.values());return all; }
+    public List<Rarity> lastPromotions() { return lastPromotions; }
+    public boolean hasSummonSpace() { return mergingEnabled() || unitCount()<grid.size()*grid.size()+RESERVE_CAPACITY; }
+    private Defender unit(UUID id) { Defender d=defenders.get(id);return d==null?reserve.get(id):d; }
+    private void removeUnit(UUID id) { defenders.remove(id);reserve.remove(id); }
+    public void bindEntity(UUID previous,UUID actual) {
+        Defender d=defenders.get(previous);
+        if(d==null || hasEntity(actual))throw new IllegalArgumentException("Invalid entity binding");
+        defenders.remove(previous);d.bindEntity(actual);defenders.put(actual,d);
+        if(previous.equals(selected))selected=actual;
+    }
     Collection<Defender> defenderView() { return defenderView; }
     Collection<Enemy> enemyView() { return enemyView; }
     public List<Defender> defenders() { return List.copyOf(defenders.values()); }
@@ -115,8 +140,8 @@ public final class Arena implements java.io.Serializable {
     /** Read-only live views for the server thread; do not structurally mutate during iteration. */
     public Collection<Defender> activeDefenders() { return defenderView; }
     public Collection<Enemy> activeEnemies() { return enemyView; }
-    public Optional<Defender> selected() { return Optional.ofNullable(defenders.get(selected)); }
-    public boolean hasEntity(UUID id) { return defenders.containsKey(id) || enemies.containsKey(id); }
+    public Optional<Defender> selected() { return Optional.ofNullable(unit(selected)); }
+    public boolean hasEntity(UUID id) { return defenders.containsKey(id) || reserve.containsKey(id) || enemies.containsKey(id); }
     private Result access(UUID actor) {
         return !owner.equals(actor) ? Result.NOT_OWNER : ended() ? Result.ENDED : Result.OK;
     }
@@ -125,14 +150,14 @@ public final class Arena implements java.io.Serializable {
         if (access != Result.OK) return access;
         if (coinUnits < Gold.units(summonCost())) return Result.INSUFFICIENT_COINS;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
-        if (cell == null) return Result.FULL;
         Rarity grade=summonRarity(roll.rarity());
-        Defender duplicate=mergingEnabled()?defenders.values().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null):null;
+        Defender duplicate=mergingEnabled()?units().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null):null;
+        if(duplicate==null && cell==null && reserve.size()>=RESERVE_CAPACITY)return Result.FULL;
         if(duplicate!=null) {
-            duplicate.merge(roll.rarity().salePrice().orElse(0));
+            duplicate.merge(summonTier.saleValue(roll.rarity()));
             Defender match;
             while((match=matchingOther(duplicate))!=null) {
-                duplicate.absorb(match);defenders.remove(match.entityId());mergedEntities.add(match.entityId());
+                duplicate.absorb(match);removeUnit(match.entityId());mergedEntities.add(match.entityId());
                 if(match.entityId().equals(selected))selected=duplicate.entityId();
             }
             lastSummoned=duplicate;
@@ -142,9 +167,13 @@ public final class Arena implements java.io.Serializable {
             UUID entity = Objects.requireNonNull(spawner.spawn(roll.type(), grade, cell));
             if (hasEntity(entity)) throw new IllegalArgumentException("Duplicate entity UUID");
             lastSummoned=new Defender(entity, owner, id, roll.type(), grade, cell,
-                    traits.value(TraitCatalog.Family.ENHANCEMENT)/100.0,roll.rarity().salePrice().orElse(0));
-            defenders.put(entity, lastSummoned);
+                    traits.value(TraitCatalog.Family.ENHANCEMENT)/100.0,summonTier.saleValue(roll.rarity()));
+            lastSummoned.acquisitionOrder(purchases);
+            (cell==null?reserve:defenders).put(entity, lastSummoned);
         }
+        var promoted=new ArrayList<Rarity>();
+        for(int i=grade.ordinal()+1;i<=lastSummoned.rarity().ordinal();i++)promoted.add(Rarity.values()[i]);
+        lastPromotions=List.copyOf(promoted);
         coinUnits -= Gold.units(summonCost());
         spentGold=spentGold>Long.MAX_VALUE-summonCost()?Long.MAX_VALUE:spentGold+summonCost();
         purchases++;lastPurchaseMerged=duplicate!=null;
@@ -167,27 +196,34 @@ public final class Arena implements java.io.Serializable {
         if(grade.ordinal()<Rarity.LEGENDARY.ordinal())return original;
         Defender target=null;
         // Equal enhancements keep the first acquired tower as the single bonus recipient.
-        for(Defender d:defenders.values())if(d.rarity()==grade && (target==null || d.enhancement()>target.enhancement()))target=d;
+        for(Defender d:units())if(d.rarity()==grade && (target==null || d.enhancement()>target.enhancement()
+                || d.enhancement()==target.enhancement() && d.acquisitionOrder()<target.acquisitionOrder()))target=d;
         // The original draw contributes (100-chance)/24 to every type, including the target.
         return target!=null && traitRandom.nextInt(100)<chance?target.type():original;
     }
     private Defender matchingOther(Defender unit) {
-        return defenders.values().stream().filter(d->d!=unit && d.type()==unit.type() && d.rarity()==unit.rarity()).findFirst().orElse(null);
+        return units().stream().filter(d->d!=unit && d.type()==unit.type() && d.rarity()==unit.rarity()).findFirst().orElse(null);
     }
     public Result select(UUID actor, UUID entity) {
         Result access = access(actor);
         if (access != Result.OK) return access;
-        if (!defenders.containsKey(entity)) return Result.NOT_OWNER;
+        if (unit(entity)==null) return Result.NOT_OWNER;
         selected = entity;
         return Result.OK;
     }
     public Result moveSelected(UUID actor, Cell destination) {
         Result access = access(actor);
         if (access != Result.OK) return access;
-        Defender defender = defenders.get(selected);
+        Defender defender = unit(selected);
         if (defender == null) return Result.NO_SELECTION;
         if (!grid.contains(destination)) return Result.INVALID_CELL;
-        if (defenders.values().stream().anyMatch(d -> d.cell().equals(destination))) return Result.OCCUPIED;
+        Defender occupying=defenders.values().stream().filter(d->d.cell().equals(destination)).findFirst().orElse(null);
+        if(occupying!=null && defender.deployed())return Result.OCCUPIED;
+        if(!defender.deployed()) {
+            reserve.remove(defender.entityId());
+            if(occupying!=null){defenders.remove(occupying.entityId());occupying.move(null);reserve.put(occupying.entityId(),occupying);}
+            defenders.put(defender.entityId(),defender);
+        }
         defender.move(destination);
         selected = null;
         return Result.OK;
@@ -195,25 +231,33 @@ public final class Arena implements java.io.Serializable {
     public Result sellSelected(UUID actor) {
         Result access = access(actor);
         if (access != Result.OK) return access;
-        Defender defender = defenders.get(selected);
+        Defender defender = unit(selected);
         if (defender == null) return Result.NO_SELECTION;
         if (defender.rarity().salePrice().isEmpty()) return Result.NOT_SELLABLE;
         credit(defender.saleValue());
-        defenders.remove(selected);
+        removeUnit(selected);
         selected = null;
         return Result.OK;
     }
-    /** Apply a complete layout atomically, including swaps on a full board. */
-    public Result rearrange(UUID actor, Map<UUID, Cell> layout) {
-        Result access = access(actor);
-        if (access != Result.OK) return access;
-        if (!layout.keySet().equals(defenders.keySet())) return Result.NOT_OWNER;
-        Set<Cell> destinations = new HashSet<>();
-        for (Cell cell : layout.values()) {
-            if (!grid.contains(cell)) return Result.INVALID_CELL;
-            if (!destinations.add(cell)) return Result.OCCUPIED;
+    public Result benchSelected(UUID actor) {
+        Result access=access(actor);if(access!=Result.OK)return access;
+        Defender d=unit(selected);if(d==null)return Result.NO_SELECTION;
+        if(!d.deployed())return Result.OK;
+        if(reserve.size()>=RESERVE_CAPACITY)return Result.FULL;
+        defenders.remove(d.entityId());d.move(null);reserve.put(d.entityId(),d);selected=null;return Result.OK;
+    }
+    public Result rearrange(UUID actor,Map<UUID,Cell> layout) {
+        Result access=access(actor);if(access!=Result.OK)return access;
+        List<Defender> all=units();
+        if(layout.size()>grid.size()*grid.size() || all.size()-layout.size()>RESERVE_CAPACITY)return Result.FULL;
+        for(UUID id:layout.keySet())if(unit(id)==null)return Result.NOT_OWNER;
+        Set<Cell> destinations=new HashSet<>();
+        for(Cell cell:layout.values()) {
+            if(!grid.contains(cell))return Result.INVALID_CELL;
+            if(!destinations.add(cell))return Result.OCCUPIED;
         }
-        layout.forEach((id, cell) -> defenders.get(id).move(cell));
+        defenders.clear();reserve.clear();
+        for(Defender d:all){Cell cell=layout.get(d.entityId());d.move(cell);(cell==null?reserve:defenders).put(d.entityId(),d);}
         return Result.OK;
     }
     public record BulkSale(Result result, List<UUID> entities, long income) {}
@@ -222,11 +266,11 @@ public final class Arena implements java.io.Serializable {
         Result access = access(actor);
         if (access != Result.OK) return new BulkSale(access, List.of(), 0);
         Objects.requireNonNull(rarity);
-        if (rarity.salePrice().isEmpty()) return new BulkSale(Result.NOT_SELLABLE, List.of(), 0);
-        var sold = defenders.values().stream().filter(d -> d.rarity() == rarity).map(Defender::entityId).toList();
-        long income = sold.stream().map(defenders::get).mapToLong(Defender::saleValue).reduce(0,Math::addExact);
+        if (!rarity.autoSellable()) return new BulkSale(Result.NOT_SELLABLE, List.of(), 0);
+        var sold = units().stream().filter(d -> d.rarity() == rarity).map(Defender::entityId).toList();
+        long income = sold.stream().map(this::unit).mapToLong(Defender::saleValue).reduce(0,Math::addExact);
         credit(income);
-        sold.forEach(defenders::remove);
+        sold.forEach(this::removeUnit);
         if (selected != null && sold.contains(selected)) selected = null;
         return new BulkSale(Result.OK, sold, income);
     }

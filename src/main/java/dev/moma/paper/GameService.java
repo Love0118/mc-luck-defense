@@ -258,7 +258,7 @@ final class GameService {
         Arena.Result result;
         try {
             result = session.arena.summon(player.getUniqueId(), roll,
-                    (type, rarity, cell) -> autoSell ? UUID.randomUUID()
+                    (type, rarity, cell) -> autoSell || cell==null ? UUID.randomUUID()
                             : entities.spawnDefender(session.map, player.getUniqueId(), type, rarity, cell));
         } catch (RuntimeException exception) {
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Defender spawn failed", exception);
@@ -274,8 +274,10 @@ final class GameService {
             if(achievements!=null && !session.assisted && session.arena.lastPurchaseMerged())achievements.enhanced(player);
             session.arena.collectMergedEntities().forEach(entities::remove);
             Defender d=session.arena.lastSummoned();
-            if(d.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL && achievements!=null && !session.assisted)
-                achievements.truePrimordialPromoted(player);
+            if(achievements!=null && !session.assisted)for(Rarity promoted:session.arena.lastPromotions()) {
+                if(promoted==Rarity.TRUE_PRIMORDIAL)achievements.truePrimordialPromoted(player);
+                if(promoted==Rarity.MIRACLE)achievements.miracleObtained(player);
+            }
             if(awardedGrade!=roll.rarity())player.sendActionBar(Ui.text("&d특성 승급 &f"+roll.rarity().label()+" → "+awardedGrade.label()));
             if (autoSell) {
                 session.arena.sellRarity(player.getUniqueId(),awardedGrade).entities().forEach(entities::remove);
@@ -293,15 +295,15 @@ final class GameService {
                 }
                 if(session.autoSell.contains(d.rarity()))session.arena.sellRarity(player.getUniqueId(),d.rarity()).entities().forEach(entities::remove);
             }
-            entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
+            entities.selectGlow(player,session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
             session.layoutDirty = true;
             if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
                 Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
         }
         if (result == Arena.Result.OK) {
             Defender summoned=session.arena.lastSummoned();
-            if(summoned.rarity()==Rarity.TRUE_PRIMORDIAL && roll.rarity()!=Rarity.TRUE_PRIMORDIAL)
-                SummonAnnouncement.broadcast(player,new SummonRoll(summoned.type(),Rarity.TRUE_PRIMORDIAL));
+            if(summoned.rarity().ordinal()>=Rarity.TRUE_PRIMORDIAL.ordinal() && !session.arena.lastPromotions().isEmpty())
+                SummonAnnouncement.broadcast(player,new SummonRoll(summoned.type(),summoned.rarity()));
             else if(awardedGrade!=roll.rarity() && SummonAnnouncement.global(awardedGrade))
                 SummonAnnouncement.traitBroadcast(player,new SummonRoll(roll.type(),awardedGrade));
             else if(SummonAnnouncement.global(roll.rarity()))SummonAnnouncement.broadcast(player,roll);
@@ -309,6 +311,7 @@ final class GameService {
         return result == Arena.Result.OK;
     }
     private void fusionEffect(Player player,GameSession session,Defender defender) {
+        if(!defender.deployed())return;
         Location at=session.map.location(defender.position()).add(0,1.8,0);
         for(Player viewer:viewers(player,session)) {
             viewer.spawnParticle(Particle.FIREWORK,at,45,.4,.6,.4,.12);
@@ -319,7 +322,7 @@ final class GameService {
     void sell(Player player) {
         GameSession session = session(player);
         if (session == null) return;
-        UUID selected = session.arena.selected().map(Defender::entityId).orElse(null);
+        UUID selected = session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null);
         Arena.Result result = session.arena.sellSelected(player.getUniqueId());
         if (result == Arena.Result.OK) {
             entities.remove(selected); entities.selectGlow(player, null);
@@ -341,7 +344,7 @@ final class GameService {
     void toggleAutoSell(Player player, Rarity rarity) {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) return;
-        if (rarity.salePrice().isEmpty()) { tell(player, Arena.Result.NOT_SELLABLE); return; }
+        if (!rarity.autoSellable()) { tell(player, Arena.Result.NOT_SELLABLE); return; }
         if (!session.autoSell.remove(rarity)) {
             session.autoSell.add(rarity);
             sellRarity(player, rarity);
@@ -372,14 +375,14 @@ final class GameService {
     }
     private boolean canBuy(GameSession session) {
         return !session.arena.ended() && session.arena.coins() >= session.arena.summonCost()
-                && session.arena.defenderCount() < session.map.grid().placementOrder().size();
+                && session.arena.hasSummonSpace();
     }
     private void stopBulkBuy(Player player, GameSession session) {
         session.bulkBuying = false;
         player.sendMessage(Ui.text("&a일괄구매 종료 &7· &e" + session.bulkPurchases + "회 소환"));
         Ui.sound(player, Ui.Cue.CLICK);
     }
-    /** A fixed real-tick budget, independent of the session's game speed. */
+    /** Purchase and placement budgets advance once per simulation tick. */
     void processAutomation(Player player, GameSession session) {
         if (session(player) != session || session.arena.ended()) return;
         if (session.bulkBuying) {
@@ -390,13 +393,41 @@ final class GameService {
                 session.bulkPurchases++;
             }
             if (session.bulkBuying && !canBuy(session)) stopBulkBuy(player, session);
-            else if (session.bulkBuying && tick % 4 == 0) Ui.sound(player, Ui.Cue.SUMMON);
+            else if (session.bulkBuying && session.simulationTick % 4 == 0) Ui.sound(player, Ui.Cue.SUMMON);
         }
         if (session.layoutDirty) {
             session.layoutDirty = false;
             if (session.autoPlacement)
-                session.arena.rearrange(player.getUniqueId(), session.placement.arrange(session.arena.defenders()));
+                applyLayout(player,session,session.placement.arrange(session.arena.units()));
         }
+    }
+    private boolean applyLayout(Player player,GameSession session,Map<UUID,Cell> layout) {
+        Arena arena=session.arena;
+        Map<UUID,UUID> spawned=new LinkedHashMap<>();
+        Set<UUID> previous=new HashSet<>();for(Defender d:arena.defenders())previous.add(d.entityId());
+        try {
+            for(Defender d:arena.reserveUnits())if(layout.containsKey(d.entityId()))
+                spawned.put(d.entityId(),entities.spawnDefender(session.map,arena.owner(),d.type(),d.rarity(),layout.get(d.entityId())));
+        } catch(RuntimeException error) {
+            spawned.values().forEach(entities::remove);Ui.sound(player,Ui.Cue.ERROR);
+            plugin.getLogger().log(java.util.logging.Level.WARNING,"Reserve deployment failed",error);return false;
+        }
+        Arena.Result result=arena.rearrange(player.getUniqueId(),layout);
+        if(result!=Arena.Result.OK){spawned.values().forEach(entities::remove);tell(player,result);return false;}
+        previous.stream().filter(id->!layout.containsKey(id)).forEach(entities::remove);
+        spawned.forEach(arena::bindEntity);
+        for(Defender d:arena.defenders()){entities.updateDefenderName(d);entities.moveDefender(d.entityId(),session.map.location(d.position()));}
+        entities.selectGlow(player,arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
+        return true;
+    }
+    void benchSelected(Player player) {
+        GameSession session=session(player);if(session==null || session.arena.ended())return;
+        if(session.autoPlacement){player.sendMessage(Ui.text("&e직접 배치하려면 자동 배치를 꺼주세요."));return;}
+        Defender selected=session.arena.selected().orElse(null);if(selected==null || !selected.deployed())return;
+        if(session.arena.reserveCount()>=Arena.RESERVE_CAPACITY){tell(player,Arena.Result.FULL);return;}
+        Map<UUID,Cell> layout=new LinkedHashMap<>();
+        for(Defender d:session.arena.defenders())if(d!=selected)layout.put(d.entityId(),d.cell());
+        if(applyLayout(player,session,layout))Ui.sound(player,Ui.Cue.CLICK);
     }
     void select(Player player, UUID entity) {
         GameSession session = session(player);
@@ -404,7 +435,7 @@ final class GameService {
         Arena.Result result = session.arena.select(player.getUniqueId(), entity);
         tell(player, result);
         if (result == Arena.Result.OK) {
-            entities.selectGlow(player, entity);
+            entities.selectGlow(player,session.arena.selected().filter(Defender::deployed).map(Defender::entityId).orElse(null));
             session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.label() + " · " + d.type().role().label())));
         }
     }
@@ -416,7 +447,16 @@ final class GameService {
             Ui.sound(player, Ui.Cue.ERROR); return;
         }
         Defender selected = session.arena.selected().orElseThrow();
-        Arena.Result result = session.arena.moveSelected(player.getUniqueId(), session.map.cellAt(block));
+        Cell destination=session.map.cellAt(block);
+        if(!session.map.grid().contains(destination)){tell(player,Arena.Result.INVALID_CELL);return;}
+        if(!selected.deployed()) {
+            Map<UUID,Cell> layout=new LinkedHashMap<>();
+            for(Defender d:session.arena.defenders())if(!d.cell().equals(destination))layout.put(d.entityId(),d.cell());
+            layout.put(selected.entityId(),destination);
+            if(applyLayout(player,session,layout))Ui.sound(player,Ui.Cue.CLICK);
+            return;
+        }
+        Arena.Result result = session.arena.moveSelected(player.getUniqueId(), destination);
         if (result == Arena.Result.OK && !entities.moveDefender(selected.entityId(), session.map.location(selected.position()))) {
             player.sendMessage(Component.text("포탑 엔티티를 찾을 수 없어 게임을 종료합니다.", NamedTextColor.RED));
             leave(player);
@@ -452,10 +492,10 @@ final class GameService {
                 finish(player, session);
                 continue;
             }
-            processAutomation(player, session);
             session.attackEffects.clear();
             for (int step = 0; step < session.speed(); step++) if (!step(player, session)) break;
             if (session(player) != session) continue;
+            session.attackEffects.retainActive(session.arena.activeDefenders());
             session.attackEffects.forEachPrimary(entities::face);
             session.attackEffects.render(session.map, viewers(player, session));
             if (session.arena.ended()) { finish(player, session); continue; }
@@ -468,7 +508,7 @@ final class GameService {
                 leave(player); continue;
             }
             if (tick % 10 == 0) {
-                session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
+                session.arena.selected().filter(Defender::deployed).ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, session.map.location(d.position()).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
                 player.sendActionBar(Component.text("R" + session.campaign.round() + " · " + session.speed() + "배 · " + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
             }
         }
@@ -499,6 +539,7 @@ final class GameService {
             if(achievements!=null && !session.assisted)achievements.reached(player,session.announcedRound);
             if(achievements!=null && !session.assisted && session.announcedRound==150)achievements.roleReached(player,session.arena);
         }
+        processAutomation(player,session);
         session.attackEffects.beginStep();
         combat.tick(session.arena, session.simulationTick, (defender, enemy, damage) ->
                 session.attackEffects.hit(defender, enemy.position(session.map.grid().route())));
@@ -524,11 +565,11 @@ final class GameService {
             case NOT_OWNER -> "자신의 포탑만 선택할 수 있습니다.";
             case ENDED -> "이미 종료된 전장입니다.";
             case INSUFFICIENT_COINS -> "골드가 부족합니다. 소환 비용을 확인하세요.";
-            case FULL -> "빈 배치 칸이 없습니다.";
+            case FULL -> "전장과 대기열에 빈 칸이 없습니다.";
             case INVALID_CELL -> "자기 전장의 파란 배치 칸을 선택하세요.";
             case OCCUPIED -> "이미 포탑이 있는 칸입니다.";
             case NO_SELECTION -> "먼저 자신의 포탑을 좌클릭하세요.";
-            case NOT_SELLABLE -> "태초·진 태초는 판매할 수 없습니다.";
+            case NOT_SELLABLE -> "이 등급은 직접 선택해서 판매하세요.";
             case OK -> "";
         };
         player.sendMessage(Component.text(message, NamedTextColor.RED));

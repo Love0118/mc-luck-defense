@@ -87,7 +87,7 @@ class AutomationTest {
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
         games.toggleAutoSell(player,Rarity.COMMON); games.summon(player);
         assertEquals(2,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
-        games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
+        games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertTrue(session.autoSell.contains(Rarity.PRIMORDIAL));
         assertEquals(2,session.arena.coins());
     }
     @Test void traitUpgradesUseFinalAutoSaleGradeButOriginalAchievementAndSaleValue() {
@@ -130,7 +130,7 @@ class AutomationTest {
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
         games.toggleAutoSell(player,Rarity.LEGENDARY); games.summon(player);
         assertEquals(120,session.arena.coins()); assertEquals(1,session.arena.defenderCount());
-        games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertFalse(session.autoSell.contains(Rarity.PRIMORDIAL));
+        games.toggleAutoSell(player,Rarity.PRIMORDIAL); assertTrue(session.autoSell.contains(Rarity.PRIMORDIAL));
         session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
         games.sell(player); games.sell(player);
         assertEquals(180,session.arena.coins()); assertEquals(0,session.arena.defenderCount());
@@ -149,9 +149,10 @@ class AutomationTest {
         games.toggleBulkBuy(player);
         games.processAutomation(player,session); assertEquals(4,session.arena.defenderCount());
         for (int i = 0; i < 20; i++) games.processAutomation(player,session);
-        assertEquals(36,session.arena.defenderCount()); assertEquals(649,session.arena.coins());
+        assertEquals(36,session.arena.defenderCount()); assertEquals(169,session.arena.coins()); assertEquals(48,session.arena.reserveCount());
+        games.processAutomation(player,session);
         assertFalse(session.bulkBuying);
-        games.toggleBulkBuy(player); assertFalse(session.bulkBuying);
+        games.toggleBulkBuy(player);games.processAutomation(player,session); assertFalse(session.bulkBuying);
     }
     @Test void profitableAutoSalesAreBoundedAndCancellationAndRejoinStopTheBatch() {
         draw(Rarity.NARRATIVE); games.toggleAutoSell(player,Rarity.NARRATIVE);
@@ -173,6 +174,39 @@ class AutomationTest {
         assertEquals(30,session.arena.coins());
         games.processAutomation(player,session);
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
+    }
+    @Test void reservePurchaseHasNoEntityUntilGradeFirstDeploymentAndCanBeBenchedAgain() {
+        session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
+        for(int i=0;i<36;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
+        draw(Rarity.MIRACLE);games.summon(player);
+        Defender d=session.arena.lastSummoned();UUID logical=d.entityId();assertFalse(d.deployed());assertEquals(1,session.arena.reserveCount());
+        verify(games.entities,never()).spawnDefender(any(),any(),any(),any(),any());
+        games.toggleAutoPlacement(player);games.processAutomation(player,session);
+        assertTrue(d.deployed());assertNotEquals(logical,d.entityId());assertEquals(36,session.arena.defenderCount());assertEquals(1,session.arena.reserveCount());
+        UUID owner=player.getUniqueId();
+        verify(games.entities).spawnDefender(any(),eq(owner),eq(UnitType.WOLF),eq(Rarity.MIRACLE),any());
+        games.toggleAutoPlacement(player);games.select(player,d.entityId());games.benchSelected(player);
+        assertFalse(d.deployed());assertEquals(2,session.arena.reserveCount());verify(games.entities).remove(d.entityId());
+    }
+    @Test void failedReserveDeploymentLeavesBothRostersAndCurrencyIntact() {
+        session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
+        for(int i=0;i<36;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
+        draw(Rarity.MIRACLE);games.summon(player);double coins=session.arena.coins();
+        var field=session.arena.defenders();var reserve=session.arena.reserveUnits();
+        when(games.entities.spawnDefender(any(),any(),any(),any(),any())).thenThrow(new IllegalStateException("fixture"));
+        games.toggleAutoPlacement(player);games.processAutomation(player,session);
+        assertEquals(field,session.arena.defenders());assertEquals(reserve,session.arena.reserveUnits());assertEquals(coins,session.arena.coins());
+        assertFalse(session.arena.ended());verify(games.entities,never()).remove(any());
+    }
+    @Test void primordialAutoSaleWorksButTruePrimordialAndMiracleRequireManualSale() {
+        session.arena.credit(1000);games.toggleAutoSell(player,Rarity.PRIMORDIAL);draw(Rarity.PRIMORDIAL);games.summon(player);
+        assertEquals(2020,session.arena.coins());assertEquals(0,session.arena.unitCount());
+        for(Rarity rarity:List.of(Rarity.TRUE_PRIMORDIAL,Rarity.MIRACLE)) {
+            games.toggleAutoSell(player,rarity);assertFalse(session.autoSell.contains(rarity));
+            draw(rarity);games.summon(player);Defender d=session.arena.lastSummoned();
+            double before=session.arena.coins();games.select(player,d.entityId());games.sell(player);
+            assertEquals(before+d.saleValue(),session.arena.coins());assertEquals(0,session.arena.unitCount());
+        }
     }
     @Test void layoutRecomputesAfterSalesButOffKeepsManualPositions() {
         games.summon(player); draw(Rarity.RARE); games.summon(player);

@@ -20,7 +20,7 @@ public final class EndlessSimulatorMain {
         if(seeds!=null && seeds.stream().anyMatch(seed->seed<first || seed>=first+runs))throw new IllegalArgumentException("Filtered seed outside cohort");
         int scheduled=seeds==null?runs:seeds.size();
         List<String> rows=Collections.synchronizedList(new ArrayList<>());
-        int[] reportedRounds={30,60,100,200,300,400,500,600,700,1000,2000};
+        int[] reportedRounds={30,60,100,200,300,400,500,600,700,1000,2000,2500,3000,5000,7500,10000};
         var checkpointCounts=new java.util.concurrent.atomic.AtomicIntegerArray(reportedRounds.length);
         Path partial=output.resolve("partial.jsonl");
         java.io.BufferedWriter progress=Files.newBufferedWriter(partial);
@@ -44,7 +44,7 @@ public final class EndlessSimulatorMain {
                 for(int c=0;c<reportedRounds.length;c++)if(reached>=reportedRounds[c])checkpointCounts.incrementAndGet(c);
                 int count=done.incrementAndGet();if(count%1000==0) {
                     synchronized(progress) {try {progress.flush();} catch(java.io.IOException error){throw new java.io.UncheckedIOException(error);} }
-                    System.out.printf("Completed %d/%d; reaches30/60/100/200/300/400/500/600/700/1000/2000 %s%n",count,scheduled,checkpointCounts);
+                    System.out.printf("Completed %d/%d; checkpoint counts %s%n",count,scheduled,checkpointCounts);
                 }
             }));}
             for(var job:jobs)job.get();
@@ -56,18 +56,23 @@ public final class EndlessSimulatorMain {
         return run(seed,cap,rules,TraitLoadout.EMPTY);
     }
     static String run(long seed,int cap,CampaignRules rules,TraitLoadout traits) {
+        return run(seed,cap,rules,traits,500);
+    }
+    static String run(long seed,int cap,CampaignRules rules,TraitLoadout traits,int batchTicks) {
+        if(batchTicks<1 || batchTicks>500)throw new IllegalArgumentException("Batch ticks must be 1..500");
         UUID owner=new UUID(0,1);long[] seq={2};var ids=(java.util.function.Supplier<UUID>)()->new UUID(seed,seq[0]++);
         Arena arena=new Arena("endless",owner,new Grid(rules.gridSize()),rules.startingCoins(),rules.enemyLimit(),
                 traits,new HashRandom(seed ^ 0x545241495453L));
         Campaign campaign=new Campaign(rules,true);CombatEngine combat=new CombatEngine();
         AutoPlayer bot=new AutoPlayer(seed,AutoPlayer.Strategy.BALANCED,arena.grid(),ids);
-        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,250,300,350,400,450,500,550,600,650,700,750,1000,1500,2000};
+        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,250,300,350,400,450,500,550,600,650,700,750,1000,1500,2000,2500,3000,4000,5000,6000,7500,9000,10000};
         var snapshots=new ArrayList<String>();int last=0,maxGrade=0,previousSummons=0;
         long tick=0,limit=rules.preparationTicks()+(long)rules.roundTicks()*cap;
         while(tick<limit && !arena.ended()) {
+          for(int batch=0;batch<batchTicks && tick<limit && !arena.ended();batch++) {
             campaign.beforeCombat(arena,s->ids.get());bot.act(arena,tick);combat.tick(arena,tick,null);arena.collectDeadEnemies();campaign.afterCombat(arena);
             if(bot.summons()!=previousSummons) {
-                for(Defender d:arena.activeDefenders())maxGrade=Math.max(maxGrade,d.rarity().ordinal());
+                for(Defender d:arena.units())maxGrade=Math.max(maxGrade,d.rarity().ordinal());
                 previousSummons=bot.summons();
             }
             if(campaign.round()!=last) {
@@ -76,6 +81,7 @@ public final class EndlessSimulatorMain {
                         "{\"round\":%d,\"summons\":%d,\"sales\":%d,\"earned\":%.1f,\"coins\":%.1f,\"truePrimordial\":%d}",last,bot.summons(),bot.sales(),arena.earnedCoins(),arena.coins(),arena.activeDefenders().stream().filter(d->d.rarity()==Rarity.TRUE_PRIMORDIAL).count()));
             }
             tick++;
+          }
         }
         return String.format(Locale.ROOT,"{\"seed\":%d,\"round\":%d,\"completedRounds\":%d,\"outcome\":\"%s\",\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"maxGrade\":\"%s\",\"checkpoints\":[%s]}",
                 seed,campaign.round(),campaign.completedRounds(),arena.outcome(),tick,bot.summons(),bot.sales(),Rarity.values()[maxGrade],String.join(",",snapshots));

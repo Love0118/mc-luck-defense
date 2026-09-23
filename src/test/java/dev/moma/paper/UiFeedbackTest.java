@@ -32,15 +32,15 @@ class UiFeedbackTest {
             rolls.when(()->SummonRoll.draw(any(),anyBoolean())).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
             games.summon(player);heard(player,Ui.Cue.RARE_SUMMON,0);heard(player,Ui.Cue.SUMMON,1);
             session.arena.select(player.getUniqueId(),session.arena.defenders().getFirst().entityId());
-            before=session.arena.coins();games.sell(player);assertEquals(before,session.arena.coins());heard(player,Ui.Cue.ERROR,2);heard(player,Ui.Cue.SELL,1);
+            before=session.arena.coins();games.sell(player);assertEquals(before+1000,session.arena.coins());heard(player,Ui.Cue.ERROR,1);heard(player,Ui.Cue.SELL,2);
             games.speed(player,8);heard(player,Ui.Cue.SPEED,1);
             verify(games.achievements).summoned(player,Rarity.COMMON);
             verify(games.achievements).summoned(player,Rarity.PRIMORDIAL);
             games.summon(player); // Spend the last affordable draw.
-            games.summon(player); // Insufficient gold must not count a draw.
-            verify(games.achievements,times(3)).summoned(eq(player),any());
+            games.summon(player); // Sale proceeds fund another draw.
+            verify(games.achievements,times(4)).summoned(eq(player),any());
             session.arena.credit(10);session.assisted=true;games.summon(player);
-            verify(games.achievements,times(3)).summoned(eq(player),any());
+            verify(games.achievements,times(4)).summoned(eq(player),any());
             verifyNoInteractions(other);
         }
     }

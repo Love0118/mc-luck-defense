@@ -19,7 +19,7 @@ final class MomaCommand implements TabExecutor {
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             if (sender instanceof Player player && menu != null && !games.playing(player)) { menu.open(player); return true; }
-            sender.sendMessage(Ui.text("&e/mud start | list | join [전장] | spectate <플레이어> | speed <1|2|4|8|16> | lobby | leave"));
+            sender.sendMessage(Ui.text("&e/mud start | list | join [전장] | spectate <플레이어> | speed <1|2|4|8|16|32> | lobby | leave"));
             if (sender.hasPermission("moma.admin")) sender.sendMessage(Component.text("관리: /mud update [check] | reload [check] | rollback | version | create <전장> | spawn <종> [수] [boss] | coins <금액>"));
             return true;
         }
@@ -41,7 +41,7 @@ final class MomaCommand implements TabExecutor {
                 }
                 case "start" -> games.start(player(sender));
                 case "spectate" -> { require(args, 2, "/mud spectate <플레이어>"); games.spectate(player(sender), args[1]); }
-                case "speed" -> { require(args, 2, "/mud speed <1|2|4|8|16>"); games.speed(player(sender), Integer.parseInt(args[1])); }
+                case "speed" -> { require(args, 2, "/mud speed <1|2|4|8|16|32>"); games.speed(player(sender), Integer.parseInt(args[1])); }
                 case "join" -> { if (args.length == 1) games.start(player(sender)); else games.join(player(sender), args[1]); }
                 case "leave", "lobby" -> games.leave(player(sender));
                 case "spawn" -> {
@@ -84,7 +84,7 @@ final class MomaCommand implements TabExecutor {
         List<String> candidates = List.of();
         if (args.length == 1) candidates = sender.hasPermission("moma.admin") ? List.of("start", "join", "spectate", "speed", "lobby", "leave", "list", "create", "spawn", "coins", "bgm") : List.of("start", "join", "spectate", "speed", "lobby", "leave", "list", "bgm");
         if (args.length == 2 && args[0].equalsIgnoreCase("bgm") && sender.hasPermission("moma.admin")) candidates=List.of("auth");
-        if (args.length == 2 && args[0].equalsIgnoreCase("speed")) candidates = List.of("1", "2", "4", "8", "16");
+        if (args.length == 2 && args[0].equalsIgnoreCase("speed")) candidates = List.of("1", "2", "4", "8", "16", "32");
         if (args.length == 2 && args[0].equalsIgnoreCase("spectate")) candidates = games.activeSessions().stream().map(GameService.SessionInfo::playerName).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("join")) candidates = maps.all().stream().map(ArenaMap::id).toList();
         if (args.length == 2 && args[0].equalsIgnoreCase("spawn") && sender.hasPermission("moma.admin")) candidates = Arrays.stream(EnemyType.values()).map(Enum::name).toList();

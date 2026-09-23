@@ -19,8 +19,8 @@ class ArenaTest {
                 assertEquals(type.role().melee() ? i < 20 : i >= 16, arena.grid().perimeter(placed));
             }
             assertEquals(36, arena.defenders().stream().map(Defender::cell).distinct().count());
-            assertEquals(FULL, arena.summon(owner, new SummonRoll(type, Rarity.COMMON), (t, r, cell) -> { fail(); return null; }));
-            assertEquals(10, arena.coins());
+            assertEquals(OK, arena.summon(owner, new SummonRoll(type, Rarity.COMMON), (t, r, cell) -> { fail(); return null; }));
+            assertEquals(0, arena.coins());
         }
     }
     @Test void mixedSummonsLeaveManuallyMovedUnitsAndCooldownsUntouched() {
@@ -59,8 +59,8 @@ class ArenaTest {
         Arena.Spawner shouldNotSpawn = (t, r, c) -> { fail("Should not spawn"); return null; };
         assertEquals(INSUFFICIENT_COINS, poor.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(9, poor.coins());
-        var full = arena(100);
-        for (Rarity rarity:Rarity.values()) if(rarity.weight()>0) summon(full, rarity);
+        var full = arena(580);full.toggleMerging(owner);
+        for(int i=0;i<57;i++)summon(full,Rarity.COMMON);
         assertEquals(FULL, full.summon(owner, new SummonRoll(UnitType.WOLF, Rarity.COMMON), shouldNotSpawn));
         assertEquals(10, full.coins());
         var failure = arena(10);

@@ -43,7 +43,7 @@ class SessionSpeedTest {
             assertEquals(9,a.campaign.elapsed()); assertEquals(79,b.campaign.elapsed());
             games.speed(second,2); games.tick();
             assertEquals(11,a.simulationTick); assertEquals(82,b.simulationTick);
-            for(int invalid:new int[]{-1,0,3,9,32,Integer.MAX_VALUE}) assertThrows(IllegalArgumentException.class,()->games.speed(second,invalid));
+            for(int invalid:new int[]{-1,0,3,9,64,Integer.MAX_VALUE}) assertThrows(IllegalArgumentException.class,()->games.speed(second,invalid));
             assertEquals(2,b.speed()); assertEquals(82,b.simulationTick);
             games.spectate(viewer,b.sessionId);
             assertThrows(IllegalArgumentException.class,()->games.speed(viewer,8)); assertEquals(2,b.speed());
@@ -102,10 +102,12 @@ class SessionSpeedTest {
         Arrays.fill(changed,0,50,16);Arrays.fill(changed,50,100,8);Arrays.fill(changed,100,150,4);
         Arrays.fill(changed,150,200,2);Arrays.fill(changed,200,300,1);
         int[] sixteen=new int[100];Arrays.fill(sixteen,16);
+        int[] thirtyTwo=new int[50];Arrays.fill(thirtyTwo,32);
         for(boolean boosted:new boolean[]{false,true}) {
             var expected=runCombat(normal,boosted);
             assertEquals(expected,runCombat(fast,boosted));
             assertEquals(expected,runCombat(sixteen,boosted));
+            assertEquals(expected,runCombat(thirtyTwo,boosted));
             assertEquals(expected,runCombat(changed,boosted));
         }
     }
@@ -130,5 +132,29 @@ class SessionSpeedTest {
             assertEquals(301,session.simulationTick);assertEquals(300,session.campaign.elapsed());
             assertFalse(games.playing(player));verify(player,times(2)).teleport(any(Location.class));
         }
+    }
+    private List<Object> purchasesAtSpeed(int speed,int gate)throws Exception {
+        World world=mock(World.class);
+        try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->{
+            long[] ids={1000};when(adapter.spawnDefender(any(),any(),any(),any(),any())).thenAnswer(call->new UUID(0,ids[0]++));
+            when(adapter.spawnEnemy(any(),any(),any(),anyBoolean())).thenAnswer(call->new UUID(0,ids[0]++));
+            when(adapter.advanceAll(any(),any())).thenReturn(true);when(adapter.moveDefender(any(),any())).thenReturn(true);
+        });var bukkit=mockStatic(Bukkit.class);var rolls=mockStatic(SummonRoll.class)) {
+            GameService games=games(world);Player p=player(world);bukkit.when(()->Bukkit.getPlayer(p.getUniqueId())).thenReturn(p);
+            games.join(p,"a");GameSession session=games.session(p);
+            var elapsed=Campaign.class.getDeclaredField("elapsed");elapsed.setAccessible(true);
+            elapsed.setLong(session.campaign,CampaignRules.standard().preparationTicks()+(gate-1L)*CampaignRules.standard().roundTicks()-2);
+            rolls.when(()->SummonRoll.draw(any(),eq(session.arena))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.EPIC));
+            session.arena.credit(100_000_000);session.bulkBuying=true;session.autoPlacement=true;
+            games.speed(p,speed);for(int i=0;i<64/speed;i++)games.tick();
+            var state=new ArrayList<Object>();state.add(session.arena.coins());state.add(session.bulkPurchases);state.add(session.arena.spentGold());
+            state.add(session.campaign.round());state.add(session.arena.summonTier());state.add(session.simulationTick);
+            for(Defender d:session.arena.units())state.add(List.of(d.type(),d.rarity(),d.enhancement(),d.cell()==null?"reserve":d.cell(),d.nextAttackTick(),d.saleValue()));
+            assertEquals(256,session.bulkPurchases);assertEquals(SummonTier.atRound(gate),session.arena.summonTier());
+            return state;
+        }
+    }
+    @Test void purchasesPromotionPlacementAndTierTransitionAreIdenticalAtOneAndThirtyTwoSpeed()throws Exception {
+        for(int gate:new int[]{1000,2500})assertEquals(purchasesAtSpeed(1,gate),purchasesAtSpeed(32,gate));
     }
 }

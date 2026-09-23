@@ -1,0 +1,6 @@
+runs=1000
+seed=28000000
+roundCap=10000
+batchTicks=500
+requestedVirtualSpeed=500
+policy=reserve, grade-first placement, four transactions per game tick

@@ -107,7 +107,7 @@ class InteractionTest {
         when(view.getTopInventory()).thenReturn(inventory); when(player.getOpenInventory()).thenReturn(view);
         try (var bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getCurrentTick).thenReturn(10); bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
-            bukkit.when(() -> Bukkit.createInventory(any(InventoryHolder.class), eq(27), any(net.kyori.adventure.text.Component.class)))
+            bukkit.when(() -> Bukkit.createInventory(any(InventoryHolder.class), eq(36), any(net.kyori.adventure.text.Component.class)))
                     .thenAnswer(invocation -> { when(inventory.getHolder()).thenReturn(invocation.getArgument(0)); return inventory; });
             // Server-backed item construction is outside this event routing test.
             var meta = mock(org.bukkit.inventory.meta.ItemMeta.class);
@@ -143,7 +143,7 @@ class InteractionTest {
         var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getCurrentTick).thenReturn(10);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
-            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(27),any(net.kyori.adventure.text.Component.class)))
+            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(36),any(net.kyori.adventure.text.Component.class)))
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {actualShop.open(player);}
@@ -169,19 +169,19 @@ class InteractionTest {
         int[] tick={10};
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getCurrentTick).thenAnswer(call->tick[0]);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
-            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(27),any(net.kyori.adventure.text.Component.class)))
+            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(36),any(net.kyori.adventure.text.Component.class)))
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {
                 actualShop.open(player);
                 var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);
                 when(event.getRawSlot()).thenReturn(8);when(event.getClick()).thenReturn(ClickType.LEFT);
-                for(int expected:new int[]{2,4,8,16,1}) {
+                for(int expected:new int[]{2,4,8,16,32,1}) {
                     actualShop.click(event);actualShop.click(event);assertEquals(expected,session.speed());
                     tick[0]++;tasks.removeFirst().run();
                 }
                 doReturn(new GameSession(player,session.map,CampaignRules.standard())).when(games).session(player);
-                actualShop.click(event);verify(games,times(5)).speed(eq(player),anyInt());
+                actualShop.click(event);verify(games,times(6)).speed(eq(player),anyInt());
             }
         }
     }
@@ -197,7 +197,7 @@ class InteractionTest {
         int[] tick={10};
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getCurrentTick).thenAnswer(call->tick[0]);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
-            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(27),any(net.kyori.adventure.text.Component.class)))
+            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),eq(36),any(net.kyori.adventure.text.Component.class)))
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try(var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) {

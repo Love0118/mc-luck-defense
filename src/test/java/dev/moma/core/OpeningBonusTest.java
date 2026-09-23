@@ -12,7 +12,7 @@ class OpeningBonusTest {
     @Test void boostedWeightsAndEveryBoundaryAreExact() {
         int[] counts=new int[Rarity.values().length];
         for(int i=0;i<Rarity.TOTAL_WEIGHT;i++) counts[Rarity.fromRoll(i,true).ordinal()]++;
-        assertArrayEquals(new int[]{20301,33100,30000,15000,800,500,200,80,19,0},counts);
+        assertArrayEquals(new int[]{20301,33100,30000,15000,800,500,200,80,19,0,0},counts);
         int boundary=0;
         for(Rarity r:Rarity.values()) {
             if(r.weight()==0)continue;

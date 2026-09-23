@@ -45,7 +45,7 @@ final class EntityAdapter {
     boolean moving(Entity entity) { return moving.contains(entity.getUniqueId()); }
     UUID spawnDefender(ArenaMap map, UUID owner, UnitType type, Rarity rarity, Cell cell) {
         return spawn(map, owner, EntityType.valueOf(type.name()), Faction.DEFENDER, map.location(cell.point()),
-                Component.text("[" + rarity.label() + "] " + type.label(), rarityColor(rarity))).getUniqueId();
+                rarityName(rarity,"["+rarity.label()+"] "+type.label())).getUniqueId();
     }
     UUID spawnEnemy(ArenaMap map, UUID owner, EnemyType type, boolean boss) {
         LivingEntity enemy=spawn(map, owner, EntityType.valueOf(type.name()), Faction.ENEMY, map.location(map.grid().route().at(0)),
@@ -54,8 +54,7 @@ final class EntityAdapter {
     }
     void updateDefenderName(Defender defender) {
         Entity entity=Bukkit.getEntity(defender.entityId());
-        if(entity!=null)entity.customName(Component.text("["+defender.rarity().label()+"] "+defender.label(),rarityColor(defender.rarity()))
-                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD,defender.rarity()==Rarity.TRUE_PRIMORDIAL));
+        if(entity!=null)entity.customName(rarityName(defender.rarity(),"["+defender.rarity().label()+"] "+defender.label()));
     }
     private LivingEntity spawn(ArenaMap map, UUID owner, EntityType type, Faction faction, Location location, Component label) {
         Entity entity = map.world().spawn(location, type.getEntityClass(), false, raw -> {
@@ -188,6 +187,19 @@ final class EntityAdapter {
         float yaw=routeYaw(route,enemy.progress());
         return enemy.type()==EnemyType.ENDER_DRAGON?Location.normalizeYaw(yaw+180):yaw;
     }
+    static Component rarityName(Rarity rarity,String text) {
+        if(rarity!=Rarity.MIRACLE)return Component.text(text,rarityColor(rarity))
+                .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD,rarity==Rarity.TRUE_PRIMORDIAL)
+                .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC,false);
+        Component result=Component.empty();int[] points=text.codePoints().toArray();
+        for(int i=0;i<points.length;i++) {
+            float t=points.length<2?0:i/(float)(points.length-1);
+            var color=net.kyori.adventure.text.format.TextColor.lerp(t,
+                    net.kyori.adventure.text.format.TextColor.color(0xff55ff),net.kyori.adventure.text.format.TextColor.color(0x55ffff));
+            result=result.append(Component.text(new String(Character.toChars(points[i])),color));
+        }
+        return result.decorate(net.kyori.adventure.text.format.TextDecoration.BOLD).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC,false);
+    }
     static NamedTextColor rarityColor(Rarity rarity) {
         return switch (rarity) {
             case COMMON -> NamedTextColor.WHITE;
@@ -200,6 +212,7 @@ final class EntityAdapter {
             case MYTHIC -> NamedTextColor.RED;
             case PRIMORDIAL -> NamedTextColor.YELLOW;
             case TRUE_PRIMORDIAL -> NamedTextColor.DARK_RED;
+            case MIRACLE -> NamedTextColor.AQUA;
         };
     }
 }
