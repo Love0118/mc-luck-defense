@@ -1,0 +1,45 @@
+name: Progression 100k per configuration
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: progression-100k
+  cancel-in-progress: false
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        scenario: [none, top_growth, top_combat]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Download fixed simulation build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: Love0118/mc-luck-defense
+        run: |
+          gh release download beta-build-7520663a7e50eb2be57fec533380f6e9ea671c46 --pattern MCLuckDefense.jar
+          echo '995038922b9f094c0bc26c874f1b0889c17052360a8d3b33ba9d53ee110453ec  MCLuckDefense.jar' | sha256sum --check
+      - name: Run 5000 games
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          mkdir runs
+          java -version 2> runs/java-version.txt
+          nproc > runs/processors.txt
+          seed=$((28000000 + SHARD * 5000))
+          java -Xmx3g -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp MCLuckDefense.jar dev.moma.sim.ProgressionBenchmarkMain 5000 "$seed" runs "$SCENARIO" > runs/execution.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: progression-${{ matrix.scenario }}-${{ matrix.shard }}
+          path: runs/
+          retention-days: 14
