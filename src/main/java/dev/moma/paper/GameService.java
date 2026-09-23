@@ -298,16 +298,20 @@ final class GameService {
             }
             entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
             session.layoutDirty = true;
-            if (roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && (feedback || roll.rarity().abilityLevel() > 0))
-                Ui.sound(player,roll.rarity().abilityLevel() > 0 ? Ui.Cue.RARE_SUMMON : autoSell ? Ui.Cue.SELL : Ui.Cue.SUMMON);
-        }
-        if (result == Arena.Result.OK) {
             Defender summoned=session.arena.lastSummoned();
+            SummonRoll announcement=roll;
+            boolean traitUpgrade=false;
             if(summoned.rarity().ordinal()>=Rarity.TRUE_PRIMORDIAL.ordinal() && !session.arena.lastPromotions().isEmpty())
-                SummonAnnouncement.broadcast(player,new SummonRoll(summoned.type(),summoned.rarity()));
-            else if(awardedGrade!=roll.rarity() && SummonAnnouncement.global(awardedGrade))
-                SummonAnnouncement.traitBroadcast(player,new SummonRoll(roll.type(),awardedGrade));
-            else if(SummonAnnouncement.global(roll.rarity()))SummonAnnouncement.broadcast(player,roll);
+                announcement=new SummonRoll(summoned.type(),summoned.rarity());
+            else if(awardedGrade!=roll.rarity()) {
+                announcement=new SummonRoll(roll.type(),awardedGrade);traitUpgrade=true;
+            }
+            SummonTier tier=session.arena.summonTier();
+            if(SummonAnnouncement.global(announcement.rarity(),tier)) {
+                if(traitUpgrade)SummonAnnouncement.traitBroadcast(player,announcement,tier);
+                else SummonAnnouncement.broadcast(player,announcement,tier);
+            } else if(feedback || roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && roll.rarity().abilityLevel()>0)
+                Ui.sound(player,roll.rarity().abilityLevel()>0?Ui.Cue.RARE_SUMMON:autoSell?Ui.Cue.SELL:Ui.Cue.SUMMON);
         }
         return result == Arena.Result.OK;
     }

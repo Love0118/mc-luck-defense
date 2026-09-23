@@ -1,20 +1,26 @@
 package dev.moma.paper;
 
 import dev.moma.core.*;
-import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 
 final class SummonAnnouncement {
-    static boolean global(Rarity rarity) { return rarity.ordinal()>=Rarity.MYTHIC.ordinal(); }
-    static void broadcast(Player owner, SummonRoll roll) {
-        announce(owner,roll,false);
+    static boolean global(Rarity rarity,SummonTier tier) {
+        Rarity minimum=switch(tier) {
+            case NORMAL, ADVANCED -> Rarity.MYTHIC;
+            case ASCENDED -> Rarity.PRIMORDIAL;
+            case MIRACLE -> Rarity.TRUE_PRIMORDIAL;
+        };
+        return rarity.ordinal()>=minimum.ordinal();
     }
-    static void traitBroadcast(Player owner,SummonRoll roll) {
-        announce(owner,roll,true);
+    static void broadcast(Player owner,SummonRoll roll,SummonTier tier) {
+        announce(owner,roll,tier,false);
     }
-    private static void announce(Player owner,SummonRoll roll,boolean traitUpgrade) {
-        if(!global(roll.rarity()))return;
+    static void traitBroadcast(Player owner,SummonRoll roll,SummonTier tier) {
+        announce(owner,roll,tier,true);
+    }
+    private static void announce(Player owner,SummonRoll roll,SummonTier tier,boolean traitUpgrade) {
+        if(!global(roll.rarity(),tier))return;
         boolean ascended=roll.rarity().ordinal()>=Rarity.TRUE_PRIMORDIAL.ordinal();
         Bukkit.broadcast(EntityAdapter.rarityName(roll.rarity(),owner.getName()+" 님이 ["+roll.rarity().label()+"] "+roll.type().label()+(traitUpgrade?" 특성 승급!":" 획득!")));
         for(Player player:Bukkit.getOnlinePlayers()) player.playSound(player.getLocation(),
