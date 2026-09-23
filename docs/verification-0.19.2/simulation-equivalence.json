@@ -1,0 +1,17 @@
+{
+  "none": {
+    "runs": 1000,
+    "identical_full_json": true,
+    "raw_sha256": "d48212a4097f4116cc38e59d2f2454518e1518a7061dda549588d049372daa11"
+  },
+  "top_growth": {
+    "runs": 1000,
+    "identical_full_json": true,
+    "raw_sha256": "4954b245f5c4914361094b4fa4b3c38489a0438fbcfc78715aef4fa63076fc0a"
+  },
+  "top_combat": {
+    "runs": 1000,
+    "identical_full_json": true,
+    "raw_sha256": "5eaa5fcc2779b168158dc06d4887095751a6e4c234ab48016124a3e5bd3aed99"
+  }
+}
