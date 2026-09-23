@@ -2,8 +2,9 @@ package dev.moma.core;
 
 import java.util.random.RandomGenerator;
 
-public record SummonRoll(UnitType type, Rarity rarity) {
+public record SummonRoll(UnitType type, Rarity rarity) implements java.io.Serializable {
     public static SummonRoll draw(RandomGenerator random, Arena arena) {
+        if(arena.pendingRoll()!=null)return arena.pendingRoll();
         if(!arena.openingTraitActive()) {
             SummonRoll base=arena.summonTier()==SummonTier.NORMAL
                     ? draw(random,arena.openingBonusActive()):draw(random,false,arena.summonTier());

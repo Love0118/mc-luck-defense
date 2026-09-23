@@ -18,6 +18,7 @@ public final class Arena implements java.io.Serializable {
     private LinkedHashMap<UUID, Defender> reserve=new LinkedHashMap<>();
     private List<Rarity> lastPromotions=List.of();
     private boolean acquisitionOrderRecorded=true;
+    private SummonRoll pendingRoll;
     private final LinkedHashMap<UUID, Enemy> enemies = new LinkedHashMap<>();
     private long coinUnits;
     private UUID selected;
@@ -38,7 +39,11 @@ public final class Arena implements java.io.Serializable {
     private final List<UUID> mergedEntities=new ArrayList<>();
     public SummonTier summonTier() { return summonTier; }
     public long summonCost() { return summonTier.cost(); }
-    public void reachedRound(int round) { SummonTier next=SummonTier.atRound(round);if(next.ordinal()>summonTier.ordinal())summonTier=next; }
+    public void reachedRound(int round) {
+        SummonTier next=SummonTier.atRound(round);
+        if(next.ordinal()>summonTier.ordinal()){summonTier=next;pendingRoll=null;}
+    }
+    SummonRoll pendingRoll() { return pendingRoll; }
     public Defender lastSummoned() { return lastSummoned; }
     public TraitLoadout traits() { return traits; }
     public boolean lastPurchaseMerged() { return lastPurchaseMerged; }
@@ -149,10 +154,11 @@ public final class Arena implements java.io.Serializable {
         Result access = access(actor);
         if (access != Result.OK) return access;
         if (coinUnits < Gold.units(summonCost())) return Result.INSUFFICIENT_COINS;
+        if(pendingRoll!=null && !pendingRoll.equals(roll))return Result.FULL;
         Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         Rarity grade=summonRarity(roll.rarity());
         Defender duplicate=mergingEnabled()?units().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null):null;
-        if(duplicate==null && cell==null && reserve.size()>=RESERVE_CAPACITY)return Result.FULL;
+        if(duplicate==null && cell==null && reserve.size()>=RESERVE_CAPACITY){pendingRoll=roll;return Result.FULL;}
         if(duplicate!=null) {
             duplicate.merge(summonTier.saleValue(roll.rarity()));
             Defender match;
@@ -174,6 +180,7 @@ public final class Arena implements java.io.Serializable {
         var promoted=new ArrayList<Rarity>();
         for(int i=grade.ordinal()+1;i<=lastSummoned.rarity().ordinal();i++)promoted.add(Rarity.values()[i]);
         lastPromotions=List.copyOf(promoted);
+        pendingRoll=null;
         coinUnits -= Gold.units(summonCost());
         spentGold=spentGold>Long.MAX_VALUE-summonCost()?Long.MAX_VALUE:spentGold+summonCost();
         purchases++;lastPurchaseMerged=duplicate!=null;

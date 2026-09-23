@@ -109,4 +109,24 @@ class ReserveProgressionTest {
         }
         assertTrue(total>0 && Double.isFinite(total));
     }
+    @Test void capacityFailureCannotRerollForFreeAndSurvivesStateTransfer()throws Exception {
+        Arena a=arena();a.toggleMerging(a.owner());for(int i=0;i<84;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
+        a.toggleMerging(a.owner());SummonRoll blocked=new SummonRoll(UnitType.PANDA,Rarity.RARE);
+        assertEquals(Arena.Result.FULL,a.summon(a.owner(),blocked,(t,r,c)->{fail();return null;}));
+        var noRandom=new java.util.random.RandomGenerator(){public long nextLong(){throw new AssertionError("Rerolled a blocked purchase");}};
+        double gold=a.coins();
+        for(int i=0;i<100;i++)assertEquals(blocked,SummonRoll.draw(noRandom,a));
+        assertEquals(Arena.Result.FULL,a.summon(a.owner(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->{fail();return null;}));
+        assertEquals(gold,a.coins());
+        Arena restored=dev.moma.runtime.StateCodec.read(dev.moma.runtime.StateCodec.write(a),Arena.class);
+        assertEquals(blocked,SummonRoll.draw(noRandom,restored));
+        restored.select(restored.owner(),restored.reserveUnits().getFirst().entityId());restored.sellSelected(restored.owner());
+        assertEquals(Arena.Result.OK,restored.summon(restored.owner(),SummonRoll.draw(noRandom,restored),(t,r,c)->UUID.randomUUID()));
+        assertNull(restored.pendingRoll());assertEquals(UnitType.PANDA,restored.lastSummoned().type());
+    }
+    @Test void aNewDrawTierDiscardsTheOldTierBlockedRoll() {
+        Arena a=arena();a.toggleMerging(a.owner());for(int i=0;i<84;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
+        a.summon(a.owner(),new SummonRoll(UnitType.PANDA,Rarity.COMMON),(t,r,c)->{fail();return null;});
+        assertNotNull(a.pendingRoll());a.reachedRound(1000);assertNull(a.pendingRoll());assertEquals(SummonTier.ASCENDED,a.summonTier());
+    }
 }

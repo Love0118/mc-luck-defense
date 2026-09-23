@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dev.moma</groupId>
   <artifactId>mc-luck-defense</artifactId>
-  <version>0.19.0</version>
+  <version>0.19.1</version>
   <name>MC Luck Defense</name>
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
