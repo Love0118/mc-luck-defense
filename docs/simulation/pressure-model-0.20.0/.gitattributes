@@ -3,3 +3,4 @@
 *.json text eol=lf
 *.md text eol=lf
 *.gz binary
+.gitattributes text eol=lf
