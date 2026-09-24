@@ -39,6 +39,7 @@ jobs:
           path: frozen/
           retention-days: 30
   simulate:
+    name: simulate (${{ matrix.scenario }}, ${{ matrix.shard }})
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -46,8 +47,8 @@ jobs:
       fail-fast: false
       max-parallel: 20
       matrix:
-        scenario: [none, equipped, top_growth, top_fusion]
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        scenario: [top_fusion, top_growth, equipped, none]
     steps:
       - uses: actions/setup-java@v4
         with:
