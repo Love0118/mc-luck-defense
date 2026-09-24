@@ -56,10 +56,12 @@ class ProgressionTest {
             assertEquals(d.rarity().salePrice().isEmpty()?0:rarity.salePrice().orElse(0)*21L,d.saleValue());
         }
     }
-    @Test void truePrimordialMatchesOldPlusThirtyAndStaysOutOfDrawPool() {
+    @Test void topPromotionsHaveDistinctPowerGapsWithoutChangingAttackRoles() {
         for(UnitType type:UnitType.values()) {
             var primordial=type.profile().at(Rarity.PRIMORDIAL);var highest=type.profile().at(Rarity.TRUE_PRIMORDIAL);
-            assertEquals(primordial.damage()*34,highest.damage());assertEquals(primordial.intervalTicks(),highest.intervalTicks());
+            assertEquals(primordial.damage()*100,highest.damage(),highest.damage()*1e-12);
+            assertEquals(highest.damage()*100,type.profile().at(Rarity.MIRACLE).damage(),highest.damage()*1e-10);
+            assertEquals(primordial.intervalTicks(),highest.intervalTicks());
             assertEquals(primordial.range(),highest.range());assertEquals(4,Rarity.TRUE_PRIMORDIAL.abilityLevel());
         }
     }

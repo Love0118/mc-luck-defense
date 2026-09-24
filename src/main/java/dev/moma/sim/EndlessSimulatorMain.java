@@ -35,7 +35,7 @@ public final class EndlessSimulatorMain {
                 Arrays.toString(Arrays.stream(Rarity.values()).mapToInt(r->SummonTier.ADVANCED.weight(r,false)).toArray()),
                 Arrays.toString(Arrays.stream(Rarity.values()).mapToInt(r->r.salePrice().orElse(-1)).toArray())));
         Files.writeString(output.resolve("traits.txt"),String.join(",",traits.ids()));
-        try(progress; var executor=Executors.newFixedThreadPool(Math.min(8,Runtime.getRuntime().availableProcessors()))) {
+        try(progress; var executor=Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
             var jobs=new ArrayList<Future<?>>();
             for(int i=0;i<runs;i++) {final long seed=first+i;if(seeds!=null&&!seeds.contains(seed))continue;jobs.add(executor.submit(()->{
                 String row=run(seed,cap,config,traits);rows.add(row);
@@ -69,6 +69,7 @@ public final class EndlessSimulatorMain {
         var snapshots=new ArrayList<String>();int last=0,maxGrade=0,previousSummons=0;
         long tick=0,limit=rules.preparationTicks()+(long)rules.roundTicks()*cap;
         while(tick<limit && !arena.ended()) {
+          if(Thread.currentThread().isInterrupted())throw new java.util.concurrent.CancellationException("Simulation interrupted");
           for(int batch=0;batch<batchTicks && tick<limit && !arena.ended();batch++) {
             campaign.beforeCombat(arena,s->ids.get());bot.act(arena,tick);combat.tick(arena,tick,null);arena.collectDeadEnemies();campaign.afterCombat(arena);
             if(bot.summons()!=previousSummons) {

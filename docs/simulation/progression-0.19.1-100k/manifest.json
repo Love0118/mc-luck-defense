@@ -1,0 +1,68 @@
+{
+  "version": "0.19.1",
+  "commit": "7520663a7e50eb2be57fec533380f6e9ea671c46",
+  "jar_sha256": "995038922b9f094c0bc26c874f1b0889c17052360a8d3b33ba9d53ee110453ec",
+  "runs_per_scenario": 100000,
+  "scenarios": [
+    "none",
+    "top_growth",
+    "top_combat"
+  ],
+  "seed_start": 28000000,
+  "seed_end": 28099999,
+  "round_cap": 10000,
+  "batch_ticks": 500,
+  "command": "java -Xmx4g -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp MCLuckDefense.jar dev.moma.sim.ProgressionBenchmarkMain 100000 28000000 runs",
+  "published_build_url": "https://github.com/Love0118/mc-luck-defense/releases/tag/beta-build-7520663a7e50eb2be57fec533380f6e9ea671c46",
+  "presentation_only_successor": {
+    "version": "0.19.2",
+    "commit": "909024913d33827fc84acd2f23cfe428b66e97a5",
+    "same_published_balance_hash": true,
+    "exact_regression_games": 3000,
+    "proof": "../../verification-0.19.2/simulation-equivalence.json"
+  },
+  "local_audit": {
+    "preserved_games": 45000,
+    "scenario": "none",
+    "seed_start": 28000000,
+    "seed_end": 28044999,
+    "java": "Microsoft OpenJDK 25.0.3",
+    "heap_max": "4 GiB",
+    "workers": 8,
+    "logical_processors": 12,
+    "started_local": "2026-09-24T06:43:10+09:00",
+    "stopped_after_parallel_ci_started": true
+  },
+  "execution": {
+    "provider": "GitHub Actions standard ubuntu-latest runners",
+    "workflow": "progression-100k.yml",
+    "run_id": 35927619494,
+    "url": "https://github.com/Love0118/mc-luck-defense/actions/runs/35927619494",
+    "shards": 60,
+    "runs_per_shard": 5000,
+    "max_parallel": 20,
+    "heap_max_per_job": "3 GiB",
+    "java_distribution": "Temurin 25",
+    "runtime_details": "baseline-summary.json",
+    "timing": "The full experiment was cancelled. Only complete none/top_growth cohorts are preserved; no final all-cohort wall time is claimed.",
+    "workflow_commit": "d72267d60b317a479fd4de43b9664fc3246c092a",
+    "java_runtime": "Temurin 25.0.4.1+1",
+    "completed_jobs": 51,
+    "cancelled_jobs": 9
+  },
+  "latest_successor": {
+    "version": "0.19.3",
+    "commit": "ee8866a5a1ddaeecc4188a11e9c502fb84d90cfd",
+    "core_and_simulator_classes_identical_to_0_19_2": 68,
+    "proof": "../../verification-0.19.3/delivery.json"
+  },
+  "status": "cancelled_at_user_request_before_rebalancing",
+  "complete_cohorts": [
+    "none",
+    "top_growth"
+  ],
+  "incomplete_cohorts": [
+    "top_combat"
+  ],
+  "warning": "The requested 300000-game experiment did not complete. The former local partial none archive was replaced by the validated 100000-game CI cohort."
+}

@@ -5,7 +5,10 @@ import java.util.*;
 public final class CombatEngine {
     public record Hit(UUID defender, UUID enemy, double damage) {}
     @FunctionalInterface public interface HitSink { void hit(Defender defender, Enemy enemy, double effectiveDamage); }
-    private static final Comparator<Enemy> PRIORITY = Comparator.comparingDouble(Enemy::progress).reversed().thenComparing(Enemy::entityId);
+    private static final Comparator<Enemy> PRIORITY=(a,b)-> {
+        int progress=Double.compare(b.progress(),a.progress());
+        return progress!=0?progress:a.entityId().compareTo(b.entityId());
+    };
     private final ArrayList<Enemy> ordered = new ArrayList<>();
     private final ArrayList<Enemy> selected = new ArrayList<>();
 
@@ -72,6 +75,7 @@ public final class CombatEngine {
         int level = defender.rarity().abilityLevel();
         int limit = profile.targets() + level;
         double radius = AttackGeometry.areaRadius(defender, profile);
+        Point primaryPosition=primary.position(route);
         for (Enemy enemy : enemies) {
             if (enemy == primary || !eligible(defender, enemy)) continue;
             Point position = enemy.position(route);
@@ -79,8 +83,8 @@ public final class CombatEngine {
                 if (result.size() >= limit) break;
                 if (origin.distanceSquared(position) <= rangeSquared) result.add(enemy);
             } else if (role == AttackRole.MELEE_CLEAVE) {
-                if (AttackGeometry.inCleave(origin, primary.position(route), position, profile.range())) result.add(enemy);
-            } else if (primary.position(route).distanceSquared(position) <= radius * radius) result.add(enemy);
+                if (AttackGeometry.inCleave(origin, primaryPosition, position, profile.range())) result.add(enemy);
+            } else if (primaryPosition.distanceSquared(position) <= radius * radius) result.add(enemy);
         }
     }
     private boolean eligible(Defender defender, Enemy enemy) { return enemy.alive() && enemy.arenaId().equals(defender.arenaId()); }

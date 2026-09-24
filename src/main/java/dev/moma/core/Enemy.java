@@ -46,15 +46,21 @@ public final class Enemy implements java.io.Serializable {
     public void slow(double fraction, long expiresAt) {
         if (!Double.isFinite(fraction) || fraction < 0 || fraction >= 1) throw new IllegalArgumentException("Invalid slow");
         // A weaker long-lived slow must still apply after a stronger short-lived slow expires.
-        slows.removeIf(s -> s.fraction <= fraction && s.expiresAt <= expiresAt);
-        if (slows.stream().noneMatch(s -> s.fraction >= fraction && s.expiresAt >= expiresAt))
-            slows.add(new Slow(fraction, expiresAt));
+        for(int i=slows.size()-1;i>=0;i--) {
+            Slow slow=slows.get(i);
+            if(slow.fraction<=fraction && slow.expiresAt<=expiresAt)slows.remove(i);
+        }
+        for(Slow slow:slows)if(slow.fraction>=fraction && slow.expiresAt>=expiresAt)return;
+        slows.add(new Slow(fraction,expiresAt));
     }
     public double slowAt(long tick) {
         if (slows.isEmpty()) return 0;
-        slows.removeIf(s -> s.expiresAt <= tick);
         double strongest = 0;
-        for (Slow slow : slows) strongest = Math.max(strongest, slow.fraction);
+        for(int i=slows.size()-1;i>=0;i--) {
+            Slow slow=slows.get(i);
+            if(slow.expiresAt<=tick)slows.remove(i);
+            else strongest=Math.max(strongest,slow.fraction);
+        }
         return strongest;
     }
     void advance(long tick) { if (alive()) progress += speed / 20.0 * (1 - slowAt(tick)); }

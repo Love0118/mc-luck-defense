@@ -1,0 +1,16 @@
+{
+  "identical_records": 1536,
+  "scenarios": {
+    "none": true,
+    "top_growth": true,
+    "top_combat": true
+  },
+  "baseline_threads": 8,
+  "optimized_threads": 12,
+  "baseline_seconds": 93.545513,
+  "optimized_seconds": 50.2876725,
+  "speedup": 1.8602076483058547,
+  "final_unprofiled_seconds": 44.2536585,
+  "final_identical_records": 1536,
+  "note": "Primary speedup compares both runs with JFR profiling. Final 44.254-second run omitted JFR and is not the primary timing comparison."
+}

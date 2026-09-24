@@ -1,0 +1,17 @@
+{
+  "version": "0.19.3",
+  "commit": "ee8866a5a1ddaeecc4188a11e9c502fb84d90cfd",
+  "tests": 334,
+  "ci_run": 35931222997,
+  "ci_conclusion": "success",
+  "published_sha256": "39ca37eea42de44d0809e0532a515ad37158255e6e3e01a68162ca51ecf3af08",
+  "previous_version": "0.19.2",
+  "host_hash_equal": true,
+  "balance_hash_equal": true,
+  "state_schema_equal": true,
+  "state_schema": 2,
+  "identical_core_and_simulator_class_files": 68,
+  "local_staged_path": "E:/mc luck defense/plugins/update/mc-luck-defense-0.14.0.jar",
+  "live_activation_performed": false,
+  "server_restart_performed": false
+}

@@ -6,6 +6,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static dev.moma.core.Arena.Result.*;
 
 class AutoPlacementTest {
+    @Test void reusedWorkspaceAndCacheMatchFreshSolverAcrossMovesAndRosterChanges() {
+        Grid grid=new Grid(6);AutoPlacement cached=new AutoPlacement(grid);List<Defender> roster=new ArrayList<>();
+        for(int i=0;i<48;i++)roster.add(new Defender(new UUID(0,i+1),new UUID(0,1),"a",UnitType.values()[i%24],Rarity.values()[i%11],null));
+        for(int step=0;step<40;step++) {
+            var expected=new AutoPlacement(grid).arrange(roster);
+            var actual=cached.arrange(roster);
+            assertEquals(expected,actual);assertEquals(expected,cached.arrange(roster));actual.clear();assertEquals(expected,cached.arrange(roster));
+            for(Defender d:roster)d.move(expected.get(d.entityId()));
+            roster.get(step%roster.size()).merge(1);
+            if(step%3==0)Collections.rotate(roster,1);
+            if(step%7==0 && roster.size()>10)roster.removeLast();
+        }
+    }
     @Test void assignmentMatchesExhaustiveBestForMixedRangesAndGrades() {
         Grid grid = new Grid(6);
         var optimizer = new AutoPlacement(grid);

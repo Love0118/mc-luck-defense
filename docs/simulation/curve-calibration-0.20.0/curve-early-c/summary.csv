@@ -1,0 +1,2 @@
+scenario,runs,wall_seconds,simulated_seconds,effective_speed,mean_round,reach30,reach60,reach100,reach200,reach300,reach400,reach500,reach600,reach700,reach1000,reach1500,reach2000,reach2500,reach3000,reach5000,reach7500,reach10000
+none,1000,52.7806868,2364805.6,44804.373405766295,78.726,919,726,311,0,0,0,0,0,0,0,0,0,0,0,0,0,0

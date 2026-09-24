@@ -17,6 +17,7 @@ jobs:
           java-version: '25'
           cache: maven
       - run: mvn -B -ntp -Dbuild.commit=${{ github.sha }} clean verify
+      - run: python3 -m unittest discover -s benchmarks/traits -p test_progression_report.py
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:

@@ -14,6 +14,7 @@ public final class Defender implements java.io.Serializable {
     private double inheritedDamage;
     private long saleValue;
     private Cell cell;
+    private transient Point position;
     private long nextAttackTick;
     private UUID lastTarget;
     private int consecutiveHits;
@@ -77,11 +78,11 @@ public final class Defender implements java.io.Serializable {
         profile=new CombatProfile(inheritedDamage+base.damage()*damageMultiplier(),base.intervalTicks(),base.range(),base.areaRadius(),base.targets());
     }
     public Cell cell() { return cell; }
-    public Point position() { return cell.point(); }
+    public Point position() { if(position==null)position=cell.point();return position; }
     public long nextAttackTick() { return nextAttackTick; }
     public int consecutiveHits() { return consecutiveHits; }
     UUID lastTarget() { return lastTarget; }
-    void move(Cell destination) { cell = destination; }
+    void move(Cell destination) { if(!java.util.Objects.equals(cell,destination))position=null;cell=destination; }
     void attackAt(long tick, int interval) { nextAttackTick = tick + interval; }
     void attackAt(long tick,int interval,int speedPercent) {
         if(speedPercent==0){attackAt(tick,interval);return;}

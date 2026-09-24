@@ -1,0 +1,23 @@
+{
+  "cloud_games_validated": 100000,
+  "local_games_compared": 45000,
+  "all_compared_records_identical_except_line_endings": true,
+  "matched_seed_start": 28000000,
+  "matched_seed_end": 28044999,
+  "normalized_prefix_sha256": "d3eb96895775c65de6ee310f16e37509ea2d20f59b5442db1bb4d56e0523a688",
+  "reached": {
+    "30": 90942,
+    "60": 69830,
+    "100": 69830,
+    "200": 15241,
+    "300": 51,
+    "400": 6,
+    "500": 0,
+    "600": 0,
+    "700": 0,
+    "1000": 0,
+    "2000": 0,
+    "2500": 0,
+    "10000": 0
+  }
+}

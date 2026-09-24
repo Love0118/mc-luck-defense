@@ -12,8 +12,9 @@ public final class AutoPlayer {
     private final Arena.Spawner spawner;
     private final java.util.function.Consumer<UUID> remove;
     private static final Map<Integer,double[]> COVERAGE=new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int RARITY_COUNT=Rarity.values().length;
     private final double[] bestCoverage;
-    private final int[] rarities = new int[Rarity.values().length];
+    private final int[] rarities = new int[RARITY_COUNT];
     private int summons, sales, moves;
     private final AutoPlacement placement;
     private final int primordialCap;
@@ -48,7 +49,7 @@ public final class AutoPlayer {
     public int sales() { return sales; }
     public int moves() { return moves; }
     public int[] rarities() { return rarities.clone(); }
-    private static int index(UnitType type, Rarity rarity) { return type.ordinal() * Rarity.values().length + rarity.ordinal(); }
+    private static int index(UnitType type, Rarity rarity) { return type.ordinal() * RARITY_COUNT + rarity.ordinal(); }
     private double score(Defender d) {
         double best = bestCoverage[index(d.type(), d.rarity())];
         CombatProfile p = d.profile();
@@ -64,11 +65,16 @@ public final class AutoPlayer {
     /** Every game tick executes the same bounded purchase budget at any simulator batch size. */
     public void act(Arena arena,long tick) {
         if(arena.ended())return;
+        if(arena.coins()<arena.summonCost() && arena.reserveCount()==0)return;
         boolean dirty=false;
         for(int action=0;action<4;action++) {
             if(arena.coins()<arena.summonCost() || arena.unitCount()>=arena.grid().size()*arena.grid().size()+Arena.RESERVE_CAPACITY) {
-                var worst=arena.reserveUnits().stream().filter(d->d.rarity().autoSellable()).min(Comparator.comparingDouble(this::score));
-                if(worst.isPresent()){sell(arena,worst.orElseThrow());dirty=true;continue;}
+                Defender worst=null;double worstScore=Double.POSITIVE_INFINITY;
+                for(Defender d:arena.reserveUnits())if(d.rarity().autoSellable()) {
+                    double score=score(d);
+                    if(worst==null || Double.compare(score,worstScore)<0){worst=d;worstScore=score;}
+                }
+                if(worst!=null){sell(arena,worst);dirty=true;continue;}
                 break;
             }
             SummonRoll roll=SummonRoll.draw(random,arena);

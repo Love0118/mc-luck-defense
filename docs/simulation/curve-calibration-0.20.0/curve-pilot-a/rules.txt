@@ -1,0 +1,9 @@
+runs=1500
+seed=32000000
+roundCap=10000
+batchTicks=500
+requestedVirtualSpeed=unlimited
+scenarios=none,equipped,top_growth,top_combat
+healthCurve=1:60.0,10:150.0,20:900.0,26:1120.0,30:1220.0,40:2050.0,50:3200.0,60:6000.0,70:12000.0,80:25000.0,90:55000.0,100:120000.0,150:250000.0,200:700000.0,300:1800000.0,400:3500000.0,500:7000000.0,600:1.1E7,700:1.8E7,1000:8.0E7,1500:7.0E8,2000:3.0E9,2500:6.0E9,3000:1.0E10,4000:2.4E10,5000:5.0E10,7500:1.8E11,10000:5.0E11
+build=f6cb6781d2b1f20fd9ddd316c6ff9d3c7b30fcbb4dc8545f2759881f22aa326d
+policy=reserve, grade-first placement, four transactions per game tick
