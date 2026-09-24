@@ -1,0 +1,69 @@
+{
+  "status": "stopped_before_tail_curve_review",
+  "version": "0.20.0",
+  "source_commit": "bcc1db1e70ae7642464434f8bb65bff1bc07b400",
+  "jar_sha256": "35fd88c69a5d221331fd002e1eb4b0b515fb21f533b1d4616fc16745e07a0c31",
+  "runs_per_scenario": 100000,
+  "scenarios": [
+    "none",
+    "equipped",
+    "top_growth",
+    "top_fusion"
+  ],
+  "seed_start": 34000000,
+  "seed_end": 34099999,
+  "calibration_seed_start": 32000000,
+  "round_cap": 10000,
+  "batch_ticks": 500,
+  "realtime_throttle": false,
+  "target": {
+    "primary": "strong maximum-tier equipped loadout",
+    "round_2000_percent": [
+      1,
+      3
+    ],
+    "no_traits_2000_target_retired": true
+  },
+  "execution": {
+    "provider": "local Windows",
+    "cpu": "AMD Ryzen 5 9600X",
+    "logical_processors": 12,
+    "threads": 12,
+    "java": "Microsoft OpenJDK 25.0.3",
+    "heap_initial_gib": 6,
+    "heap_max_gib": 6,
+    "output_directory": ".runtime/progression-0200-local-final",
+    "command": "java -Xms6g -Xmx6g -cp .runtime/progression-0200-build/MCLuckDefense.jar dev.moma.sim.ProgressionBenchmarkMain 100000 34000000 .runtime/progression-0200-local-final none,equipped,top_growth,top_fusion --threads 12"
+  },
+  "checks": {
+    "java_tests": 338,
+    "python_tests": 2,
+    "local_cross_runtime_audit": "Stopped at user request; 2048 local executions completed but no complete cross-runtime audit was claimed"
+  },
+  "automatic_player": "BALANCED: four transactions per game tick; sells weakest sellable reserve unit when short of gold or capacity; grade-first automatic placement; fusion enabled",
+  "cancelled_cloud_attempt": {
+    "run": 35937617089,
+    "url": "https://github.com/Love0118/mc-luck-defense/actions/runs/35937617089",
+    "reason": "User prefers local-only validation",
+    "included_in_final_cohorts": false
+  },
+  "final_sample_plan": {
+    "total_games": 100000,
+    "reference_configurations": [
+      "none",
+      "top_fusion"
+    ],
+    "large_run_blocked_until": "Late progression curve reviewed on small diagnostic cohorts"
+  },
+  "warning": "The former 400000-game local batch is stopped and incomplete. Do not publish its partial results as final validation.",
+  "stopped_local_attempt": {
+    "completed_journal_records": {
+      "equipped": 1624,
+      "none": 1626,
+      "top_fusion": 1620,
+      "top_growth": 1622
+    },
+    "total": 6492,
+    "included_in_final_validation": false
+  }
+}

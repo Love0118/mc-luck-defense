@@ -1,0 +1,10 @@
+runs=1000
+seed=32000000
+roundCap=10000
+batchTicks=500
+requestedVirtualSpeed=unlimited
+scenarios=none,top_fusion
+healthCurve=1:60.0,10:150.0,20:900.0,26:1120.0,30:1220.0,40:2050.0,50:3200.0,60:6000.0,70:9000.0,80:15000.0,90:26000.0,100:48000.0,150:150000.0,200:300000.0,300:2300000.0,400:4200000.0,500:7600000.0,600:1.25E7,700:1.9E7,1000:6.0E7,1250:1.3E8,1500:3.0E8,1750:5.5E8,2000:9.25E8,2500:1.6E9,3000:2.5E9,4000:6.0E9,5000:1.5E10,7500:6.5E10,10000:2.5E11
+rules=CampaignRules[gridSize=6, startingCoins=30, enemyLimit=100, preparationTicks=300, roundTicks=600, cleanupTicks=1200, healthScale=1.0, healthCurve=HealthCurve[anchors=[Anchor[round=1, health=60.0], Anchor[round=10, health=150.0], Anchor[round=20, health=900.0], Anchor[round=26, health=1120.0], Anchor[round=30, health=1220.0], Anchor[round=40, health=2050.0], Anchor[round=50, health=3200.0], Anchor[round=60, health=6000.0], Anchor[round=70, health=9000.0], Anchor[round=80, health=15000.0], Anchor[round=90, health=26000.0], Anchor[round=100, health=48000.0], Anchor[round=150, health=150000.0], Anchor[round=200, health=300000.0], Anchor[round=300, health=2300000.0], Anchor[round=400, health=4200000.0], Anchor[round=500, health=7600000.0], Anchor[round=600, health=1.25E7], Anchor[round=700, health=1.9E7], Anchor[round=1000, health=6.0E7], Anchor[round=1250, health=1.3E8], Anchor[round=1500, health=3.0E8], Anchor[round=1750, health=5.5E8], Anchor[round=2000, health=9.25E8], Anchor[round=2500, health=1.6E9], Anchor[round=3000, health=2.5E9], Anchor[round=4000, health=6.0E9], Anchor[round=5000, health=1.5E10], Anchor[round=7500, health=6.5E10], Anchor[round=10000, health=2.5E11]]], bossHealthScale=0.15]
+build=2211b7fbc83e487f18857263af40c89651a8230e85c80fc1827a03b76581dc18
+policy=reserve, grade-first placement, four transactions per game tick
