@@ -37,6 +37,8 @@ class RoundLeaderboardTest {
         var seed=new dev.moma.core.RoundRecords();
         for(int i=0;i<25;i++)seed.record(new java.util.UUID(0,i),"Ranker"+i,100-i);
         dev.moma.core.RoundRecords.save(directory.resolve("round-records.properties"),seed.snapshot());
+        var store=new dev.moma.core.LeaderboardStore(directory);
+        store.saveCurrent(seed.snapshot());
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
             bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));
@@ -44,6 +46,12 @@ class RoundLeaderboardTest {
             RoundLeaderboard board=new RoundLeaderboard(plugin,new Lobby(new Location(world,0,64,0),256));
             verify(chunk).addPluginChunkTicket(plugin);
             var first=texts.get(2);var second=texts.get(3);
+            var oldFirst=texts.get(6);var oldSecond=texts.get(7);
+            assertTrue(plain(contents.get(first)).contains("시즌 1 최고 라운드"));
+            assertTrue(plain(contents.get(oldFirst)).contains("프리시즌 최고 라운드"));
+            verify(a).showEntity(plugin,oldFirst);verify(a,never()).showEntity(plugin,oldSecond);
+            verify(b).showEntity(plugin,oldSecond);verify(b,never()).showEntity(plugin,oldFirst);
+            verify(oldFirst).setVisibleByDefault(false);verify(oldSecond).setVisibleByDefault(false);
             verify(first).setVisibleByDefault(false);verify(second).setVisibleByDefault(false);
             verify(a).showEntity(plugin,first);verify(a,never()).showEntity(plugin,second);
             verify(b).showEntity(plugin,second);verify(b,never()).showEntity(plugin,first);
@@ -57,11 +65,12 @@ class RoundLeaderboardTest {
             assertTrue(plain(contents.get(first)).contains("[2/3]"));
             verify(scheduler).runTaskTimer(eq(plugin),action.capture(),eq(20L),eq(20L));
             when(first.isValid()).thenReturn(false);action.getValue().run();
-            var replacement=texts.get(4);assertTrue(plain(contents.get(replacement)).contains("[2/3]"));
+            var replacement=texts.get(8);assertTrue(plain(contents.get(replacement)).contains("[2/3]"));
             when(a.getName()).thenReturn("NewLeader");board.record(a,999);
             assertTrue(plain(contents.get(second)).contains("NewLeader"));
-            var views=RoundLeaderboard.class.getDeclaredField("views");views.setAccessible(true);
-            Object state=((java.util.Map<?,?>)views.get(board)).get(a.getUniqueId());
+            assertFalse(plain(contents.get(oldSecond)).contains("NewLeader"));
+            Object current=field(board,"current");
+            Object state=((java.util.Map<?,?>)field(current,"views")).get(a.getUniqueId());
             var lastClick=state.getClass().getDeclaredField("lastClick");lastClick.setAccessible(true);
             lastClick.setLong(state,Long.MIN_VALUE);click(board,a,buttons.get(1),org.bukkit.inventory.EquipmentSlot.HAND);
             assertTrue(plain(contents.get(replacement)).contains("[3/3]"));
@@ -69,12 +78,25 @@ class RoundLeaderboardTest {
             assertTrue(plain(contents.get(replacement)).contains("[3/3]"));
             lastClick.setLong(state,Long.MIN_VALUE);click(board,a,buttons.get(0),org.bukkit.inventory.EquipmentSlot.HAND);
             assertTrue(plain(contents.get(replacement)).contains("[2/3]"));
+            Location oldButtonLocation=buttons.get(3).getLocation();
+            when(a.getLocation()).thenReturn(oldButtonLocation);
+            click(board,a,buttons.get(3),org.bukkit.inventory.EquipmentSlot.HAND);
+            assertTrue(plain(contents.get(oldFirst)).contains("[2/3]"));
+            assertTrue(plain(contents.get(oldSecond)).contains("[1/3]"));
+            assertTrue(plain(contents.get(replacement)).contains("[2/3]"));
             when(a.getWorld()).thenReturn(mock(World.class));action.getValue().run();verify(replacement).remove();
+            verify(oldFirst).remove();
             when(a.getWorld()).thenReturn(world);action.getValue().run();
-            assertTrue(plain(contents.get(texts.get(5))).contains("[1/3]"));
+            assertTrue(plain(contents.get(texts.get(9))).contains("[1/3]"));
+            assertTrue(plain(contents.get(texts.get(10))).contains("[1/3]"));
             board.close();board.close();verify(task).cancel();verify(second).remove();verify(chunk).removePluginChunkTicket(plugin);
-            assertEquals(999,dev.moma.core.RoundRecords.load(directory.resolve("round-records.properties")).top(1).getFirst().round());
+            assertEquals(999,store.load(dev.moma.core.LeaderboardStore.Season.SEASON_ONE).top(1).getFirst().round());
+            assertEquals(100,store.load(dev.moma.core.LeaderboardStore.Season.PRESEASON).top(1).getFirst().round());
+            assertEquals(100,dev.moma.core.RoundRecords.load(directory.resolve("round-records.properties")).top(1).getFirst().round());
         }
+    }
+    private static Object field(Object object,String name)throws Exception {
+        var field=object.getClass().getDeclaredField(name);field.setAccessible(true);return field.get(object);
     }
     private static void click(RoundLeaderboard board,org.bukkit.entity.Player player,org.bukkit.entity.Entity entity,org.bukkit.inventory.EquipmentSlot hand) {
         var event=new org.bukkit.event.player.PlayerInteractEntityEvent(player,entity,hand);event.setCancelled(true);

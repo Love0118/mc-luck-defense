@@ -11,6 +11,7 @@ if run.exists():raise SystemExit('Fresh output directory required')
 def ignore(directory,names):
     excluded=shutil.ignore_patterns('logs','*passed.json','clients.json')(directory,names)
     if Path(directory).name=='plugins':excluded.update(n for n in names if n.endswith('.jar'))
+    if Path(directory).name=='MCLuckDefense':excluded.update(n for n in names if n in ('leaderboards.db','leaderboards.db-journal','leaderboards.db-wal','leaderboards.db-shm'))
     return excluded
 shutil.copytree(a.template,run,ignore=ignore)
 for source in [a.plugin,a.fixture,a.via,a.backwards]:shutil.copy2(source,run/'plugins'/source.name)

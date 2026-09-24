@@ -25,6 +25,7 @@ public final class LeaderboardSmokePlugin extends JavaPlugin {
             if(first==null || second==null)return;
             board=field(field(Bukkit.getPluginManager().getPlugin("MCLuckDefense"),"games"),"leaderboard");
             if(board==null)throw new IllegalStateException("No leaderboard");
+            board=field(board,"preseason");
             var next=(Interaction)field(board,"nextButton");
             Location near=next.getLocation().clone().add(0,-.6,-1);
             first.teleport(near);second.teleport(near.clone().add(.5,0,0));

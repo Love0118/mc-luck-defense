@@ -30,8 +30,7 @@ public final class GameRuntime implements GameModule {
     @Override public void activate(boolean initialBoot)throws Exception {
         if(active)return;
         games.achievements=new AchievementService(host);
-        if(lobby!=null)try{games.leaderboard=new RoundLeaderboard(host,lobby);}
-        catch(Exception error){host.getLogger().log(java.util.logging.Level.SEVERE,"Leaderboard initialization failed",error);}
+        if(lobby!=null)games.leaderboard=new RoundLeaderboard(host,lobby);
         try{games.bgm=new BgmService(host,games,bgmConfiguration);games.bgm.restoreState(savedBgm);}
         catch(Exception error){if(savedBgm!=null)throw error;host.getLogger().log(java.util.logging.Level.SEVERE,"BGM initialization failed",error);}
         if(initialBoot)for(var player:Bukkit.getOnlinePlayers())games.tools.restore(player);
