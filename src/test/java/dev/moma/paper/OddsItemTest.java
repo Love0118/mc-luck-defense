@@ -11,6 +11,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class OddsItemTest {
+    @Test void earlierHighTierUnlocksChangeBooksPricesAndLiveOddsTogether() {
+        var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100);
+        var materials=new java.util.ArrayList<org.bukkit.Material>();var metas=new java.util.ArrayList<ItemMeta>();
+        try(var items=mockConstruction(ItemStack.class,(item,context)->{
+            materials.add((org.bukkit.Material)context.arguments().getFirst());
+            ItemMeta meta=mock(ItemMeta.class);metas.add(meta);when(item.getItemMeta()).thenReturn(meta);
+        })) {
+            for(int round:new int[]{499,500,999,1000}){arena.reachedRound(round);ShopMenu.oddsItem(arena);}
+            assertEquals(List.of(org.bukkit.Material.ENCHANTED_BOOK,org.bukkit.Material.WRITABLE_BOOK,
+                    org.bukkit.Material.WRITABLE_BOOK,org.bukkit.Material.WRITTEN_BOOK),materials);
+            for(int index:new int[]{1,3}) {
+                var lore=org.mockito.ArgumentCaptor.forClass(List.class);verify(metas.get(index)).lore(lore.capture());
+                String text=lore.getValue().toString();
+                for(String expected:index==1?List.of("2000골드","40.198%","40%","16%","3.8%","0.002%")
+                        :List.of("5000골드","50.494%","40%","9.5%","0.005%","0.001%"))assertTrue(text.contains(expected),expected);
+            }
+        }
+    }
     @Test void openingTraitOddsMatchDrawTableAndDisappearAfterTargetHit() {
         var arena=new Arena("a",java.util.UUID.randomUUID(),new Grid(6),30,100,
                 new TraitLoadout(List.of("session_1000")),new HashRandom(1));

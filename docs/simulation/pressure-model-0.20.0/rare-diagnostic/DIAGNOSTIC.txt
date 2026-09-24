@@ -1,0 +1,8 @@
+BIASED SEED SELECTION; NOT A POPULATION REACH RATE.
+Only candidate seeds are replayed; the player policy has no knowledge of future draws.
+seedStart=36000000
+scannedSeeds=20000
+minimumDraw=18500
+maximumDraw=22000
+loadout=top_fusion
+rules=CampaignRules[gridSize=6, startingCoins=30, enemyLimit=100, preparationTicks=300, roundTicks=600, cleanupTicks=1200, healthScale=1.0, healthCurve=HealthCurve[anchors=[Anchor[round=1, health=60.0], Anchor[round=10, health=150.0], Anchor[round=20, health=900.0], Anchor[round=26, health=1120.0], Anchor[round=30, health=1220.0], Anchor[round=40, health=2050.0], Anchor[round=50, health=3200.0], Anchor[round=60, health=6000.0], Anchor[round=70, health=9000.0], Anchor[round=80, health=15000.0], Anchor[round=90, health=26000.0], Anchor[round=100, health=48000.0]]], bossHealthScale=0.15, endlessHealthPower=3.1, endlessPressureBend=1.3]

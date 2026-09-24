@@ -6,6 +6,8 @@ public final class WaveSchedule {
     // These six profiles define the existing difficulty budget, independently of appearance.
     private static final EnemyType[] BUDGET_TYPES = {EnemyType.ZOMBIE, EnemyType.HUSK, EnemyType.DROWNED, EnemyType.SPIDER, EnemyType.SLIME, EnemyType.MAGMA_CUBE};
     public static final double FINAL_BOSS_HEALTH_MULTIPLIER = 1.75;
+    private static final double ENDLESS_REGULAR_HEALTH_WEIGHT = 32;
+    private static final long ENDLESS_REGULAR_REWARD_WEIGHT = 31;
     private static final double[] REWARDS = {.1,.1,.2,.5,1,3,6,10,15,30};
     public static double reward(int round) {
         if (round < 1) throw new IllegalArgumentException("Round must be positive");
@@ -18,13 +20,18 @@ public final class WaveSchedule {
         return List.copyOf(waves);
     }
     public static Wave create(int round, CampaignRules rules) {
+        if(round<1)throw new IllegalArgumentException("Round must be positive");
         int cycleRound=(round-1)%100+1;
         int pattern = (cycleRound - 1) % 5;
         int count = 12 + (cycleRound - 1) / 10 * 2;
         if (pattern == 2) count += 8;
         if (pattern == 3) count -= 3;
         int lastAnchor=rules.healthCurve().anchors().getLast().round();
-        double growth=round<=lastAnchor?1:Math.pow(round/(double)lastAnchor,2);
+        double growth=round<=lastAnchor?1:Math.pow(round/(double)lastAnchor,rules.endlessHealthPower());
+        if(round>lastAnchor) {
+            double distance=round/1000.0,origin=lastAnchor/1000.0;
+            growth*=Math.pow((1+distance*distance)/(1+origin*origin),rules.endlessPressureBend());
+        }
         double base = rules.healthCurve().at(Math.min(round,lastAnchor)) * rules.healthScale()*growth;
         var entries = new ArrayList<Wave.Entry>();
         for (int i = 0; i < count; i++) {
@@ -56,11 +63,26 @@ public final class WaveSchedule {
             int spawnWindow = rules.roundTicks() * 3 / 4;
             entries.add(new Wave.Entry(i * spawnWindow / count, new EnemySpawn(type, health, speed, reward(round), false)));
         }
+        if(round>100)normalizeEndlessRegulars(entries,round,base);
+        double bossSize=round>100?35:15+cycleRound/5.0;
+        double bossBoost=round>100 || cycleRound==100?FINAL_BOSS_HEALTH_MULTIPLIER:1;
         if (round % 10 == 0) entries.add(new Wave.Entry(rules.roundTicks() / 2,
                 new EnemySpawn(round % 20 == 0 ? EnemyType.MAGMA_CUBE : EnemyType.HUSK,
-                        base * (15 + cycleRound / 5.0) * rules.bossHealthScale() * (cycleRound == 100 ? FINAL_BOSS_HEALTH_MULTIPLIER : 1), 1.2, reward(round)*25, true)));
+                        base * bossSize * rules.bossHealthScale() * bossBoost, 1.2, reward(round)*25, true)));
         entries.sort(Comparator.comparingInt(Wave.Entry::offsetTick));
         return themed(round, entries);
+    }
+    private static void normalizeEndlessRegulars(List<Wave.Entry> entries,int round,double base) {
+        double totalHealth=0;
+        for(Wave.Entry entry:entries)totalHealth+=entry.enemy().health();
+        double scale=base*ENDLESS_REGULAR_HEALTH_WEIGHT/totalHealth;
+        long budget=Gold.units(reward(round)*ENDLESS_REGULAR_REWARD_WEIGHT);
+        long share=budget/entries.size(),remainder=budget%entries.size();
+        for(int i=0;i<entries.size();i++) {
+            Wave.Entry entry=entries.get(i);EnemySpawn enemy=entry.enemy();
+            double reward=Gold.amount(share+(i<remainder?1:0));
+            entries.set(i,new Wave.Entry(entry.offsetTick(),new EnemySpawn(enemy.type(),enemy.health()*scale,enemy.speed(),reward,false)));
+        }
     }
     private static Wave themed(int round, List<Wave.Entry> budget) {
         WaveTheme theme=WaveTheme.at(round);
@@ -72,9 +94,9 @@ public final class WaveSchedule {
         for(int i=0;i<regular.size();) {
             int start=(cursor+1)*regular.size()/(theme.wardens()+1)-2;
             if(cursor<theme.wardens() && i==start) {
-                double health=0; double reward=0;
-                for(int j=0;j<4;j++) { health+=regular.get(i+j).enemy().health(); reward+=regular.get(i+j).enemy().reward(); }
-                result.add(new Wave.Entry(regular.get(i).offsetTick(),new EnemySpawn(EnemyType.WARDEN,health,1.2,reward,false)));
+                double health=0; long rewardUnits=0;
+                for(int j=0;j<4;j++) { health+=regular.get(i+j).enemy().health(); rewardUnits+=Gold.units(regular.get(i+j).enemy().reward()); }
+                result.add(new Wave.Entry(regular.get(i).offsetTick(),new EnemySpawn(EnemyType.WARDEN,health,1.2,Gold.amount(rewardUnits),false)));
                 i+=4;cursor++;
             } else {
                 Wave.Entry entry=regular.get(i++);EnemySpawn enemy=entry.enemy();

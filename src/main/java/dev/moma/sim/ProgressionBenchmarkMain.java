@@ -12,14 +12,14 @@ import java.util.zip.GZIPOutputStream;
 
 /** Independent games share a bounded worker queue; combat itself remains single-threaded. */
 public final class ProgressionBenchmarkMain {
-    private static final int[] CHECKPOINTS={30,60,100,200,300,400,500,600,700,1000,1500,2000,2500,3000,5000,7500,10000};
-    record Options(int runs,long seed,Path output,List<String> cases,int threads,int cap,String curve,boolean resume) {
+    private static final int[] CHECKPOINTS={30,60,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000,2100,2250,2400,2500,3000,4000,5000,7500,10000};
+    record Options(int runs,long seed,Path output,List<String> cases,int threads,int cap,String curve,Double healthPower,Double pressureBend,boolean resume) {
         static Options parse(String[] args) {
             int runs=args.length>0?Integer.parseInt(args[0]):256;
             long seed=args.length>1?Long.parseLong(args[1]):28000000;
             Path output=Path.of(args.length>2?args[2]:"target/progression");
-            List<String> cases=List.of("none","equipped","top_growth","top_fusion");
-            int cursor=3,threads=Runtime.getRuntime().availableProcessors(),cap=10000;String curve=null;boolean resume=false;
+            List<String> cases=List.of("none","top_fusion");
+            int cursor=3,threads=Runtime.getRuntime().availableProcessors(),cap=2500;String curve=null;Double power=null,bend=null;boolean resume=false;
             if(args.length>cursor && !args[cursor].startsWith("--"))cases=List.of(args[cursor++].split(","));
             while(cursor<args.length) {
                 String option=args[cursor++];
@@ -30,6 +30,8 @@ public final class ProgressionBenchmarkMain {
                     case "--threads" -> threads=Integer.parseInt(value);
                     case "--cap" -> cap=Integer.parseInt(value);
                     case "--health-curve" -> curve=value;
+                    case "--health-power" -> power=Double.valueOf(value);
+                    case "--pressure-bend" -> bend=Double.valueOf(value);
                     default -> throw new IllegalArgumentException("Unknown option: "+option);
                 }
             }
@@ -38,7 +40,7 @@ public final class ProgressionBenchmarkMain {
             Math.addExact(seed,runs-1L);
             if(cases.isEmpty() || new HashSet<>(cases).size()!=cases.size() || !loadouts().keySet().containsAll(cases))
                 throw new IllegalArgumentException("Unknown or duplicate scenario");
-            return new Options(runs,seed,output,cases,threads,cap,curve,resume);
+            return new Options(runs,seed,output,cases,threads,cap,curve,power,bend,resume);
         }
     }
     static Map<String,TraitLoadout> loadouts() {
@@ -50,6 +52,8 @@ public final class ProgressionBenchmarkMain {
         result.put("top_combat",new TraitLoadout(combat));
         var fusion=new ArrayList<>(passives);fusion.addAll(List.of("round_10000","duplicate_10000","miracle_100"));
         result.put("top_fusion",new TraitLoadout(fusion));
+        var incomeDamage=new ArrayList<>(passives);incomeDamage.addAll(List.of("round_10000","duplicate_10000","gold_spent_10000000"));
+        result.put("top_income_damage",new TraitLoadout(incomeDamage));
         result.put("equipped",new TraitLoadout(List.of("round_350","session_100","session_250","session_500",
                 "enhancement_2000","duplicate_500","gold_spent_100000")));
         return result;
@@ -86,6 +90,8 @@ public final class ProgressionBenchmarkMain {
     public static void main(String[] args)throws Exception {
         Options options=Options.parse(args);CampaignRules rules=CampaignRules.standard();
         if(options.curve()!=null)rules=rules.withHealthCurve(HealthCurve.parse(options.curve()));
+        if(options.healthPower()!=null)rules=rules.withEndlessHealthPower(options.healthPower());
+        if(options.pressureBend()!=null)rules=rules.withEndlessPressureBend(options.pressureBend());
         run(options,rules);
     }
     static void run(Options options,CampaignRules rules)throws Exception {
@@ -137,14 +143,15 @@ public final class ProgressionBenchmarkMain {
     }
     private static void finish(Options options,List<Cohort> cohorts,double elapsed,int resumed)throws IOException {
         var summary=new ArrayList<String>();String header="scenario,runs,wall_seconds,simulated_seconds,effective_speed,mean_round";
-        for(int round:CHECKPOINTS)header+=",reach"+round;
+        int[] checkpoints=Arrays.stream(CHECKPOINTS).filter(r->r<=options.cap()).toArray();
+        for(int round:checkpoints)header+=",reach"+round;
         summary.add(header);
         for(Cohort cohort:cohorts) {
-            long ticks=0,totalRounds=0;int[] counts=new int[CHECKPOINTS.length];
+            long ticks=0,totalRounds=0;int[] counts=new int[checkpoints.length];
             try(var output=new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(options.output().resolve(cohort.name+".jsonl.gz"))),StandardCharsets.UTF_8))) {
                 for(String row:cohort.rows) {
                     output.write(row);output.write('\n');long round=number(row,"round");ticks+=number(row,"ticks");totalRounds+=round;
-                    for(int i=0;i<counts.length;i++)if(round>=CHECKPOINTS[i])counts[i]++;
+                    for(int i=0;i<counts.length;i++)if(round>=checkpoints[i])counts[i]++;
                 }
             }
             // Resume timing only covers the new process; do not imply old games ran again in that time.

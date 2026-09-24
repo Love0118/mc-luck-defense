@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class HealthCurveTest {
     @Test void standardCurveSpansTheSimulationAndHealthDoesNotRepeatWithTheField() {
         var rules=CampaignRules.standard();
-        assertTrue(rules.healthCurve().anchors().getLast().round()>=10000);
+        assertEquals(100,rules.healthCurve().anchors().getLast().round());
         for(int round=101;round<=10000;round+=100) {
             var previous=WaveSchedule.create(round-100,rules).entries();
             var current=WaveSchedule.create(round,rules).entries();

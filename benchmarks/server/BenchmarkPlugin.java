@@ -101,7 +101,7 @@ public final class BenchmarkPlugin extends JavaPlugin {
         gameSessions.add(session);
         Arena arena = (Arena) field(session, "arena"); arenas.add(arena);
         var r = CampaignRules.standard();
-        set(session, "campaign", new Campaign(new CampaignRules(6, 100, 100, 1_000_000, r.roundTicks(), r.cleanupTicks(), r.healthScale(), r.healthCurve(), r.bossHealthScale())));
+        set(session, "campaign", new Campaign(new CampaignRules(6, 100, 100, 1_000_000, r.roundTicks(), r.cleanupTicks(), r.healthScale(), r.healthCurve(), r.bossHealthScale(), r.endlessHealthPower(), r.endlessPressureBend())));
         if (campaignMode) {
             final Object arenaMap = map;
             // Same clear-capable seed per session sustains a full campaign load; not a win-rate sample.

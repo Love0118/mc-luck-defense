@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class EndlessCampaignTest {
     @Test void survivesPastFormerVictoryAndTimeoutAndGeneratesFiniteBoundedWaves() {
-        var rules=new CampaignRules(6,30,100,0,100,1,1,CampaignRules.standard().healthCurve(),1);
+        var rules=new CampaignRules(6,30,100,0,100,1,1,CampaignRules.standard().healthCurve(),1,3.4,.8);
         var campaign=new Campaign(rules,true);var arena=new Arena("endless",UUID.randomUUID(),new Grid(6),30,100);
         for(int tick=0;tick<10200;tick++) {
             campaign.beforeCombat(arena,s->UUID.randomUUID());
@@ -21,6 +21,6 @@ class EndlessCampaignTest {
         }
         double hp100=WaveSchedule.create(100,rules).entries().stream().filter(e->e.enemy().boss()).findFirst().orElseThrow().enemy().health();
         double hp110=WaveSchedule.create(110,rules).entries().stream().filter(e->e.enemy().boss()).findFirst().orElseThrow().enemy().health();
-        assertEquals(rules.healthCurve().at(110)/rules.healthCurve().at(100)*17/35/1.75,hp110/hp100,1e-9);
+        assertEquals(Math.pow(1.1,rules.endlessHealthPower())*Math.pow((1+.11*.11)/(1+.1*.1),rules.endlessPressureBend()),hp110/hp100,1e-9);
     }
 }

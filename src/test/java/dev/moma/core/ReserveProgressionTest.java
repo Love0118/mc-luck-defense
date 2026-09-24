@@ -59,13 +59,13 @@ class ReserveProgressionTest {
         assertEquals(Arena.Result.NOT_SELLABLE,a.sellRarity(a.owner(),Rarity.TRUE_PRIMORDIAL).result());
         a.select(a.owner(),d.entityId());assertEquals(Arena.Result.OK,a.sellSelected(a.owner()));
         assertEquals(before+20000,a.coins());assertEquals(Arena.Result.NO_SELECTION,a.sellSelected(a.owner()));
-        buy(a,UnitType.PANDA,Rarity.PRIMORDIAL);assertEquals(6000,a.lastSummoned().saleValue());
-        assertEquals(6000,a.sellRarity(a.owner(),Rarity.PRIMORDIAL).income());
+        buy(a,UnitType.PANDA,Rarity.PRIMORDIAL);assertEquals(4000,a.lastSummoned().saleValue());
+        assertEquals(4000,a.sellRarity(a.owner(),Rarity.PRIMORDIAL).income());
     }
     @Test void tierBoundariesAreExactAndProbabilitiesPreserveSpecifiedHighGradeYield() {
         Arena a=arena();
-        for(int r:new int[]{999,1000,2499,2500,10000}){a.reachedRound(r);assertEquals(r<1000?100:r<2500?1000:10000,a.summonCost());}
-        a.reachedRound(1);assertEquals(10000,a.summonCost());
+        for(int r:new int[]{499,500,999,1000,2500}){a.reachedRound(r);assertEquals(r<500?100:r<1000?2000:5000,a.summonCost());}
+        a.reachedRound(1);assertEquals(5000,a.summonCost());
         for(SummonTier tier:SummonTier.values()) {
             int boundary=0;
             for(Rarity grade:Rarity.values()) {
@@ -74,12 +74,14 @@ class ReserveProgressionTest {
             }
             assertEquals(100000,boundary);
             double recovery=Arrays.stream(Rarity.values()).mapToDouble(g->tier.weight(g,false)*tier.saleValue(g)/(double)Rarity.TOTAL_WEIGHT).sum()/tier.cost();
-            assertTrue(recovery>.51 && recovery<.53,"Recovery "+tier+": "+recovery);
+            assertTrue(recovery>.49 && recovery<.53,"Recovery "+tier+": "+recovery);
         }
-        assertEquals(1,SummonTier.ASCENDED.weight(Rarity.TRUE_PRIMORDIAL,false));
+        assertEquals(2,SummonTier.ASCENDED.weight(Rarity.TRUE_PRIMORDIAL,false));
         assertEquals(0,SummonTier.ASCENDED.weight(Rarity.MIRACLE,false));
         assertEquals(1,SummonTier.MIRACLE.weight(Rarity.MIRACLE,false));
-        assertEquals(SummonTier.ASCENDED.weight(Rarity.PRIMORDIAL,false)*10,SummonTier.MIRACLE.weight(Rarity.PRIMORDIAL,false));
+        for(Rarity grade:List.of(Rarity.MYTHIC,Rarity.PRIMORDIAL,Rarity.TRUE_PRIMORDIAL))
+            assertEquals(SummonTier.ASCENDED.weight(grade,false)/(double)SummonTier.ASCENDED.cost(),
+                    SummonTier.MIRACLE.weight(grade,false)/(double)SummonTier.MIRACLE.cost());
     }
     @Test void truePrimordialPromotesToMiracleAtTwentyWithoutResettingCooldown() {
         Arena a=arena();buy(a,UnitType.WOLF,Rarity.TRUE_PRIMORDIAL);Defender d=a.lastSummoned();d.attackAt(10,500);
@@ -127,6 +129,6 @@ class ReserveProgressionTest {
     @Test void aNewDrawTierDiscardsTheOldTierBlockedRoll() {
         Arena a=arena();a.toggleMerging(a.owner());for(int i=0;i<84;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
         a.summon(a.owner(),new SummonRoll(UnitType.PANDA,Rarity.COMMON),(t,r,c)->{fail();return null;});
-        assertNotNull(a.pendingRoll());a.reachedRound(1000);assertNull(a.pendingRoll());assertEquals(SummonTier.ASCENDED,a.summonTier());
+        assertNotNull(a.pendingRoll());a.reachedRound(500);assertNull(a.pendingRoll());assertEquals(SummonTier.ASCENDED,a.summonTier());
     }
 }

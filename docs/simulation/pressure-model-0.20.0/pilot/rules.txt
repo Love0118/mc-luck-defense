@@ -1,0 +1,10 @@
+runs=256
+seed=37000000
+roundCap=2500
+batchTicks=500
+requestedVirtualSpeed=unlimited
+scenarios=none,top_fusion,top_income_damage,top_growth,top_combat
+healthCurve=1:60.0,10:150.0,20:900.0,26:1120.0,30:1220.0,40:2050.0,50:3200.0,60:6000.0,70:9000.0,80:15000.0,90:26000.0,100:48000.0
+rules=CampaignRules[gridSize=6, startingCoins=30, enemyLimit=100, preparationTicks=300, roundTicks=600, cleanupTicks=1200, healthScale=1.0, healthCurve=HealthCurve[anchors=[Anchor[round=1, health=60.0], Anchor[round=10, health=150.0], Anchor[round=20, health=900.0], Anchor[round=26, health=1120.0], Anchor[round=30, health=1220.0], Anchor[round=40, health=2050.0], Anchor[round=50, health=3200.0], Anchor[round=60, health=6000.0], Anchor[round=70, health=9000.0], Anchor[round=80, health=15000.0], Anchor[round=90, health=26000.0], Anchor[round=100, health=48000.0]]], bossHealthScale=0.15, endlessHealthPower=3.1, endlessPressureBend=1.3]
+build=91e151d6eae0fc439b2316aef8d96a6cb283b224a21480bf6e5121929045fa3a
+policy=reserve, grade-first placement, four transactions per game tick

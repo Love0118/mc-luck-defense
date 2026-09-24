@@ -1,7 +1,7 @@
 package dev.moma.core;
 
 public enum SummonTier {
-    NORMAL(10,1), ADVANCED(100,101), ASCENDED(1000,1000), MIRACLE(10000,2500);
+    NORMAL(10,1), ADVANCED(100,101), ASCENDED(2000,500), MIRACLE(5000,1000);
     private final long cost;
     private final int round;
     SummonTier(long cost,int round) { this.cost=cost;this.round=round; }
@@ -14,14 +14,16 @@ public enum SummonTier {
     }
     public long saleValue(Rarity rarity) {
         if(this==ASCENDED)return switch(rarity) {
-            case LEGENDARY -> 484;
-            case EPIC -> 500;
+            case LEGENDARY -> 700;
+            case EPIC -> 1000;
+            case MYTHIC -> 1500;
+            case PRIMORDIAL -> 2000;
             default -> rarity.salePrice().orElse(0);
         };
         if(this==MIRACLE)return switch(rarity) {
-            case EPIC -> 3000;
-            case MYTHIC -> 5000;
-            case PRIMORDIAL -> 6000;
+            case EPIC -> 1800;
+            case MYTHIC -> 3000;
+            case PRIMORDIAL -> 4000;
             default -> rarity.salePrice().orElse(0);
         };
         return rarity.salePrice().orElse(0);
@@ -29,18 +31,18 @@ public enum SummonTier {
     public int weight(Rarity rarity,boolean openingBonus) {
         if(this==NORMAL)return rarity.weight(openingBonus);
         if(this==ASCENDED)return switch(rarity) {
-            case LEGENDARY -> 70099;
-            case EPIC -> 20000;
-            case MYTHIC -> 8000;
-            case PRIMORDIAL -> 1900;
-            case TRUE_PRIMORDIAL -> 1;
+            case LEGENDARY -> 40198;
+            case EPIC -> 40000;
+            case MYTHIC -> 16000;
+            case PRIMORDIAL -> 3800;
+            case TRUE_PRIMORDIAL -> 2;
             default -> 0;
         };
         if(this==MIRACLE)return switch(rarity) {
-            case EPIC -> 989;
-            case MYTHIC -> 80000;
-            case PRIMORDIAL -> 19000;
-            case TRUE_PRIMORDIAL -> 10;
+            case EPIC -> 50494;
+            case MYTHIC -> 40000;
+            case PRIMORDIAL -> 9500;
+            case TRUE_PRIMORDIAL -> 5;
             case MIRACLE -> 1;
             default -> 0;
         };

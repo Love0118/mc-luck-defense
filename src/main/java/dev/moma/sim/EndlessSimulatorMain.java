@@ -65,15 +65,21 @@ public final class EndlessSimulatorMain {
                 traits,new HashRandom(seed ^ 0x545241495453L));
         Campaign campaign=new Campaign(rules,true);CombatEngine combat=new CombatEngine();
         AutoPlayer bot=new AutoPlayer(seed,AutoPlayer.Strategy.BALANCED,arena.grid(),ids);
-        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,250,300,350,400,450,500,550,600,650,700,750,1000,1500,2000,2500,3000,4000,5000,6000,7500,9000,10000};
-        var snapshots=new ArrayList<String>();int last=0,maxGrade=0,previousSummons=0;
+        int[] checkpoints={20,26,30,40,50,60,90,100,101,150,200,250,300,350,400,450,500,550,600,650,700,750,800,900,1000,1250,1500,1750,2000,2100,2250,2400,2500,3000,4000,5000,6000,7500,9000,10000};
+        var snapshots=new ArrayList<String>();int last=0,maxGrade=0,previousSummons=0,firstMiracleRound=0;
+        String firstMiracleType="";
         long tick=0,limit=rules.preparationTicks()+(long)rules.roundTicks()*cap;
         while(tick<limit && !arena.ended()) {
           if(Thread.currentThread().isInterrupted())throw new java.util.concurrent.CancellationException("Simulation interrupted");
           for(int batch=0;batch<batchTicks && tick<limit && !arena.ended();batch++) {
             campaign.beforeCombat(arena,s->ids.get());bot.act(arena,tick);combat.tick(arena,tick,null);arena.collectDeadEnemies();campaign.afterCombat(arena);
             if(bot.summons()!=previousSummons) {
-                for(Defender d:arena.units())maxGrade=Math.max(maxGrade,d.rarity().ordinal());
+                for(Defender d:arena.units()) {
+                    maxGrade=Math.max(maxGrade,d.rarity().ordinal());
+                    if(d.rarity()==Rarity.MIRACLE && firstMiracleType.isEmpty()) {
+                        firstMiracleRound=campaign.round();firstMiracleType=d.type().name();
+                    }
+                }
                 previousSummons=bot.summons();
             }
             if(campaign.round()!=last) {
@@ -84,7 +90,7 @@ public final class EndlessSimulatorMain {
             tick++;
           }
         }
-        return String.format(Locale.ROOT,"{\"seed\":%d,\"round\":%d,\"completedRounds\":%d,\"outcome\":\"%s\",\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"maxGrade\":\"%s\",\"checkpoints\":[%s]}",
-                seed,campaign.round(),campaign.completedRounds(),arena.outcome(),tick,bot.summons(),bot.sales(),Rarity.values()[maxGrade],String.join(",",snapshots));
+        return String.format(Locale.ROOT,"{\"seed\":%d,\"round\":%d,\"completedRounds\":%d,\"outcome\":\"%s\",\"ticks\":%d,\"summons\":%d,\"sales\":%d,\"maxGrade\":\"%s\",\"firstMiracleRound\":%d,\"firstMiracleType\":\"%s\",\"checkpoints\":[%s]}",
+                seed,campaign.round(),campaign.completedRounds(),arena.outcome(),tick,bot.summons(),bot.sales(),Rarity.values()[maxGrade],firstMiracleRound,firstMiracleType,String.join(",",snapshots));
     }
 }

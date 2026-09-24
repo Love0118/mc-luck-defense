@@ -19,7 +19,7 @@ plt.rcParams['axes.unicode_minus']=False
 with (a.analysis/'reach.csv').open(encoding='utf-8',newline='') as f:
     rows=list(csv.DictReader(f))
 cases=list(dict.fromkeys(x['scenario'] for x in rows))
-colors=['#64748b','#16a085','#8b5cf6','#ed8c26','#e05b83']
+colors=['#64748b','#16a085','#8b5cf6','#ed8c26','#e05b83','#2563eb']
 fig,axes=plt.subplots(1,2,figsize=(13,5.7))
 for name,color in zip(cases,colors):
     data=[x for x in rows if x['scenario']==name]
@@ -31,7 +31,7 @@ for name,color in zip(cases,colors):
         axes[1].fill_between([int(x['round']) for x in late],[float(x['wilson95_low_percent']) for x in late],
                              [float(x['wilson95_high_percent']) for x in late],color=color,alpha=.12)
 axes[0].set(title='초반·중반 도달률',xlabel='라운드',ylabel='도달률 (%)',ylim=(0,101),xlim=(0,1000))
-axes[1].set(title='후반 도달률 · 음영은 95% 구간',xlabel='라운드',ylabel='도달률 (%, 로그 눈금)',xlim=(900,10100),yscale='log')
+axes[1].set(title='후반 도달률 · 음영은 95% 구간',xlabel='라운드',ylabel='도달률 (%, 로그 눈금)',xlim=(900,max(int(x['round']) for x in rows)*1.025),yscale='log')
 for ax in axes:
     ax.grid(alpha=.18)
     ax.spines[['top','right']].set_visible(False)

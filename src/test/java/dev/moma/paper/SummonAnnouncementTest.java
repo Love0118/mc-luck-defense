@@ -10,11 +10,11 @@ import static org.mockito.Mockito.*;
 
 class SummonAnnouncementTest {
     @Test void exactDrawTierBoundariesKeepOnlyTheIntendedGrades() {
-        for(int round:new int[]{1,100,101,999,1000,2499,2500,10000}) {
+        for(int round:new int[]{1,100,101,499,500,999,1000,2500}) {
             SummonTier tier=SummonTier.atRound(round);
             for(Rarity rarity:Rarity.values()) {
                 boolean expected=rarity==Rarity.TRUE_PRIMORDIAL || rarity==Rarity.MIRACLE
-                        || rarity==Rarity.PRIMORDIAL && round<2500 || rarity==Rarity.MYTHIC && round<1000;
+                        || rarity==Rarity.PRIMORDIAL && round<1000 || rarity==Rarity.MYTHIC && round<500;
                 assertEquals(expected,SummonAnnouncement.global(rarity,tier),round+" "+rarity);
             }
         }

@@ -238,16 +238,16 @@ class AutomationTest {
         when(games.entities.moveDefender(eq(second.entityId()),any())).thenReturn(false);
         games.select(player,second.entityId());assertEquals(cell,first.cell());assertSame(first,session.arena.selected().orElseThrow());
     }
-    @Test void purchaseAnnouncementsFollowThousandAndTwentyFiveHundredDrawUnlocks() {
+    @Test void purchaseAnnouncementsFollowFiveHundredAndThousandDrawUnlocks() {
         session.arena.credit(100000);Player other=mock(Player.class);Location at=player.getLocation();when(other.getLocation()).thenReturn(at);
         bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(player,other));
-        for(int round:new int[]{999,1000,2499,2500}) {
+        for(int round:new int[]{499,500,999,1000}) {
             session.arena.reachedRound(round);
             for(Rarity rarity:List.of(Rarity.MYTHIC,Rarity.PRIMORDIAL)) {
                 rolls.when(()->SummonRoll.draw(any(),eq(session.arena))).thenReturn(new SummonRoll(UnitType.WOLF,rarity));
                 bukkit.clearInvocations();clearInvocations(player,other);
                 games.summon(player);
-                boolean announced=rarity==Rarity.MYTHIC?round<1000:round<2500;
+                boolean announced=rarity==Rarity.MYTHIC?round<500:round<1000;
                 bukkit.verify(()->Bukkit.broadcast(any(net.kyori.adventure.text.Component.class)),times(announced?1:0));
                 verify(other,times(announced?1:0)).playSound(any(Location.class),anyString(),eq(SoundCategory.MASTER),anyFloat(),anyFloat());
                 Ui.Cue cue=Ui.Cue.RARE_SUMMON;

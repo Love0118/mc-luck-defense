@@ -155,6 +155,6 @@ class SessionSpeedTest {
         }
     }
     @Test void purchasesPromotionPlacementAndTierTransitionAreIdenticalAtOneAndThirtyTwoSpeed()throws Exception {
-        for(int gate:new int[]{1000,2500})assertEquals(purchasesAtSpeed(1,gate),purchasesAtSpeed(32,gate));
+        for(int gate:new int[]{500,1000})assertEquals(purchasesAtSpeed(1,gate),purchasesAtSpeed(32,gate));
     }
 }

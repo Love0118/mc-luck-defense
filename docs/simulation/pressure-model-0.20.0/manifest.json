@@ -1,0 +1,65 @@
+{
+  "version": "0.20.0",
+  "model": {
+    "power": 3.1,
+    "bend": 1.3,
+    "draw_tiers": {
+      "500": 2000,
+      "1000": 5000
+    }
+  },
+  "pilot": {
+    "seed_start": 37000000,
+    "runs_per_case": 256,
+    "round_cap": 2500,
+    "scenarios": [
+      "none",
+      "top_fusion",
+      "top_income_damage",
+      "top_growth",
+      "top_combat"
+    ]
+  },
+  "diagnostic": {
+    "biased": true,
+    "scanned_rng_streams": 20000,
+    "replayed_seeds": 669,
+    "selection_draw_min": 18500,
+    "selection_draw_max": 22000,
+    "not_a_population_rate": true,
+    "observed_terminal_rounds": [
+      2484,
+      2543
+    ]
+  },
+  "final_measurement": {
+    "status": "running",
+    "seed_start": 38000000,
+    "runs": 100000,
+    "scenario": "top_fusion",
+    "round_cap": 2500,
+    "jar_sha256": "5b474f0c8f30fb9211cc24fac6352430682b266f2e87e74fbfbe431c4a51f2ec",
+    "output": ".runtime/pressure-final-100k",
+    "local_only": true
+  },
+  "files": {
+    "pilot\\none-traits.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pilot\\none.jsonl.gz": "6e6f75da167d2d2c6f1dd30a9403092c17d027de4d4bf6044e14816c5ae7ef2d",
+    "pilot\\performance.csv": "bf6debaa1ca8ebe836f2ec42fc4a346b16f8708cdaec4fc52d1de2920e79b8ff",
+    "pilot\\rules.txt": "014ff9fe43c00fbb0e4f6a1e284bbcd16f7332a1fccbea5655d6d71adfcb806e",
+    "pilot\\summary.csv": "fce425ae6cdf2399918decc85f0cc589492dc236c51162d7ee661e74eaa6aa44",
+    "pilot\\top_combat-traits.txt": "82d7201ac850d32dcd93bbfe4af0669f4469c8fdf3791a980a27826eeb18ec32",
+    "pilot\\top_combat.jsonl.gz": "3040ceaef1a5cccb132c5acd523d138232ccfbc966a545e95f0f59f201f01430",
+    "pilot\\top_fusion-traits.txt": "4533aa0e0e61db92794633ab8a12381bd290a2bde6086d502cc9d2aed1f031de",
+    "pilot\\top_fusion.jsonl.gz": "69c10955c1b244b3a53ccf8c0c1f41cf8251fdfdde58a0cb2a0691f9893a2c9d",
+    "pilot\\top_growth-traits.txt": "ac9c40649a84fcff2a1ecb4f83cb22b856ceb04846d8b12033d7884c91b32626",
+    "pilot\\top_growth.jsonl.gz": "dcaceea933855ffb4523e82e3e6d442c429f3b4e659ccd6956b88ddfe7799752",
+    "pilot\\top_income_damage-traits.txt": "0b4a14a0efbfa49e7db9d1b888206c478250d84835d305b34236df9b14396543",
+    "pilot\\top_income_damage.jsonl.gz": "9d142d6c03f8e331db1117d058fc42eada6aa62b683ee39dacda5ea4bfa2041d",
+    "rare-diagnostic\\continued-36006227.jsonl.gz": "ab443fdfb69d225f14c88e067560cee85efe4826d4df437d7069d3acdb423f6a",
+    "rare-diagnostic\\continued-rules.txt": "18c28dad1d387bdee8d179ee76d688c9a7c236e02aa8e80ec4385a0eedd4842a",
+    "rare-diagnostic\\diagnostic-runs.jsonl.gz": "97111cab236f95ad8f5cbfbe871b577939cd2dc5f25a92e9696faa452e6929e8",
+    "rare-diagnostic\\DIAGNOSTIC.txt": "1a05cd6c65d8511ee0851093c54abe2c2934df1551795b2d2ca7b3ea2115fa85",
+    "rare-diagnostic\\selected-seeds.csv": "6a6135c54ebc4a2be0718cba2745f6e5f611a37c606cd257d84be293159e9dd0"
+  }
+}
