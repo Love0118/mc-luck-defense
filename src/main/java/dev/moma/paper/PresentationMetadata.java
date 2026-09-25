@@ -22,7 +22,12 @@ final class PresentationMetadata implements Listener {
         final Channel channel;
         volatile int selectedId = -1;
         UUID selectedUuid; // Main-thread only; Netty uses the numeric snapshot above.
-        Binding(Player player, Channel channel) { this.player = player; this.channel = channel; }
+        boolean green;
+        final String teamName;
+        Binding(Player player, Channel channel) {
+            this.player = player; this.channel = channel;
+            teamName="mudg"+player.getUniqueId().toString().replace("-","").substring(0,8);
+        }
     }
     PresentationMetadata(MomaPlugin plugin) {
         this.plugin = plugin;
@@ -49,15 +54,21 @@ final class PresentationMetadata implements Listener {
             return binding;
         } catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot attach private glow", error); }
     }
-    void select(Player player, UUID selected) {
+    void select(Player player, UUID selected) { select(player,selected,false); }
+    void select(Player player, UUID selected, boolean green) {
         Binding binding = bindings.get(player.getUniqueId());
         if (binding == null && selected == null) return;
         if (binding == null) binding = attach(player);
-        if (Objects.equals(binding.selectedUuid, selected)) return;
+        if (Objects.equals(binding.selectedUuid, selected) && binding.green==green) return;
         UUID previous = binding.selectedUuid;
         Entity entity = selected == null ? null : Bukkit.getEntity(selected);
+        try {
+            if(binding.green && previous!=null)metadata.sendGreenTeam(player,binding.teamName,previous,false);
+            if(green && entity!=null)metadata.sendGreenTeam(player,binding.teamName,selected,true);
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot update private selection color",error); }
         binding.selectedUuid = entity == null ? null : selected;
         binding.selectedId = entity == null ? -1 : entity.getEntityId();
+        binding.green = entity != null && green;
         refresh(player, previous);
         refresh(player, binding.selectedUuid);
     }
@@ -119,6 +130,15 @@ final class PresentationMetadata implements Listener {
         private final Field channel = Class.forName("net.minecraft.network.Connection").getField("channel");
         private final Method send = Class.forName("net.minecraft.server.network.ServerCommonPacketListenerImpl").getMethod("send", Class.forName("net.minecraft.network.protocol.Packet"));
         private final Method entityData = Class.forName("net.minecraft.world.entity.Entity").getMethod("getEntityData");
+        private final Class<?> teamClass = Class.forName("net.minecraft.world.scores.PlayerTeam");
+        private final Constructor<?> scoreboard = Class.forName("net.minecraft.world.scores.Scoreboard").getConstructor();
+        private final Constructor<?> team = teamClass.getConstructor(scoreboard.getDeclaringClass(),String.class);
+        private final Method setTeamColor = teamClass.getMethod("setColor",Optional.class);
+        private final Method teamPlayers = teamClass.getMethod("getPlayers");
+        private final Method greenColor = Class.forName("net.minecraft.world.scores.TeamColor").getMethod("byName",String.class);
+        private final Class<?> teamPacket = Class.forName("net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket");
+        private final Method createTeam = teamPacket.getMethod("createAddOrModifyPacket",teamClass,boolean.class);
+        private final Method removeTeam = teamPacket.getMethod("createRemovePacket",teamClass);
         private final Class<?> accessorClass = Class.forName("net.minecraft.network.syncher.EntityDataAccessor");
         private final Method get = Class.forName("net.minecraft.network.syncher.SynchedEntityData").getMethod("get", accessorClass);
         private final Object flagsAccessor, byteSerializer;
@@ -137,6 +157,17 @@ final class PresentationMetadata implements Listener {
             byte flags = (byte) get.invoke(entityData.invoke(handle.invoke(entity)), flagsAccessor);
             Object message = packet.newInstance(entity.getEntityId(), List.of(value.newInstance(flagsId, byteSerializer, flags)));
             send.invoke(listener.get(handle.invoke(player)), message);
+        }
+        @SuppressWarnings("unchecked")
+        void sendGreenTeam(Player player,String name,UUID entity,boolean create) throws ReflectiveOperationException {
+            Object coloredTeam=team.newInstance(scoreboard.newInstance(),name);
+            Object packet;
+            if(create) {
+                setTeamColor.invoke(coloredTeam,Optional.of(greenColor.invoke(null,"green")));
+                ((Collection<String>)teamPlayers.invoke(coloredTeam)).add(entity.toString());
+                packet=createTeam.invoke(null,coloredTeam,true);
+            } else packet=removeTeam.invoke(null,coloredTeam);
+            send.invoke(listener.get(handle.invoke(player)),packet);
         }
         Object overlay(Object message, int selected, Set<Integer> dragons) throws ReflectiveOperationException {
             if (bundleClass.isInstance(message)) {

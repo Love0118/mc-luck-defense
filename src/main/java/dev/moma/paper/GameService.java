@@ -57,7 +57,7 @@ final class GameService {
             Player owner=Objects.requireNonNull(Bukkit.getPlayer(session.arena.owner()));
             for(Chunk chunk:session.tickets)chunk.addPluginChunkTicket(plugin);
             appearance.enter(owner,false);entities.restore(session.arena);
-            session.arena.selected().ifPresent(d->entities.selectGlow(owner,d.entityId()));
+            showSelection(owner,session);
         }
         spectators.forEach((id,watch)->appearance.enter(Objects.requireNonNull(Bukkit.getPlayer(id)),true));
     }
@@ -85,6 +85,18 @@ final class GameService {
     boolean usingManageTool(Player player) { return playing(player) && tools.holding(player,"manage"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
     boolean usingSoundTool(Player player) { return active(player) && tools.holding(player,"sound"); }
+    boolean usingSummonAlertsTool(Player player) { return active(player) && tools.holding(player,"summon_alerts"); }
+    private void showSelection(Player player,GameSession session) {
+        UUID selected=session.arena.selected().map(Defender::entityId).orElse(null);
+        if(selected!=null && tools.holding(player,"sell"))entities.selectGlow(player,selected,true);
+        else entities.selectGlow(player,selected);
+    }
+    void clearSelection(Player player) {
+        GameSession session=session(player);
+        if(session!=null && session.arena.selected().isPresent()) {
+            session.arena.clearSelection(player.getUniqueId());entities.selectGlow(player,null);
+        }
+    }
     void speed(Player player, int value) {
         GameSession session = session(player);
         if (session == null || session.arena.ended()) throw new IllegalArgumentException("자신의 진행 중인 게임에서만 배속을 변경할 수 있습니다.");
@@ -187,7 +199,7 @@ final class GameService {
         tools.give(player);
         appearance.enter(player, false);
         if(achievements!=null)achievements.sessionStarted(player);
-        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 우클릭: 선택 포탑 판매", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 좌클릭: 판매 대상 선택 · 우클릭: 판매", NamedTextColor.GREEN));
         if(!session.arena.traits().allEntries().isEmpty())
             player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
     }
@@ -296,7 +308,7 @@ final class GameService {
                 }
                 if(session.autoSell.contains(d.rarity()))session.arena.sellRarity(player.getUniqueId(),d.rarity()).entities().forEach(entities::remove);
             }
-            entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
+            showSelection(player,session);
             session.layoutDirty = true;
             Defender summoned=session.arena.lastSummoned();
             SummonRoll announcement=roll;
@@ -307,13 +319,21 @@ final class GameService {
                 announcement=new SummonRoll(roll.type(),awardedGrade);traitUpgrade=true;
             }
             SummonTier tier=session.arena.summonTier();
+            boolean playSound=announcement.rarity()!=Rarity.PRIMORDIAL || primordialSoundAllowed(session);
             if(SummonAnnouncement.global(announcement.rarity(),tier)) {
-                if(traitUpgrade)SummonAnnouncement.traitBroadcast(player,announcement,tier);
-                else SummonAnnouncement.broadcast(player,announcement,tier);
+                if(traitUpgrade)SummonAnnouncement.traitBroadcast(player,announcement,tier,viewer->listeningSession(viewer)==session,playSound);
+                else SummonAnnouncement.broadcast(player,announcement,tier,viewer->listeningSession(viewer)==session,playSound);
             } else if(feedback || roll.rarity().ordinal()<Rarity.MYTHIC.ordinal() && roll.rarity().abilityLevel()>0)
                 Ui.sound(player,roll.rarity().abilityLevel()>0?Ui.Cue.RARE_SUMMON:autoSell?Ui.Cue.SELL:Ui.Cue.SUMMON);
         }
         return result == Arena.Result.OK;
+    }
+    private boolean primordialSoundAllowed(GameSession session) {
+        if(!session.bulkBuying)return true;
+        long now=System.nanoTime();
+        if(session.lastPrimordialSoundNanos!=0 && now-session.lastPrimordialSoundNanos<5_000_000_000L)return false;
+        session.lastPrimordialSoundNanos=now;
+        return true;
     }
     private void fusionEffect(Player player,GameSession session,Defender defender) {
         if(!defender.deployed())return;
@@ -380,7 +400,7 @@ final class GameService {
             tell(player, session.arena.coins() < session.arena.summonCost() ? Arena.Result.INSUFFICIENT_COINS : Arena.Result.FULL);
             return;
         }
-        session.bulkBuying = true; session.bulkPurchases = 0;
+        session.bulkBuying = true; session.bulkPurchases = 0;session.lastPrimordialSoundNanos=0;
         Ui.sound(player, Ui.Cue.CLICK);
     }
     private boolean canBuy(GameSession session) {
@@ -389,6 +409,7 @@ final class GameService {
     }
     private void stopBulkBuy(Player player, GameSession session) {
         session.bulkBuying = false;
+        session.lastPrimordialSoundNanos=0;
         player.sendMessage(Ui.text("&a일괄구매 종료 &7· &e" + session.bulkPurchases + "회 소환"));
         Ui.sound(player, Ui.Cue.CLICK);
     }
@@ -425,7 +446,7 @@ final class GameService {
         }
         arena.rearrange(player.getUniqueId(),layout);
         arena.units().forEach(entities::updateDefenderName);
-        entities.selectGlow(player,arena.selected().map(Defender::entityId).orElse(null));
+        showSelection(player,session);
         return true;
     }
     private Location unitLocation(GameSession session,Defender d) {
@@ -477,6 +498,18 @@ final class GameService {
             entities.selectGlow(player,session.arena.selected().map(Defender::entityId).orElse(null));
             Ui.sound(player,Ui.Cue.CLICK);
             session.arena.selected().ifPresent(d -> player.sendActionBar(Component.text(d.rarity().label() + " " + d.label() + " · " + d.type().role().label())));
+        }
+    }
+    void selectForSale(Player player,UUID entity) {
+        GameSession session=session(player);if(session==null)return;
+        if(session.arena.selected().map(d->d.entityId().equals(entity)).orElse(false)) {
+            clearSelection(player);Ui.sound(player,Ui.Cue.CLICK);return;
+        }
+        Arena.Result result=session.arena.select(player.getUniqueId(),entity);
+        tell(player,result);
+        if(result==Arena.Result.OK) {
+            entities.selectGlow(player,entity,true);Ui.sound(player,Ui.Cue.CLICK);
+            session.arena.selected().ifPresent(d->player.sendActionBar(Component.text(d.rarity().label()+" "+d.label()+" · 우클릭으로 판매")));
         }
     }
     void move(Player player, org.bukkit.block.Block block) {

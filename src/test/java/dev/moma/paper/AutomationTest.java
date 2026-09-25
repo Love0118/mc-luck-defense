@@ -58,14 +58,14 @@ class AutomationTest {
             games.summon(player);
             assertEquals(Rarity.TRUE_PRIMORDIAL,session.arena.lastSummoned().rarity());
             verify(games.achievements).truePrimordialPromoted(player);
-            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL),SummonTier.NORMAL),times(1));
-            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL),SummonTier.NORMAL),never());
+            announcement.verify(()->SummonAnnouncement.broadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL)),eq(SummonTier.NORMAL),any(),eq(true)),times(1));
+            announcement.verify(()->SummonAnnouncement.broadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL)),eq(SummonTier.NORMAL),any(),anyBoolean()),never());
             games.summon(player);
             verify(games.achievements,times(1)).truePrimordialPromoted(player);
             session.arena.credit(1000);session.assisted=true;
             for(int i=0;i<20;i++)games.summon(player);
             verify(games.achievements,times(1)).truePrimordialPromoted(player);
-            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL),SummonTier.NORMAL),times(2));
+            announcement.verify(()->SummonAnnouncement.broadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL)),eq(SummonTier.NORMAL),any(),eq(true)),times(2));
         }
     }
     @Test void bulkBuyStopsOpeningBonusOnAutoSoldRelicBeforeTheNextDraw() {
@@ -119,7 +119,7 @@ class AutomationTest {
             assertEquals(20,session.arena.coins());
             verify(games.achievements).summoned(player,Rarity.EPIC);
             verify(games.achievements,never()).summoned(player,Rarity.MYTHIC);
-            announcement.verify(()->SummonAnnouncement.traitBroadcast(player,new SummonRoll(UnitType.WOLF,Rarity.MYTHIC),SummonTier.NORMAL));
+            announcement.verify(()->SummonAnnouncement.traitBroadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.MYTHIC)),eq(SummonTier.NORMAL),any(),eq(true)));
         }
     }
     @Test void legendaryAutoSalePaysSixtyAndOffRetainsFutureUnits() {
@@ -238,22 +238,31 @@ class AutomationTest {
         when(games.entities.moveDefender(eq(second.entityId()),any())).thenReturn(false);
         games.select(player,second.entityId());assertEquals(cell,first.cell());assertSame(first,session.arena.selected().orElseThrow());
     }
-    @Test void purchaseAnnouncementsFollowFiveHundredAndThousandDrawUnlocks() {
-        session.arena.credit(100000);Player other=mock(Player.class);Location at=player.getLocation();when(other.getLocation()).thenReturn(at);
+    @Test void purchaseAnnouncementsChangeAfterRoundOneHundred() {
+        session.arena.credit(100000);session.arena.toggleMerging(player.getUniqueId());
+        Player other=mock(Player.class);Location at=player.getLocation();when(other.getLocation()).thenReturn(at);
         bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(player,other));
-        for(int round:new int[]{499,500,999,1000}) {
+        for(int round:new int[]{100,101,500,1000}) {
             session.arena.reachedRound(round);
             for(Rarity rarity:List.of(Rarity.MYTHIC,Rarity.PRIMORDIAL)) {
                 rolls.when(()->SummonRoll.draw(any(),eq(session.arena))).thenReturn(new SummonRoll(UnitType.WOLF,rarity));
                 bukkit.clearInvocations();clearInvocations(player,other);
                 games.summon(player);
-                boolean announced=rarity==Rarity.MYTHIC?round<500:round<1000;
-                bukkit.verify(()->Bukkit.broadcast(any(net.kyori.adventure.text.Component.class)),times(announced?1:0));
-                verify(other,times(announced?1:0)).playSound(any(Location.class),anyString(),eq(SoundCategory.MASTER),anyFloat(),anyFloat());
-                Ui.Cue cue=Ui.Cue.RARE_SUMMON;
-                verify(player,times(announced?0:1)).playSound(any(Location.class),eq(cue.sound),eq(SoundCategory.MASTER),eq(cue.volume),eq(cue.pitch));
+                boolean text=rarity==Rarity.PRIMORDIAL || round<=100;
+                verify(other,times(text?1:0)).sendMessage(any(net.kyori.adventure.text.Component.class));
+                verify(other,times(round<=100?1:0)).playSound(any(Location.class),anyString(),eq(SoundCategory.MASTER),anyFloat(),anyFloat());
+                if(rarity==Rarity.PRIMORDIAL)verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.35f,1f);
+                else if(round>100)verify(player).playSound(at,Ui.Cue.RARE_SUMMON.sound,SoundCategory.MASTER,Ui.Cue.RARE_SUMMON.volume,Ui.Cue.RARE_SUMMON.pitch);
             }
         }
+        clearInvocations(player,other);
+        session.bulkBuying=true;session.lastPrimordialSoundNanos=0;
+        rolls.when(()->SummonRoll.draw(any(),eq(session.arena))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL));
+        games.summon(player);games.summon(player);
+        verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.35f,1f);
+        verify(other,times(2)).sendMessage(any(net.kyori.adventure.text.Component.class));
+        session.bulkBuying=false;games.summon(player);
+        verify(player,times(2)).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.35f,1f);
     }
     @Test void latePrimordialMergeStillAnnouncesItsTruePrimordialPromotion() {
         session.arena.reachedRound(2500);session.arena.credit(1000000);
@@ -262,8 +271,8 @@ class AutomationTest {
         try(var announcement=mockStatic(SummonAnnouncement.class)) {
             announcement.when(()->SummonAnnouncement.global(Rarity.TRUE_PRIMORDIAL,SummonTier.MIRACLE)).thenReturn(true);
             games.summon(player);
-            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL),SummonTier.MIRACLE));
-            announcement.verify(()->SummonAnnouncement.broadcast(player,new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL),SummonTier.MIRACLE),never());
+            announcement.verify(()->SummonAnnouncement.broadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.TRUE_PRIMORDIAL)),eq(SummonTier.MIRACLE),any(),eq(true)));
+            announcement.verify(()->SummonAnnouncement.broadcast(eq(player),eq(new SummonRoll(UnitType.WOLF,Rarity.PRIMORDIAL)),eq(SummonTier.MIRACLE),any(),anyBoolean()),never());
         }
     }
     @Test void directReserveSaleDoesNotSwapWithPreviouslySelectedFieldUnit() {

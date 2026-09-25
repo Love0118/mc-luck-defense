@@ -37,15 +37,19 @@ class SessionToolsTest {
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
-                assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other},call.getArgument(0));return saved;
+                assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other,other},call.getArgument(0));return saved;
             });
-            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other,other});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"manage"));assertFalse(tools.holding(player,"move"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"move"));
             inventory.setHeldItemSlot(2);assertTrue(tools.holding(player,"sell"));
             inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"leave"));
             inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));
+            inventory.setHeldItemSlot(5);assertTrue(tools.holding(player,"summon_alerts"));
+            assertTrue(SessionTools.otherSummonAlerts(player));tools.toggleSummonAlerts(player);
+            assertFalse(SessionTools.otherSummonAlerts(player));tools.toggleSummonAlerts(player);
+            assertTrue(SessionTools.otherSummonAlerts(player));
             assertEquals(1f,SessionTools.soundVolume(player));
             for(float level:new float[]{.5f,.25f,0f,1f}) { tools.cycleSound(player); assertEquals(level,SessionTools.soundVolume(player)); }
             slots[10]=slots[2]; // A stale copied session item must not survive cleanup.

@@ -30,7 +30,8 @@ final class EntityAdapter {
         factionKey = new NamespacedKey(plugin, "faction"); arenaKey = new NamespacedKey(plugin, "arena"); ownerKey = new NamespacedKey(plugin, "owner");
     }
     void enablePresentationMetadata(MomaPlugin plugin) { presentationMetadata = new PresentationMetadata(plugin); }
-    void selectGlow(Player player, UUID entity) { if (presentationMetadata != null) presentationMetadata.select(player, entity); }
+    void selectGlow(Player player, UUID entity) { selectGlow(player,entity,false); }
+    void selectGlow(Player player, UUID entity, boolean green) { if (presentationMetadata != null) presentationMetadata.select(player, entity, green); }
     void close() { if (presentationMetadata != null) presentationMetadata.close(); }
     void restore(Arena arena) {
         for(Defender defender:arena.units()) {

@@ -48,7 +48,10 @@ public final class GameRuntime implements GameModule {
         events.registerEvents(shop,host);events.registerEvents(new GameListener(games,maps,shop),host);
         if(initialBoot) {
             for(var world:Bukkit.getWorlds())for(Entity entity:world.getEntities())if(games.entities.managed(entity))entity.remove();
-        } else games.rebindPresentation();
+        } else {
+            games.rebindPresentation();
+            if(lobby!=null)for(var player:Bukkit.getOnlinePlayers())if(!games.active(player))games.tools.giveLobby(player);
+        }
         command=new MomaCommand(maps,games,settings,menu);
         Bukkit.getScheduler().runTaskTimer(host,games::tick,1,1);
         Bukkit.getScheduler().runTaskTimer(host,shop::refreshOpen,5,5);

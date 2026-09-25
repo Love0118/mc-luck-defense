@@ -236,7 +236,10 @@ class InteractionTest {
     @Test void saleToolIgnoresOffhandAndDeduplicatesAirBlockAndEntityEvents() {
         doReturn(true).when(games).playing(player);doReturn(true).when(games).usingSellTool(player);
         doReturn(false).when(games).usingMoveTool(player);doNothing().when(games).sell(player);
-        Entity entity=mock(Entity.class);when(entity.getPersistentDataContainer()).thenReturn(mock(org.bukkit.persistence.PersistentDataContainer.class));
+        Entity entity=mock(Entity.class);var entityData=mock(org.bukkit.persistence.PersistentDataContainer.class);
+        when(entity.getPersistentDataContainer()).thenReturn(entityData);
+        when(entityData.has(any(NamespacedKey.class),eq(org.bukkit.persistence.PersistentDataType.STRING))).thenReturn(true);
+        UUID unit=UUID.randomUUID();when(entity.getUniqueId()).thenReturn(unit);doNothing().when(games).selectForSale(player,unit);
         var right=mock(PlayerInteractEvent.class);when(right.getPlayer()).thenReturn(player);when(right.getAction()).thenReturn(Action.RIGHT_CLICK_AIR);
         var at=mock(PlayerInteractAtEntityEvent.class);when(at.getPlayer()).thenReturn(player);when(at.getRightClicked()).thenReturn(entity);when(at.getHand()).thenReturn(EquipmentSlot.HAND);
         var interact=mock(PlayerInteractEntityEvent.class);when(interact.getPlayer()).thenReturn(player);when(interact.getRightClicked()).thenReturn(entity);when(interact.getHand()).thenReturn(EquipmentSlot.HAND);
@@ -247,7 +250,14 @@ class InteractionTest {
             verify(games,times(1)).sell(player);verify(games,never()).select(any(),any());
             bukkit.when(Bukkit::getCurrentTick).thenReturn(11);when(right.getAction()).thenReturn(Action.RIGHT_CLICK_BLOCK);listener.interact(right);
             verify(games,times(2)).sell(player);
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(12);
+            var attack=mock(PrePlayerAttackEntityEvent.class);when(attack.getPlayer()).thenReturn(player);when(attack.getAttacked()).thenReturn(entity);
+            listener.attack(attack);verify(games).selectForSale(player,unit);verify(attack).setCancelled(true);
         }
+        doNothing().when(games).clearSelection(player);
+        var held=mock(PlayerItemHeldEvent.class);when(held.getPlayer()).thenReturn(player);
+        when(held.getPreviousSlot()).thenReturn(2);when(held.getNewSlot()).thenReturn(1);
+        listener.held(held);verify(games).clearSelection(player);
         var inventory=mock(InventoryClickEvent.class);when(inventory.getWhoClicked()).thenReturn(player);listener.inventory(inventory);verify(inventory).setCancelled(true);
     }
 }

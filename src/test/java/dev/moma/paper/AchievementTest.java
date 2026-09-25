@@ -61,12 +61,12 @@ class AchievementTest {
         when(owner.getName()).thenReturn("Tester");when(owner.getLocation()).thenReturn(new Location(world,0,70,0));when(viewer.getLocation()).thenReturn(new Location(world,100,70,0));
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,viewer));
-            for(Rarity rarity:Rarity.values())SummonAnnouncement.broadcast(owner,new SummonRoll(UnitType.WOLF,rarity),SummonTier.NORMAL);
-            bukkit.verify(()->Bukkit.broadcast(any(net.kyori.adventure.text.Component.class)),times(4));
+            for(Rarity rarity:Rarity.values())SummonAnnouncement.broadcast(owner,new SummonRoll(UnitType.WOLF,rarity),SummonTier.NORMAL,p->p==owner);
             for(Player player:List.of(owner,viewer)) {
                 Location at=player.getLocation();
+                verify(player,times(4)).sendMessage(any(net.kyori.adventure.text.Component.class));
                 verify(player).playSound(at,"minecraft:block.amethyst_block.chime",SoundCategory.MASTER,.7f,1.15f);
-                verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.7f,1f);
+                verify(player).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.35f,1f);
                 verify(player,times(2)).playSound(at,"minecraft:ui.toast.challenge_complete",SoundCategory.MASTER,.7f,.8f);
             }
         }

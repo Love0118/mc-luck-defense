@@ -42,6 +42,11 @@ final class LobbyListener implements Listener {
         if ((viewer || !games.active(event.getPlayer())) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
                 && games.tools.holding(event.getPlayer(), "sessions")) menu.open(event.getPlayer());
+        if (!viewer && !games.active(event.getPlayer()) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
+                && games.tools.holding(event.getPlayer(), "summon_alerts")) {
+            games.tools.toggleSummonAlerts(event.getPlayer()); Ui.sound(event.getPlayer(),Ui.Cue.CLICK);
+        }
     }
     @EventHandler public void inventory(org.bukkit.event.inventory.InventoryClickEvent event) {
         if (lobby.contains(event.getWhoClicked().getLocation())) event.setCancelled(true);
