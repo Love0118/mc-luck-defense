@@ -91,7 +91,7 @@ Paper **26.3 build 26 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-1.0.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 설치는 게임이 모두 끝난 뒤 /mud update로 공개 beta 빌드를 적용할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-1.0.1.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 실행 중인 1.0.0은 /mud update로 진행 중인 게임을 유지하며 1.0.1을 적용할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 

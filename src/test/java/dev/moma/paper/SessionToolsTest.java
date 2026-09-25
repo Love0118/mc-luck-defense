@@ -31,15 +31,21 @@ class SessionToolsTest {
         when(inventory.getHeldItemSlot()).thenAnswer(call->held[0]);
         doAnswer(call->{held[0]=call.getArgument(0);return null;}).when(inventory).setHeldItemSlot(anyInt());
         when(inventory.getItemInMainHand()).thenAnswer(call->slots[held[0]]);
-        byte[] saved={1,2,3};
+        byte[] saved={1,2,3},oldSaved={4,5,6};
         try(var stacks=mockStatic(ItemStack.class);var items=mockConstruction(ItemStack.class,(item,context)->{
             var meta=mock(ItemMeta.class);var itemData=data();when(meta.getPersistentDataContainer()).thenReturn(itemData);
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
-                assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other,other},call.getArgument(0));return saved;
+                ItemStack[] itemsToSave=call.getArgument(0);
+                if(itemsToSave.length==6) {
+                    assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other},itemsToSave);
+                    return oldSaved;
+                }
+                assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other,other},itemsToSave);return saved;
             });
             stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other,other});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(oldSaved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"manage"));assertFalse(tools.holding(player,"move"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"move"));
@@ -70,6 +76,16 @@ class SessionToolsTest {
             playerData.set(new NamespacedKey(plugin,"session_hotbar_backup"),PersistentDataType.BYTE_ARRAY,saved);
             stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null});
             tools.restore(player);assertSame(other,slots[2]);
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other,other});
+            var backupKey=new NamespacedKey(plugin,"session_hotbar_backup");
+            playerData.set(backupKey,PersistentDataType.BYTE_ARRAY,oldSaved);
+            tools.refreshActive(player,false);
+            assertSame(saved,playerData.get(backupKey,PersistentDataType.BYTE_ARRAY));
+            assertNotSame(other,slots[5]);
+            tools.downgrade(player,true);
+            assertSame(oldSaved,playerData.get(backupKey,PersistentDataType.BYTE_ARRAY));
+            assertSame(other,slots[5]);
+            tools.restore(player);assertSame(other,slots[5]);
         }
     }
 }

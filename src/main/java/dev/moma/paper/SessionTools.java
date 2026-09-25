@@ -5,6 +5,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import java.util.Arrays;
 
 /** Session hotbar tools with a player-persistent backup of replaced slots. */
 final class SessionTools {
@@ -52,6 +53,32 @@ final class SessionTools {
     }
     void giveViewer(Player player) { give(player, true, false); }
     void giveLobby(Player player) { give(player, false, true); }
+    void refreshActive(Player player,boolean viewer) {
+        var inventory=player.getInventory();var data=player.getPersistentDataContainer();
+        ItemStack[] previous=ItemStack.deserializeItemsFromBytes(data.get(backupKey,PersistentDataType.BYTE_ARRAY));
+        if(previous.length==6) {
+            ItemStack[] expanded=Arrays.copyOf(previous,7);expanded[6]=inventory.getItem(5);
+            data.set(backupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(expanded));
+        } else if(previous.length!=7)throw new IllegalStateException("Invalid session hotbar backup for "+player.getUniqueId());
+        if(!viewer) {
+            inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 선택 → 빈 칸 이동 / 다른 기물과 교환","&7같은 기물 다시 클릭·다른 아이템: 선택 해제"));
+            inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7좌클릭: 포탑 선택 · 우클릭: 판매","&7다른 아이템을 들면 선택 해제","&7진 태초·미라클: 수동판매"));
+        }
+        giveSummonAlerts(player);
+    }
+    void downgrade(Player player,boolean playing) {
+        var data=player.getPersistentDataContainer();byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
+        if(bytes==null)return;
+        ItemStack[] previous=ItemStack.deserializeItemsFromBytes(bytes);
+        if(previous.length!=7)return;
+        var inventory=player.getInventory();
+        inventory.setItem(5,previous[6]);
+        if(playing) {
+            inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 선택 → 빈 칸 이동 / 다른 기물과 교환","&7같은 기물 다시 클릭: 선택 해제"));
+            inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7포탑 선택 후 이 아이템으로 우클릭","&7진 태초·미라클: 수동판매"));
+        }
+        data.set(backupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(Arrays.copyOf(previous,6)));
+    }
     private void give(Player player, boolean viewer, boolean lobby) {
         restore(player);
         var inventory=player.getInventory(); var data=player.getPersistentDataContainer();

@@ -20,6 +20,7 @@ public final class GameRuntime implements GameModule {
     private BgmService.Saved savedBgm;
     private String bgmConfiguration;
     private boolean active;
+    private boolean toolsRefreshed;
     public GameRuntime() {}
     @Override public void prepare(MomaPlugin host,byte[] snapshot)throws Exception {
         this.host=host;settings=CampaignRules.standard();maps=new ArenaMaps(host);maps.load();lobby=Lobby.load(host);
@@ -49,8 +50,13 @@ public final class GameRuntime implements GameModule {
         if(initialBoot) {
             for(var world:Bukkit.getWorlds())for(Entity entity:world.getEntities())if(games.entities.managed(entity))entity.remove();
         } else {
+            toolsRefreshed=true;
+            for(var player:Bukkit.getOnlinePlayers()) {
+                if(games.playing(player))games.tools.refreshActive(player,false);
+                else if(games.watching(player))games.tools.refreshActive(player,true);
+                else if(lobby!=null)games.tools.giveLobby(player);
+            }
             games.rebindPresentation();
-            if(lobby!=null)for(var player:Bukkit.getOnlinePlayers())if(!games.active(player))games.tools.giveLobby(player);
         }
         command=new MomaCommand(maps,games,settings,menu);
         Bukkit.getScheduler().runTaskTimer(host,games::tick,1,1);
@@ -67,12 +73,18 @@ public final class GameRuntime implements GameModule {
     @Override public void suspend()throws Exception {
         active=false;
         try{if(games.bgm!=null){savedBgm=games.bgm.saveState();games.bgm.suspend();}}
-        finally{detach();}
+        finally{
+            for(var player:Bukkit.getOnlinePlayers())games.tools.downgrade(player,games.playing(player));
+            detach();
+        }
     }
     @Override public void discard() {
         active=false;
         try{if(games.bgm!=null)games.bgm.close();}
-        finally{detach();}
+        finally{
+            if(toolsRefreshed)for(var player:Bukkit.getOnlinePlayers())games.tools.downgrade(player,games.playing(player));
+            detach();
+        }
     }
     private void detach() {
         for(var player:Bukkit.getOnlinePlayers()) {
