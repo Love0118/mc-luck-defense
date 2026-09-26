@@ -179,22 +179,28 @@ final class GameService {
         return map != null && map.grid().size() == settings.gridSize() && sessions.values().stream().noneMatch(s -> s.map.id().equals(id));
     }
     void start(Player player) {
+        start(player,false);
+    }
+    void start(Player player,boolean smallForce) {
         if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
         String id = maps.all().stream().map(ArenaMap::id).filter(this::available).findFirst().orElse(null);
         if (id == null) {
             try { id = maps.createNext(settings.gridSize()).id(); }
             catch (java.io.IOException error) { throw new IllegalStateException("Failed to save a new arena", error); }
         }
-        join(player, id);
+        join(player,id,smallForce);
     }
     void join(Player player, String id) {
+        join(player,id,false);
+    }
+    private void join(Player player,String id,boolean smallForce) {
         if (playing(player)) throw new IllegalArgumentException("이미 참가 중입니다. /mud leave로 나갈 수 있습니다.");
         ArenaMap map = maps.get(id);
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
         if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
         if (watching(player)) stopWatching(player, true);
-        GameSession session = new GameSession(player, map, settings);
+        GameSession session = new GameSession(player,map,settings,smallForce);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
             for (int z = (map.originZ() + map.minZOffset()) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
                 Chunk chunk = map.world().getChunkAt(x, z);
@@ -209,6 +215,7 @@ final class GameService {
         appearance.enter(player, false);
         if(achievements!=null)achievements.sessionStarted(player);
         player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 좌클릭: 판매 대상 선택 · 우클릭: 판매", NamedTextColor.GREEN));
+        if(smallForce)player.sendMessage(Ui.text("&e소수 정예 도전 &f· 배치 최대 10마리 · 초과 소환은 대기석으로 이동합니다."));
         if(!session.arena.traits().allEntries().isEmpty())
             player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
     }
@@ -442,10 +449,10 @@ final class GameService {
         if(!session.autoPlacement || !session.layoutDirty || session.layoutTask!=null || session.arena.ended())return;
         if(placementWorkers==null)placementWorkers=new ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(64),Thread.ofPlatform().daemon().name("mud-placement-",0).factory());
-        var units=AutoPlacement.snapshot(session.arena.units());Grid grid=session.map.grid();
+        var units=AutoPlacement.snapshot(session.arena.units());Grid grid=session.map.grid();int limit=session.arena.deploymentLimit();
         try {
             session.layoutTask=new GameSession.LayoutTask(units,
-                    placementWorkers.submit(()->new AutoPlacement(grid).arrangeSnapshot(units)));
+                    placementWorkers.submit(()->new AutoPlacement(grid).arrangeSnapshot(units,limit)));
         } catch(RejectedExecutionException busy) { /* Keep dirty and retry next tick without blocking purchases. */ }
     }
     void applyPreparedPlacement(Player player,GameSession session) {
@@ -647,14 +654,17 @@ final class GameService {
             player.sendMessage(Component.text("라운드 " + session.announcedRound + " · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             if(leaderboard!=null && !session.assisted)leaderboard.record(player,session.announcedRound);
             if(achievements!=null && !session.assisted)achievements.reached(player,session.announcedRound);
-            if(achievements!=null && !session.assisted && session.announcedRound==150)achievements.roleReached(player,session.arena);
+            if(achievements!=null && !session.assisted)achievements.challengesReached(player,session.arena,session.announcedRound);
         }
         processAutomation(player,session);
         session.attackEffects.beginStep();
         combat.tick(session.arena, session.simulationTick, (defender, enemy, damage) ->
                 session.attackEffects.hit(defender, enemy.position(session.map.grid().route())));
         session.arena.collectDeadEnemies().forEach(entities::remove);
+        int streak=session.campaign.quickClearStreak();
         session.campaign.afterCombat(session.arena);
+        if(achievements!=null && !session.assisted && session.campaign.quickClearStreak()>streak)
+            achievements.quickCleared(player,session.campaign.quickClearStreak());
         return !session.arena.ended();
     }
     private void finish(Player player, GameSession session) {

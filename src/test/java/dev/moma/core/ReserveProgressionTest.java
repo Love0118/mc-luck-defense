@@ -24,15 +24,28 @@ class ReserveProgressionTest {
         assertTrue(a.reserveUnits().stream().allMatch(d->d.nextAttackTick()==0));
     }
     @Test void highestGradesReplaceLowerFieldUnitsAndPreserveAttackState() {
-        Arena a=arena();a.toggleMerging(a.owner());
-        for(int i=0;i<36;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
-        Defender veteran=a.defenders().getFirst();veteran.attackAt(90,40);veteran.hitTarget(a.owner());
-        buy(a,UnitType.RABBIT,Rarity.MIRACLE);Defender miracle=a.lastSummoned();
-        assertFalse(miracle.deployed());
-        assertEquals(Arena.Result.OK,a.rearrange(a.owner(),new AutoPlacement(a.grid()).arrange(a.units())));
-        assertTrue(miracle.deployed());assertEquals(36,a.defenderCount());assertEquals(1,a.reserveCount());
-        assertEquals(130,veteran.nextAttackTick());assertEquals(1,veteran.consecutiveHits());
-        assertEquals(36,a.defenders().stream().map(Defender::cell).distinct().count());
+        for(boolean smallForce:new boolean[]{false,true}) {
+            Arena a=new Arena("a",UUID.randomUUID(),new Grid(6),100000,100,TraitLoadout.EMPTY,new HashRandom(1),smallForce);a.toggleMerging(a.owner());
+            int limit=a.deploymentLimit();
+            for(int i=0;i<limit;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
+            Defender veteran=a.defenders().getFirst();veteran.attackAt(90,40);veteran.hitTarget(a.owner());
+            buy(a,UnitType.RABBIT,Rarity.MIRACLE);Defender miracle=a.lastSummoned();
+            assertFalse(miracle.deployed());
+            if(smallForce) {
+                a.select(a.owner(),miracle.entityId());
+                Cell empty=a.grid().placementOrder().stream().filter(c->a.defenders().stream().noneMatch(d->d.cell().equals(c))).findFirst().orElseThrow();
+                assertEquals(Arena.Result.FULL,a.moveSelected(a.owner(),empty));
+                assertFalse(miracle.deployed());
+                assertEquals(Arena.Result.FULL,a.validateLayout(a.owner(),new AutoPlacement(a.grid()).arrange(a.units())));
+            }
+            assertEquals(Arena.Result.OK,a.rearrange(a.owner(),new AutoPlacement(a.grid()).arrangeSnapshot(AutoPlacement.snapshot(a.units()),limit)));
+            assertTrue(miracle.deployed());assertEquals(limit,a.defenderCount());assertEquals(1,a.reserveCount());
+            assertEquals(130,veteran.nextAttackTick());assertEquals(1,veteran.consecutiveHits());
+            assertEquals(limit,a.defenders().stream().map(Defender::cell).distinct().count());
+            var reserve=a.reserveUnits().getFirst();a.select(a.owner(),reserve.entityId());
+            assertEquals(Arena.Result.OK,a.swapSelected(a.owner(),miracle.entityId()));
+            assertEquals(limit,a.defenderCount());assertEquals(1,a.reserveCount());
+        }
     }
     @Test void reserveCanSwapWithOccupiedCellWithoutDiscardingEitherUnit() {
         Arena a=arena();a.toggleMerging(a.owner());
@@ -93,10 +106,12 @@ class ReserveProgressionTest {
         assertEquals(Rarity.MIRACLE,d.rarity());assertEquals(21,d.enhancement());
     }
     @Test void snapshotRetainsReserveGradesPaidValuesSelectionAndCombatSeparation()throws Exception {
-        Arena a=arena();a.toggleMerging(a.owner());for(int i=0;i<36;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
+        Arena a=new Arena("a",UUID.randomUUID(),new Grid(6),100000,100,TraitLoadout.EMPTY,new HashRandom(1),true);
+        a.toggleMerging(a.owner());for(int i=0;i<10;i++)buy(a,UnitType.WOLF,Rarity.COMMON);
         a.reachedRound(2500);buy(a,UnitType.PANDA,Rarity.MIRACLE);a.select(a.owner(),a.lastSummoned().entityId());
         Arena copy=dev.moma.runtime.StateCodec.read(dev.moma.runtime.StateCodec.write(a),Arena.class);
-        assertEquals(36,copy.activeDefenders().size());assertEquals(1,copy.reserveCount());assertEquals(SummonTier.MIRACLE,copy.summonTier());
+        assertEquals(10,copy.activeDefenders().size());assertEquals(1,copy.reserveCount());assertEquals(SummonTier.MIRACLE,copy.summonTier());
+        assertTrue(copy.smallForce());assertEquals(10,copy.deploymentLimit());
         assertEquals(a.coins(),copy.coins());assertEquals(a.spentGold(),copy.spentGold());assertFalse(copy.mergingEnabled());
         assertEquals(a.lastSummoned().entityId(),copy.selected().orElseThrow().entityId());
         assertEquals(420000,copy.selected().orElseThrow().saleValue());assertFalse(copy.selected().orElseThrow().deployed());

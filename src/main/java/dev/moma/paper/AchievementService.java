@@ -66,9 +66,19 @@ final class AchievementService implements Listener {
     void sessionStarted(Player player) {
         award(player,Metric.SESSION,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.SESSION));
     }
-    void roleReached(Player player,Arena arena) {
-        for(Metric metric:Metric.values())if(metric.role() && arena.roleAchievement(metric.attackRole()))
-            award(player,metric,AchievementStats.maximum(player.getPersistentDataContainer(),metric,150));
+    void challengesReached(Player player,Arena arena,int round) {
+        var data=player.getPersistentDataContainer();
+        if(round==150 || round==500)for(Metric metric:Metric.values())if(metric.role() && arena.roleAchievement(metric.attackRole()))
+            award(player,metric,AchievementStats.maximum(data,metric,round));
+        if(arena.smallForce())award(player,Metric.SMALL_FORCE,AchievementStats.maximum(data,Metric.SMALL_FORCE,round));
+        long budget=AchievementCatalog.budget(round);
+        if(budget>0 && arena.spentGold()<=budget) {
+            Metric metric=Metric.valueOf("BUDGET_"+round);
+            award(player,metric,AchievementStats.maximum(data,metric,round));
+        }
+    }
+    void quickCleared(Player player,int streak) {
+        award(player,Metric.QUICK_CLEAR,AchievementStats.maximum(player.getPersistentDataContainer(),Metric.QUICK_CLEAR,streak));
     }
     private void award(Player player,Metric metric,long value) {
         for(Entry entry:AchievementCatalog.ALL)if(entry.metric()==metric && value>=entry.target()) {
@@ -77,7 +87,7 @@ final class AchievementService implements Listener {
                 progress.awardCriteria("earned");
                 var trait=TraitCatalog.find(entry.id());
                 if(trait!=null)player.sendMessage(Ui.text("&d"+(trait.passive()?"패시브 해금":"특성 해금")+" &f"+trait.name()+" &7· "+trait.description()));
-                if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500))
+                if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500 || entry.target()==1500))
                     player.sendMessage(Ui.text("&d특성 슬롯 해금 &f"+TraitCatalog.slots(entry.target())+"개 &7· 로비에서 선택하세요."));
             }
         }

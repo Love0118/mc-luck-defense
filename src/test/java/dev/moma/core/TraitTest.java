@@ -12,11 +12,11 @@ class TraitTest {
         assertEquals(Arena.Result.OK,a.summon(a.owner(),new SummonRoll(UnitType.WOLF,rarity),(t,r,c)->UUID.randomUUID()));
     }
     @Test void catalogHasOneRewardPerChallengeAndLoadoutsRespectSlotsAndFamilies() {
-        assertEquals(85,TraitCatalog.ALL.size());
-        assertEquals(85,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
+        assertEquals(104,TraitCatalog.ALL.size());
+        assertEquals(104,TraitCatalog.ALL.stream().map(TraitCatalog.Entry::id).distinct().count());
         assertEquals(AchievementCatalog.ALL.stream().filter(AchievementCatalog.Entry::challenge).count(),TraitCatalog.ALL.size());
-        for(int round:new int[]{99,100,249,250,499,500})
-            assertEquals(round<100?0:round<250?1:round<500?2:3,TraitCatalog.slots(round));
+        for(int round:new int[]{99,100,249,250,499,500,1499,1500})
+            assertEquals(round<100?0:round<250?1:round<500?2:round<1500?3:4,TraitCatalog.slots(round));
         assertThrows(IllegalArgumentException.class,()->new TraitLoadout(List.of("round_100","round_150")));
         assertThrows(IllegalArgumentException.class,()->TraitLoadout.unlocked(List.of("round_100"),99,e->true));
         assertThrows(IllegalArgumentException.class,()->TraitLoadout.unlocked(List.of("round_100"),500,e->false));
@@ -150,5 +150,13 @@ class TraitTest {
         a.recordDamage(AttackRole.MELEE_SINGLE,70);a.recordDamage(AttackRole.LARGE_AREA,30);
         assertTrue(a.roleAchievement(AttackRole.MELEE_SINGLE));
         a.recordDamage(AttackRole.LARGE_AREA,.01);assertFalse(a.roleAchievement(AttackRole.MELEE_SINGLE));
+        for(int round:new int[]{150,500}) {
+            var trait=TraitCatalog.find("role_melee_single_"+round);
+            var loadout=new TraitLoadout(List.of(trait.id()));
+            assertEquals(round==150?1.25:1.35,loadout.damageMultiplier(AttackRole.MELEE_SINGLE,false),1e-9);
+            assertEquals(1,loadout.damageMultiplier(AttackRole.LARGE_AREA,false),1e-9);
+            assertTrue(trait.description().contains("늑대·북극곰·판다·토끼"));
+            assertFalse(trait.description().contains("근거리"));
+        }
     }
 }

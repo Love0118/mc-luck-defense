@@ -39,7 +39,7 @@ public final class GameRuntime implements GameModule {
         var events=Bukkit.getPluginManager();
         events.registerEvents(new UnsignedChat(host),host);
         var shop=new ShopMenu(host,games);var menu=new LobbyMenu(host,games);
-        events.registerEvents(menu,host);events.registerEvents(new TraitMenu(games,lobby),host);events.registerEvents(new SpectatorListener(games),host);
+        events.registerEvents(menu,host);events.registerEvents(new TraitMenu(host,games,lobby),host);events.registerEvents(new SpectatorListener(games),host);
         if(lobby!=null) {
             events.registerEvents(new LobbyListener(lobby,games,menu),host);
             var portals=new LobbyPortals(host,lobby,games,menu);events.registerEvents(portals,host);

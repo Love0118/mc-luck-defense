@@ -56,8 +56,11 @@ public final class AutoPlacement {
         return arrangeSnapshot(snapshot(units));
     }
     public Map<UUID, Cell> arrangeSnapshot(List<Unit> units) {
+        return arrangeSnapshot(units,grid.placementOrder().size());
+    }
+    public Map<UUID, Cell> arrangeSnapshot(List<Unit> units,int limit) {
         int m=grid.placementOrder().size();
-        units=units.stream().sorted(PRIORITY).limit(m).toList();
+        units=units.stream().sorted(PRIORITY).limit(Math.min(m,limit)).toList();
         int n=units.size();
         boolean same=n==lastSize;
         for(int i=0;same && i<n;i++) {

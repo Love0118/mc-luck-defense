@@ -39,5 +39,16 @@ class TraitSelectionsTest {
         AchievementStats.reached(data,500);TraitSelections.save(data,List.of("round_100","round_125","round_200"));
         assertEquals(2,TraitSelections.load(data).entries().size());
         assertEquals(List.of("round_350"),TraitSelections.load(data).passives().stream().map(TraitCatalog.Entry::id).toList());
+        AchievementStats.maximum(data,AchievementCatalog.Metric.QUICK_CLEAR,150);
+        AchievementStats.maximum(data,AchievementCatalog.Metric.SMALL_FORCE,800);
+        AchievementStats.maximum(data,AchievementCatalog.Metric.BUDGET_800,800);
+        var four=List.of("round_200","quick_clear_150","small_force_800","budget_800");
+        AchievementStats.reached(data,1499);assertThrows(IllegalArgumentException.class,()->TraitSelections.save(data,four));
+        AchievementStats.reached(data,1500);TraitSelections.save(data,four);
+        assertEquals(four,TraitSelections.load(data).ids());
+        assertEquals(18,TraitSelections.load(data).value(TraitCatalog.Family.SPEED));
+        assertEquals(18,TraitSelections.load(data).value(TraitCatalog.Family.NORMAL_DAMAGE));
+        assertEquals(18,TraitSelections.load(data).value(TraitCatalog.Family.GOLD_INCOME));
+        assertFalse(TraitSelections.unlocked(data,TraitCatalog.find("budget_500")));
     }
 }

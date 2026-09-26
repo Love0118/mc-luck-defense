@@ -14,6 +14,7 @@ public final class Arena implements java.io.Serializable {
     private final UUID owner;
     private final Grid grid;
     private final int enemyLimit;
+    private final boolean smallForce;
     private final LinkedHashMap<UUID, Defender> defenders = new LinkedHashMap<>();
     private LinkedHashMap<UUID, Defender> reserve=new LinkedHashMap<>();
     private List<Rarity> lastPromotions=List.of();
@@ -107,10 +108,15 @@ public final class Arena implements java.io.Serializable {
     }
     public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit, TraitLoadout traits,
                  java.util.random.RandomGenerator traitRandom) {
+        this(id,owner,grid,startingCoins,enemyLimit,traits,traitRandom,false);
+    }
+    public Arena(String id, UUID owner, Grid grid, long startingCoins, int enemyLimit, TraitLoadout traits,
+                 java.util.random.RandomGenerator traitRandom,boolean smallForce) {
         if (startingCoins < 0 || enemyLimit < 1) throw new IllegalArgumentException("Invalid arena settings");
         this.traits=Objects.requireNonNull(traits);this.traitRandom=Objects.requireNonNull(traitRandom);
         this.id = Objects.requireNonNull(id); this.owner = Objects.requireNonNull(owner);
         this.grid = Objects.requireNonNull(grid);
+        this.smallForce=smallForce;
         this.coinUnits = Gold.units(Math.addExact(startingCoins,traits.value(TraitCatalog.Family.START_GOLD))); this.enemyLimit = enemyLimit;
     }
     public String id() { return id; }
@@ -124,12 +130,14 @@ public final class Arena implements java.io.Serializable {
     public void finish(Outcome result) { if (!ended() && result != Outcome.PLAYING) outcome = result; }
     public int enemyCount() { return enemies.size(); }
     public int defenderCount() { return defenders.size(); }
+    public boolean smallForce() { return smallForce; }
+    public int deploymentLimit() { return smallForce?Math.min(10,grid.size()*grid.size()):grid.size()*grid.size(); }
     public int reserveCount() { return reserve.size(); }
     public int unitCount() { return defenders.size()+reserve.size(); }
     public List<Defender> reserveUnits() { return List.copyOf(reserve.values()); }
     public List<Defender> units() { var all=new ArrayList<>(defenders.values());all.addAll(reserve.values());return all; }
     public List<Rarity> lastPromotions() { return lastPromotions; }
-    public boolean hasSummonSpace() { return mergingEnabled() || unitCount()<grid.size()*grid.size()+RESERVE_CAPACITY; }
+    public boolean hasSummonSpace() { return mergingEnabled() || unitCount()<deploymentLimit()+RESERVE_CAPACITY; }
     private Defender unit(UUID id) { Defender d=defenders.get(id);return d==null?reserve.get(id):d; }
     private void removeUnit(UUID id) { defenders.remove(id);reserve.remove(id); }
     public void bindEntity(UUID previous,UUID actual) {
@@ -155,7 +163,7 @@ public final class Arena implements java.io.Serializable {
         if (access != Result.OK) return access;
         if (coinUnits < Gold.units(summonCost())) return Result.INSUFFICIENT_COINS;
         if(pendingRoll!=null && !pendingRoll.equals(roll))return Result.FULL;
-        Cell cell = grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
+        Cell cell = defenders.size()>=deploymentLimit()?null:grid.placementOrder(roll.type().role()).stream().filter(c -> defenders.values().stream().noneMatch(d -> d.cell().equals(c))).findFirst().orElse(null);
         Rarity grade=summonRarity(roll.rarity());
         Defender duplicate=mergingEnabled()?units().stream().filter(d->d.type()==roll.type() && d.rarity()==grade).findFirst().orElse(null):null;
         if(duplicate==null && cell==null && reserve.size()>=RESERVE_CAPACITY){pendingRoll=roll;return Result.FULL;}
@@ -252,6 +260,7 @@ public final class Arena implements java.io.Serializable {
         Defender occupying=defenders.values().stream().filter(d->d.cell().equals(destination)).findFirst().orElse(null);
         if(occupying!=null && defender.deployed())return Result.OCCUPIED;
         if(!defender.deployed()) {
+            if(occupying==null && defenders.size()>=deploymentLimit())return Result.FULL;
             reserve.remove(defender.entityId());
             if(occupying!=null){defenders.remove(occupying.entityId());occupying.move(null);reserve.put(occupying.entityId(),occupying);}
             defenders.put(defender.entityId(),defender);
@@ -287,7 +296,7 @@ public final class Arena implements java.io.Serializable {
     }
     public Result validateLayout(UUID actor,Map<UUID,Cell> layout) {
         Result access=access(actor);if(access!=Result.OK)return access;
-        if(layout.size()>grid.size()*grid.size() || unitCount()-layout.size()>RESERVE_CAPACITY)return Result.FULL;
+        if(layout.size()>deploymentLimit() || unitCount()-layout.size()>RESERVE_CAPACITY)return Result.FULL;
         for(UUID id:layout.keySet())if(unit(id)==null)return Result.NOT_OWNER;
         Set<Cell> destinations=new HashSet<>();
         for(Cell cell:layout.values()) {

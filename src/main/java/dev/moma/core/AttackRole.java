@@ -14,5 +14,9 @@ public enum AttackRole {
     AttackRole(String label, String ability) { this.label = label; this.ability = ability; }
     public String label() { return label; }
     public String ability() { return ability; }
+    public String unitNames() {
+        return java.util.Arrays.stream(UnitType.values()).filter(type->type.role()==this).map(UnitType::label)
+                .collect(java.util.stream.Collectors.joining("·"));
+    }
     public boolean melee() { return this == MELEE_SINGLE || this == MELEE_CLEAVE; }
 }

@@ -36,10 +36,13 @@ final class GameSession {
     }
 
     GameSession(Player player, ArenaMap map, CampaignRules settings) {
+        this(player,map,settings,false);
+    }
+    GameSession(Player player, ArenaMap map, CampaignRules settings,boolean smallForce) {
         sessionId=UUID.randomUUID();random=HashRandom.secure();
         this.map = map;
         arena = new Arena(map.id(), player.getUniqueId(), map.grid(), settings.startingCoins(), settings.enemyLimit(),
-                TraitSelections.load(player.getPersistentDataContainer()),HashRandom.secure());
+                TraitSelections.load(player.getPersistentDataContainer()),HashRandom.secure(),smallForce);
         campaign = new Campaign(settings,true);
         returnLocation = player.getLocation().clone(); returnMode = player.getGameMode();
         returnAllowFlight = player.getAllowFlight(); returnFlying = player.isFlying();

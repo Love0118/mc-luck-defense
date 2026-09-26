@@ -13,12 +13,14 @@ public final class Campaign implements java.io.Serializable {
     private int round;
     private int spawnedInRound;
     private int completedRounds;
+    private int quickClearStreak,quickClearRound;
     public Campaign(CampaignRules rules) { this(rules,false); }
     public Campaign(CampaignRules rules,boolean endless) { this.rules=rules;this.endless=endless; }
     public long elapsed() { return elapsed; }
     public int round() { return round; }
     /** Rounds whose final tick was survived; victory also completes round 100. */
     public int completedRounds() { return completedRounds; }
+    public int quickClearStreak() { return quickClearStreak; }
     public Wave wave() { return wave; }
     public boolean cleanup() { return !endless && elapsed >= rules.preparationTicks() + (long)rules.roundTicks() * CampaignRules.ROUNDS; }
     public int secondsRemaining() {
@@ -42,6 +44,14 @@ public final class Campaign implements java.io.Serializable {
     }
     public void afterCombat(Arena arena) {
         if (arena.ended()) return;
+        if(round>=500 && quickClearRound!=round && spawnedInRound==wave.entries().size()) {
+            int offset=(int)((elapsed-rules.preparationTicks())%rules.roundTicks());
+            int deadline=Math.min(rules.roundTicks()-1,wave.entries().getLast().offsetTick()+100);
+            if(arena.enemyCount()==0 && offset<=deadline) {
+                quickClearStreak=quickClearRound==round-1?quickClearStreak+1:1;
+                quickClearRound=round;
+            } else if(offset>=deadline) { quickClearStreak=0;quickClearRound=round; }
+        }
         if (!endless && round == CampaignRules.ROUNDS && spawnedInRound == wave().entries().size() && arena.enemyCount() == 0)
             arena.finish(Arena.Outcome.VICTORY);
         else if (!endless && elapsed >= rules.maximumTicks()) arena.finish(Arena.Outcome.TIME_LIMIT);

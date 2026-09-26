@@ -29,7 +29,7 @@ public final class TraitLoadout implements java.io.Serializable {
                 selected.add(e);values[e.family().ordinal()]=e.value();if(e.role()!=null)selectedRole=e.role();
             }
         }
-        if(selected.size()>3)throw new IllegalArgumentException("특성은 최대 3개입니다.");
+        if(selected.size()>4)throw new IllegalArgumentException("특성은 최대 4개입니다.");
         if(promotion!=null){selected.add(promotion);ceiling=promotion.purchaseCeiling();values[Family.FIRST_PURCHASE.ordinal()]=promotion.value();}
         for(Entry e:opening.values()){selected.add(e);target=e.openingTarget();values[Family.OPENING_ODDS.ordinal()]=Math.max(values[Family.OPENING_ODDS.ordinal()],e.value());}
         entries=List.copyOf(selected);role=selectedRole;purchaseCeiling=ceiling;openingTarget=target;

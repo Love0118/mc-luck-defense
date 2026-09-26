@@ -13,12 +13,42 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AchievementTest {
+    @Test void challengeRewardsRequireModeAndExactIndependentBudgets() {
+        var plugin=mock(MomaPlugin.class);var player=mock(Player.class);var data=TraitSelectionsTest.data();
+        when(player.getPersistentDataContainer()).thenReturn(data);
+        when(player.getAdvancementProgress(any())).thenReturn(mock(org.bukkit.advancement.AdvancementProgress.class));
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(()->Bukkit.getAdvancement(any())).thenReturn(mock(Advancement.class));
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of());
+            var service=new AchievementService(plugin);
+            var arena=new Arena("a",UUID.randomUUID(),new Grid(6),2_000_000,100);
+            arena.reachedRound(500);
+            for(int i=0;i<750;i++)assertEquals(Arena.Result.OK,arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY),(t,r,c)->UUID.randomUUID()));
+            assertEquals(1_500_000,arena.spentGold());
+            service.challengesReached(player,arena,500);
+            assertTrue(TraitSelections.unlocked(data,TraitCatalog.find("budget_500")));
+            assertEquals(0,AchievementStats.get(data,Metric.SMALL_FORCE));
+            var fresh=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(fresh);
+            arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY),(t,r,c)->UUID.randomUUID());
+            arena.select(arena.owner(),arena.lastSummoned().entityId());arena.sellSelected(arena.owner());
+            service.challengesReached(player,arena,500);service.challengesReached(player,arena,600);
+            assertFalse(TraitSelections.unlocked(fresh,TraitCatalog.find("budget_500")));
+            assertTrue(TraitSelections.unlocked(fresh,TraitCatalog.find("budget_600")));
+            var small=new Arena("b",UUID.randomUUID(),new Grid(6),30,100,TraitLoadout.EMPTY,new HashRandom(1),true);
+            service.challengesReached(player,small,499);assertFalse(TraitSelections.unlocked(fresh,TraitCatalog.find("small_force_500")));
+            service.challengesReached(player,small,500);assertTrue(TraitSelections.unlocked(fresh,TraitCatalog.find("small_force_500")));
+            service.quickCleared(player,149);assertFalse(TraitSelections.unlocked(fresh,TraitCatalog.find("quick_clear_150")));
+            service.quickCleared(player,150);service.quickCleared(player,1);
+            assertTrue(TraitSelections.unlocked(fresh,TraitCatalog.find("quick_clear_150")));
+        }
+    }
     @Test void stableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {
-        assertEquals(104,AchievementCatalog.ALL.size());
-        assertEquals(104,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
+        assertEquals(123,AchievementCatalog.ALL.size());
+        assertEquals(123,AchievementCatalog.ALL.stream().map(Entry::id).distinct().count());
         for(Metric metric:Metric.values()) {
             var entries=AchievementCatalog.ALL.stream().filter(e->e.metric()==metric).toList();
-            assertEquals(metric==Metric.ROUND?32:metric==Metric.MIRACLE?5:metric==Metric.ENHANCEMENT || metric==Metric.GOLD_SPENT?5:metric==Metric.DUPLICATE?4:metric==Metric.SESSION?7:metric.role()?1:10,entries.size());
+            assertEquals(metric==Metric.ROUND?32:metric==Metric.MIRACLE || metric==Metric.QUICK_CLEAR?5:metric==Metric.ENHANCEMENT || metric==Metric.GOLD_SPENT?5:metric==Metric.DUPLICATE || metric==Metric.SMALL_FORCE?4:metric==Metric.SESSION?7:metric.role()?2:metric.budget()?1:10,entries.size());
             long previous=0;
             for(Entry entry:entries) {
                 assertTrue(entry.target()>previous);previous=entry.target();

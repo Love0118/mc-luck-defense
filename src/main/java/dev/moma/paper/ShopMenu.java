@@ -49,7 +49,12 @@ final class ShopMenu implements Listener {
         holder.inventory.setItem(AUTO_MERGE, item(arena.mergingEnabled()?Material.ANVIL:Material.CHIPPED_ANVIL,
                 "&b강화 합성 &7· "+(arena.mergingEnabled()?"&aON":"&cOFF"),
                 "클릭하여 "+(arena.mergingEnabled()?"끄기":"켜기")));
-        holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()), "빈 배치 칸: " + (arena.grid().size() * arena.grid().size() - arena.defenderCount())));
+        holder.inventory.setItem(4, item(Material.GOLD_INGOT, "&6보유 골드: &e" + Gold.format(arena.coins()),
+                "배치: "+arena.defenderCount()+"/"+arena.deploymentLimit(),"총 소환 비용: "+Gold.format(arena.spentGold())+"골드"));
+        holder.inventory.setItem(3,item(Material.TARGET,arena.smallForce()?"&e소수 정예 도전 중":"&e챌린지 진행",
+                arena.smallForce()?"배치 최대 10마리 · 목표 500 / 600 / 700 / 800라운드":"소수 정예 도전은 로비 특성책에서 시작",
+                "신속한 정리: "+holder.session.campaign.quickClearStreak()+"라운드 연속 / 150",
+                "500라운드부터 마지막 적 등장 후 5초 안에 전멸"));
         holder.inventory.setItem(SUMMON, item(Material.EGG, "&a포탑 소환 &7· &6" + arena.summonCost() + "골드", "근접은 가장자리 · 원거리는 안쪽 우선", "클릭하여 소환"));
         boolean buying = holder.session.bulkBuying, layout = holder.session.autoPlacement;
         holder.inventory.setItem(BULK_BUY, item(buying ? Material.BARRIER : Material.DRAGON_EGG,

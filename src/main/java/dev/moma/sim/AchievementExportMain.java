@@ -6,7 +6,7 @@ import dev.moma.core.*;
 public final class AchievementExportMain {
     public static void main(String[] args) {
         System.out.println("# 서버 도전과제 · "+AchievementCatalog.ALL.size()+"개");
-        System.out.println("\n챌린지 업적마다 보상 하나를 해금합니다. 총 "+TraitCatalog.ALL.size()+"개 보상이며, 장착 특성은 최대 3개입니다. 패시브는 슬롯을 사용하지 않습니다.");
+        System.out.println("\n챌린지 업적마다 보상 하나를 해금합니다. 총 "+TraitCatalog.ALL.size()+"개 보상이며, 장착 특성은 최대 4개입니다. 패시브는 슬롯을 사용하지 않습니다.");
         System.out.println("\n[특성 사용법과 검증](traits.md)");
         System.out.println("\n기존 누적 소환·최고 라운드 기록은 유지합니다. 특성으로 올라간 등급은 자연 소환 횟수로 세지 않습니다.");
         System.out.println("\n강화는 성공한 중복 구매에 의한 합성 횟수입니다. 승급 연쇄 흡수는 추가로 세지 않으며, 업데이트 이전 합성·역할별 피해 기록은 소급하지 않습니다.");

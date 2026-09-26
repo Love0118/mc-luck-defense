@@ -18,7 +18,7 @@ public final class TraitCatalog {
                 case BOSS_DAMAGE -> "보스 피해 +"+value+"%";
                 case SPEED -> "공격속도 +"+value+"%";
                 case CRITICAL -> "치명타 확률 "+value+"% · 피해 1.5배";
-                case ROLE_DAMAGE -> role.label()+" 피해 +"+value+"%";
+                case ROLE_DAMAGE -> role.unitNames()+" 피해 +"+value+"%";
                 case ENHANCEMENT -> "강화 +1당 피해 성장 +"+value+"%p";
                 case SPENDING_DAMAGE, GOLD_INCOME -> "적 처치 골드 +"+value+"%";
                 case DUPLICATE_ODDS -> "가장 강화수치가 높은 기물 등장확률 "+value+"%p 증가";
@@ -45,7 +45,8 @@ public final class TraitCatalog {
                     value=switch(round){case 200->4;case 300->5;case 500->6;case 600->7;case 700->8;case 1000->9;case 1500->10;case 2000->12;case 2250->13;case 2500->14;case 3000->15;case 4000->16;case 5000->17;case 6000->18;case 7500->19;case 9000->20;case 10000->21;default->throw new IllegalStateException(a.id());};
                 }
             } else if(a.metric().role()) {
-                family=Family.ROLE_DAMAGE;value=12;role=a.metric().attackRole();name=a.title()+" 교본";
+                family=Family.ROLE_DAMAGE;value=a.target()==150?25:35;role=a.metric().attackRole();
+                name=a.target()==150?a.title()+" 교본":a.title();
             } else {
                 int index=AchievementCatalog.ALL.stream().filter(e->e.metric()==a.metric() && e.challenge()).toList().indexOf(a);
                 switch(a.metric()) {
@@ -58,6 +59,11 @@ public final class TraitCatalog {
                     case GOLD_SPENT -> {family=Family.GOLD_INCOME;value=new int[]{2,3,4,6,8}[index];name="전장의 투자";}
                     case MIRACLE -> {family=Family.ENHANCEMENT;value=new int[]{26,27,28,29,30}[index];name="기적의 담금질";}
                     case DUPLICATE -> {family=Family.DUPLICATE_ODDS;value=new int[]{10,15,20,25}[index];name="전우의 재회";}
+                    case QUICK_CLEAR -> {family=Family.SPEED;value=10+index*2;name="신속한 지휘";}
+                    case SMALL_FORCE -> {family=Family.NORMAL_DAMAGE;value=12+index*2;name="정예 소탕";}
+                    case BUDGET_500,BUDGET_600,BUDGET_700,BUDGET_800 -> {
+                        family=Family.GOLD_INCOME;value=switch((int)a.target()){case 500->10;case 600->12;case 700->15;default->18;};name="전장의 투자";
+                    }
                     default -> throw new IllegalStateException(a.id());
                 }
             }
@@ -68,6 +74,6 @@ public final class TraitCatalog {
         BY_ID=Map.copyOf(map);
     }
     public static Entry find(String id) { return BY_ID.get(id); }
-    public static int slots(long round) { return round>=500?3:round>=250?2:round>=100?1:0; }
+    public static int slots(long round) { return round>=1500?4:round>=500?3:round>=250?2:round>=100?1:0; }
     private TraitCatalog() {}
 }

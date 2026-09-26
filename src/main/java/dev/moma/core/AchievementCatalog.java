@@ -6,13 +6,18 @@ import java.util.*;
 public final class AchievementCatalog {
     public enum Metric {
         ROUND, EPIC, MYTHIC, PRIMORDIAL, TRUE_PRIMORDIAL, ENHANCEMENT, SESSION, GOLD_SPENT, DUPLICATE,
-        ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET, MIRACLE;
+        ROLE_MELEE_SINGLE, ROLE_MELEE_CLEAVE, ROLE_RANGED_SINGLE, ROLE_SMALL_AREA, ROLE_LARGE_AREA, ROLE_MULTI_TARGET, MIRACLE,
+        QUICK_CLEAR, SMALL_FORCE, BUDGET_500, BUDGET_600, BUDGET_700, BUDGET_800;
         public boolean role() { return name().startsWith("ROLE_"); }
+        public boolean budget() { return name().startsWith("BUDGET_"); }
         public AttackRole attackRole() { return AttackRole.valueOf(name().substring(5)); }
     }
     public record Entry(String id, Metric metric, long target, String title, boolean challenge) implements java.io.Serializable {
         public String description() {
-            if(metric.role())return "150라운드 도달 · "+metric.attackRole().label()+" 유효 피해 비중 70% 이상";
+            if(metric.role())return target+"라운드 도달 · "+metric.attackRole().unitNames()+" 유효 피해 비중 70% 이상";
+            if(metric==Metric.QUICK_CLEAR)return "500라운드부터 마지막 적 등장 후 5초 안에 전멸 · "+target+"라운드 연속 성공";
+            if(metric==Metric.SMALL_FORCE)return "소수 정예 챌린지 · 배치 10마리 제한으로 "+target+"라운드 도달";
+            if(metric.budget())return target+"라운드 도달까지 총 소환 비용 "+String.format(Locale.ROOT,"%,d",budget((int)target))+"골드 이하";
             if(metric==Metric.ENHANCEMENT)return "누적 동일 유닛 합성 "+target+"회";
             if(metric==Metric.SESSION)return "누적 게임 시작 "+target+"회";
             if(metric==Metric.GOLD_SPENT)return "누적 소환 골드 소모 "+target+"골드";
@@ -45,17 +50,29 @@ public final class AchievementCatalog {
         add(entries, Metric.DUPLICATE, new long[]{100,500,2000,10000},
                 new String[]{"익숙한 전우","전우의 집결","정예의 재회","운명의 군단"},0);
         String[] roleTitles={"결투의 지휘관","전선의 지휘관","저격의 지휘관","집중 포화","전장의 폭풍","동시 제압"};
+        String[] roleMasterTitles={"결투의 정석","전선의 정석","저격의 정석","집중 포화의 정석","폭풍의 정석","동시 제압의 정석"};
         int roleIndex=0;
-        for(Metric metric:Metric.values())if(metric.role())
-            add(entries,metric,new long[]{150},new String[]{roleTitles[roleIndex++]},0);
+        for(Metric metric:Metric.values())if(metric.role()) {
+            add(entries,metric,new long[]{150,500},new String[]{roleTitles[roleIndex],roleMasterTitles[roleIndex]},0);
+            roleIndex++;
+        }
         add(entries,Metric.ROUND,new long[]{2250,2500,3000,4000,5000,6000,7500,9000,10000},
                 new String[]{"초월의 전선","기적의 문","삼천의 수호자","사천의 성벽","절반의 무한","육천의 지평","끝나지 않는 의지","만 라운드의 문턱","만전의 기적"},0);
         add(entries,Metric.MIRACLE,new long[]{1,3,10,25,100},new String[]{"첫 미라클","기적의 삼중주","열 번의 기적 너머","기적의 군단","백 번의 미라클"},0);
+        add(entries,Metric.QUICK_CLEAR,new long[]{30,60,90,120,150},
+                new String[]{"신속한 정리 I","신속한 정리 II","신속한 정리 III","신속한 정리 IV","신속한 정리 V"},0);
+        add(entries,Metric.SMALL_FORCE,new long[]{500,600,700,800},
+                new String[]{"소수 정예 I","소수 정예 II","소수 정예 III","소수 정예 IV"},0);
+        for(int round:new int[]{500,600,700,800})
+            entries.add(new Entry("budget_"+round,Metric.valueOf("BUDGET_"+round),round,"제한 예산 · "+round+"라운드",true));
         entries.sort(Comparator.comparing(Entry::metric).thenComparingLong(Entry::target));
         ALL = List.copyOf(entries);
     }
     private static void add(List<Entry> entries, Metric metric, long[] targets, String[] titles, long hardFrom) {
         for(int i=0;i<targets.length;i++) entries.add(new Entry(metric.name().toLowerCase(Locale.ROOT)+"_"+targets[i],metric,targets[i],titles[i],targets[i]>=hardFrom));
+    }
+    public static long budget(int round) {
+        return switch(round){case 500->1_500_000;case 600->2_000_000;case 700->2_500_000;case 800->3_000_000;default->0;};
     }
     private AchievementCatalog() {}
 }

@@ -185,8 +185,9 @@ class AutomationTest {
         verify(games.entities,times(1)).spawnDefender(any(),any(),any(),any(),any());
     }
     @Test void reservePurchaseIsVisibleAndRetainsItsEntityThroughDeploymentAndBenching() throws Exception {
+        session=new GameSession(player,session.map,CampaignRules.standard(),true);doReturn(session).when(games).session(player);
         session.arena.credit(1000);session.arena.toggleMerging(player.getUniqueId());
-        for(int i=0;i<36;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
+        for(int i=0;i<10;i++)session.arena.summon(player.getUniqueId(),new SummonRoll(UnitType.WOLF,Rarity.COMMON),(t,r,c)->UUID.randomUUID());
         draw(Rarity.MIRACLE);games.summon(player);
         Defender d=session.arena.lastSummoned();UUID logical=d.entityId();assertFalse(d.deployed());assertEquals(1,session.arena.reserveCount());
         verify(games.entities,never()).spawnDefender(any(),any(),any(),any(),any());
@@ -194,7 +195,7 @@ class AutomationTest {
         session.layoutTask.result().get(5,java.util.concurrent.TimeUnit.SECONDS);
         assertFalse(d.deployed(),"Worker completion must not change live entities or rosters");
         games.applyPreparedPlacement(player,session);
-        assertTrue(d.deployed());assertEquals(logical,d.entityId());assertEquals(36,session.arena.defenderCount());assertEquals(1,session.arena.reserveCount());
+        assertTrue(d.deployed());assertEquals(logical,d.entityId());assertEquals(10,session.arena.defenderCount());assertEquals(1,session.arena.reserveCount());
         UUID owner=player.getUniqueId();
         verify(games.entities).spawnReserve(any(),eq(owner),eq(UnitType.WOLF),eq(Rarity.MIRACLE),eq(0));
         games.toggleAutoPlacement(player);games.select(player,d.entityId());games.benchSelected(player);
