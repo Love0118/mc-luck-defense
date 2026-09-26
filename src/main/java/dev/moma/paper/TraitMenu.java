@@ -49,12 +49,12 @@ final class TraitMenu implements Listener {
             holder.inventory.setItem(i,Ui.item(!unlocked?Material.GRAY_DYE:equipped?Material.LIME_DYE:Material.ENCHANTED_BOOK,
                     (equipped?"&a":unlocked?"&d":"&7")+entry.name(),lore.toArray(String[]::new)));
         }
-        int slots=TraitCatalog.slots(TraitSelections.highest(data));
+        int slots=TraitSelections.slots(data);
         for(int i=0;i<4;i++) {
             var entry=i<selected.entries().size()?selected.entries().get(i):null;
             holder.inventory.setItem(45+i,Ui.item(i>=slots?Material.BARRIER:entry==null?Material.LIGHT_GRAY_DYE:Material.NETHER_STAR,
                     "&e특성 "+(i+1)+" &7· "+(i>=slots?"잠김":entry==null?"빈 슬롯":entry.name()),
-                    i>=slots?"&7"+new int[]{100,250,500,1500}[i]+"라운드 도달 시 해금":entry==null?"&7위 목록에서 선택하세요.":"&7클릭: 해제"));
+                    i>=slots?"&7"+(i==3?"시즌 1에서 ":"")+new int[]{100,250,500,1500}[i]+"라운드 도달 시 해금":entry==null?"&7위 목록에서 선택하세요.":"&7클릭: 해제"));
         }
         holder.inventory.setItem(49,Ui.item(Material.PAPER,"&d장착 "+selected.entries().size()+"/"+slots,
                 "&7같은 계열은 하나만 장착","&7선택한 특성은 다음 게임 시작부터 적용"));

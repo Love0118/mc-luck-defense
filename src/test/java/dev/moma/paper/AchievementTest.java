@@ -13,8 +13,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AchievementTest {
-    @Test void challengeRewardsRequireModeAndExactIndependentBudgets() {
+    @org.junit.jupiter.api.io.TempDir java.nio.file.Path directory;
+    @Test void challengeRewardsRequireModeAndExactIndependentBudgets()throws Exception {
         var plugin=mock(MomaPlugin.class);var player=mock(Player.class);var data=TraitSelectionsTest.data();
+        when(plugin.getDataFolder()).thenReturn(directory.toFile());
         when(player.getPersistentDataContainer()).thenReturn(data);
         when(player.getAdvancementProgress(any())).thenReturn(mock(org.bukkit.advancement.AdvancementProgress.class));
         try(var bukkit=mockStatic(Bukkit.class)) {
@@ -41,6 +43,45 @@ class AchievementTest {
             service.quickCleared(player,149);assertFalse(TraitSelections.unlocked(fresh,TraitCatalog.find("quick_clear_150")));
             service.quickCleared(player,150);service.quickCleared(player,1);
             assertTrue(TraitSelections.unlocked(fresh,TraitCatalog.find("quick_clear_150")));
+        }
+    }
+    @Test void fourthSlotUsesSeasonOneRecordsAndNotAlreadyCompletedLifetimeAdvancement()throws Exception {
+        var plugin=mock(MomaPlugin.class);when(plugin.getDataFolder()).thenReturn(directory.toFile());
+        var old=new RoundRecords();var players=new ArrayList<Player>();
+        var current=new RoundRecords();int[] rounds={0,1499,1500};
+        for(int round:rounds) {
+            var player=mock(Player.class);var data=TraitSelectionsTest.data();UUID id=UUID.randomUUID();
+            when(player.getUniqueId()).thenReturn(id);when(player.getPersistentDataContainer()).thenReturn(data);
+            var progress=mock(org.bukkit.advancement.AdvancementProgress.class);when(progress.isDone()).thenReturn(true);
+            when(player.getAdvancementProgress(any())).thenReturn(progress);
+            AchievementStats.reached(data,3000);old.record(id,"Previous",3000);current.record(id,"Current",round);players.add(player);
+            AchievementStats.maximum(data,Metric.QUICK_CLEAR,150);AchievementStats.maximum(data,Metric.SMALL_FORCE,800);AchievementStats.maximum(data,Metric.BUDGET_800,800);
+            data.set(new NamespacedKey("mcluckdefense","trait_loadout"),PersistentDataType.STRING,"round_200,quick_clear_150,small_force_800,budget_800");
+        }
+        RoundRecords.save(directory.resolve("round-records.properties"),old.snapshot());
+        var store=new LeaderboardStore(directory);store.saveCurrent(current.snapshot());
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(()->Bukkit.getAdvancement(any())).thenReturn(mock(Advancement.class));
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(players);
+            bukkit.when(Bukkit::advancementIterator).thenAnswer(c->Collections.emptyIterator());
+            var service=new AchievementService(plugin);
+            for(int i=0;i<players.size();i++) {
+                var data=players.get(i).getPersistentDataContainer();
+                assertEquals(rounds[i],AchievementStats.seasonOneRound(data));assertEquals(3000,TraitSelections.highest(data));
+                assertEquals(i==2?4:3,TraitSelections.slots(data));assertEquals(i==2?4:3,TraitSelections.load(data).ids().size());
+                assertEquals(i==2?4:3,data.get(new NamespacedKey("mcluckdefense","trait_loadout"),PersistentDataType.STRING).split(",").length);
+                verify(players.get(i),never()).sendMessage(any(net.kyori.adventure.text.Component.class));
+            }
+            Player advancing=players.get(1);service.reached(advancing,1500);service.reached(advancing,1501);
+            assertEquals(4,TraitSelections.slots(advancing.getPersistentDataContainer()));
+            var message=org.mockito.ArgumentCaptor.forClass(net.kyori.adventure.text.Component.class);
+            verify(advancing,times(1)).sendMessage(message.capture());
+            assertTrue(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(message.getValue()).contains("시즌 1 1500라운드"));
+            new AchievementService(plugin);
+            assertEquals(1501,AchievementStats.seasonOneRound(advancing.getPersistentDataContainer()));
+            assertEquals(4,TraitSelections.slots(advancing.getPersistentDataContainer()));
+            verify(advancing,times(1)).sendMessage(any(net.kyori.adventure.text.Component.class));
         }
     }
     @Test void stableMilestonesHaveIncreasingThresholdsAndNativeChallengeFrames() {

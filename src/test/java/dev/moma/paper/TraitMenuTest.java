@@ -22,7 +22,9 @@ class TraitMenuTest {
         when(player.getOpenInventory()).thenReturn(view);
         Inventory[] current={null};when(view.getTopInventory()).thenAnswer(c->current[0]);
         try(var bukkit=mockStatic(Bukkit.class);
-            var items=mockConstruction(ItemStack.class,(item,c)->when(item.getItemMeta()).thenReturn(mock(ItemMeta.class)))) {
+            var items=mockConstruction(ItemStack.class,(item,c)->{
+                when(item.getItemMeta()).thenReturn(mock(ItemMeta.class));when(item.getType()).thenReturn((Material)c.arguments().getFirst());
+            })) {
             var scheduler=mock(org.bukkit.scheduler.BukkitScheduler.class);bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
             var tasks=new ArrayList<Runnable>();when(scheduler.runTask(eq(plugin),any(Runnable.class))).thenAnswer(c->{tasks.add(c.getArgument(1));return null;});
             when(player.isOnline()).thenReturn(true);
@@ -48,7 +50,10 @@ class TraitMenuTest {
             when(eventView.getTopInventory()).thenReturn(current[0]);when(event.getRawSlot()).thenReturn(45);menu.click(event);
             assertEquals(List.of("round_100"),TraitSelections.load(data).ids()); // no change during play/spectating
             when(games.active(player)).thenReturn(false);AchievementStats.reached(data,1500);menu.open(player);
-            verify(current[0]).setItem(eq(48),any(ItemStack.class));
+            var fourth=org.mockito.ArgumentCaptor.forClass(ItemStack.class);
+            verify(current[0]).setItem(eq(48),fourth.capture());assertEquals(Material.BARRIER,fourth.getValue().getType());
+            AchievementStats.reachedSeasonOne(data,1500);menu.open(player);
+            verify(current[0]).setItem(eq(48),fourth.capture());assertEquals(Material.LIGHT_GRAY_DYE,fourth.getValue().getType());
             when(eventView.getTopInventory()).thenReturn(current[0]);when(event.getRawSlot()).thenReturn(50);menu.click(event);
             var challenge=current[0];menu.click(event);assertSame(challenge,current[0]);
             var drag=mock(InventoryDragEvent.class);when(drag.getView()).thenReturn(view);menu.drag(drag);verify(drag).setCancelled(true);

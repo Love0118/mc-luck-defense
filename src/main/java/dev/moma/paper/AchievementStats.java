@@ -7,6 +7,7 @@ import org.bukkit.persistence.*;
 
 /** Stored in playerdata so reconnects and server restarts retain the counters. */
 final class AchievementStats {
+    private static final NamespacedKey SEASON_ONE_ROUND=new NamespacedKey("mcluckdefense","season_one_round");
     private static NamespacedKey key(Metric metric) {
         return new NamespacedKey("mcluckdefense", "achievement_"+metric.name().toLowerCase(Locale.ROOT));
     }
@@ -15,6 +16,14 @@ final class AchievementStats {
     }
     static long reached(PersistentDataContainer data, int round) {
         return maximum(data,Metric.ROUND,round);
+    }
+    static long seasonOneRound(PersistentDataContainer data) {
+        return data==null?0:Math.max(0,data.getOrDefault(SEASON_ONE_ROUND,PersistentDataType.LONG,0L));
+    }
+    static void reachedSeasonOne(PersistentDataContainer data,int round) {
+        if(round<0)throw new IllegalArgumentException("Negative round");
+        data.set(SEASON_ONE_ROUND,PersistentDataType.LONG,Math.max(seasonOneRound(data),round));
+        reached(data,round);
     }
     static long maximum(PersistentDataContainer data,Metric metric,long round) {
         if(round<0)throw new IllegalArgumentException("Negative round");

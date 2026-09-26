@@ -16,8 +16,11 @@ import org.bukkit.event.player.*;
 final class AchievementService implements Listener {
     private final MomaPlugin plugin;
     private final Map<String,Advancement> advancements=new LinkedHashMap<>();
-    AchievementService(MomaPlugin plugin) {
+    private final Map<UUID,Integer> seasonOneRounds=new HashMap<>();
+    AchievementService(MomaPlugin plugin)throws java.io.IOException {
         this.plugin=plugin;
+        for(var record:new LeaderboardStore(plugin.getDataFolder().toPath()).load(LeaderboardStore.Season.SEASON_ONE).snapshot())
+            seasonOneRounds.put(record.player(),record.round());
         Map<Key,String> definitions=new LinkedHashMap<>();
         Map<Metric,String> parents=new EnumMap<>(Metric.class);
         for(Entry entry:AchievementCatalog.ALL) {
@@ -49,7 +52,13 @@ final class AchievementService implements Listener {
         Metric metric=switch(rarity) {case EPIC->Metric.EPIC;case MYTHIC->Metric.MYTHIC;case PRIMORDIAL->Metric.PRIMORDIAL;case TRUE_PRIMORDIAL->Metric.TRUE_PRIMORDIAL;case MIRACLE->Metric.MIRACLE;default->null;};
         if(metric!=null)award(player,metric,AchievementStats.summoned(player.getPersistentDataContainer(),metric));
     }
-    void reached(Player player,int round) { award(player,Metric.ROUND,AchievementStats.reached(player.getPersistentDataContainer(),round)); }
+    void reached(Player player,int round) {
+        var data=player.getPersistentDataContainer();boolean fourthSlot=AchievementStats.seasonOneRound(data)>=1500;
+        AchievementStats.reachedSeasonOne(data,round);
+        award(player,Metric.ROUND,AchievementStats.get(data,Metric.ROUND));
+        if(!fourthSlot && AchievementStats.seasonOneRound(data)>=1500)
+            player.sendMessage(Ui.text("&d특성 슬롯 해금 &f4개 &7· 시즌 1 1500라운드 달성 · 로비에서 선택하세요."));
+    }
     void truePrimordialPromoted(Player player) {
         award(player,Metric.TRUE_PRIMORDIAL,AchievementStats.summoned(player.getPersistentDataContainer(),Metric.TRUE_PRIMORDIAL));
     }
@@ -87,7 +96,7 @@ final class AchievementService implements Listener {
                 progress.awardCriteria("earned");
                 var trait=TraitCatalog.find(entry.id());
                 if(trait!=null)player.sendMessage(Ui.text("&d"+(trait.passive()?"패시브 해금":"특성 해금")+" &f"+trait.name()+" &7· "+trait.description()));
-                if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500 || entry.target()==1500))
+                if(metric==Metric.ROUND && (entry.target()==100 || entry.target()==250 || entry.target()==500))
                     player.sendMessage(Ui.text("&d특성 슬롯 해금 &f"+TraitCatalog.slots(entry.target())+"개 &7· 로비에서 선택하세요."));
             }
         }
@@ -96,6 +105,9 @@ final class AchievementService implements Listener {
         return advancement.getKey().getNamespace().equals("minecraft") && advancement.getDisplay()!=null;
     }
     private void restore(Player player) {
+        var data=player.getPersistentDataContainer();
+        AchievementStats.reachedSeasonOne(data,seasonOneRounds.getOrDefault(player.getUniqueId(),0));
+        TraitSelections.save(data,TraitSelections.load(data).ids());
         // Revoking visible vanilla progress hides its tabs; recipe advancements are preserved.
         Bukkit.advancementIterator().forEachRemaining(advancement->{
             if(vanillaDisplay(advancement)) {

@@ -43,8 +43,14 @@ class TraitSelectionsTest {
         AchievementStats.maximum(data,AchievementCatalog.Metric.SMALL_FORCE,800);
         AchievementStats.maximum(data,AchievementCatalog.Metric.BUDGET_800,800);
         var four=List.of("round_200","quick_clear_150","small_force_800","budget_800");
-        AchievementStats.reached(data,1499);assertThrows(IllegalArgumentException.class,()->TraitSelections.save(data,four));
-        AchievementStats.reached(data,1500);TraitSelections.save(data,four);
+        AchievementStats.reached(data,3000);
+        assertEquals(3,TraitSelections.slots(data));assertThrows(IllegalArgumentException.class,()->TraitSelections.save(data,four));
+        data.set(new NamespacedKey("mcluckdefense","trait_loadout"),PersistentDataType.STRING,String.join(",",four));
+        assertEquals(four.subList(0,3),TraitSelections.load(data).ids());
+        assertEquals(0,TraitSelections.load(data).value(TraitCatalog.Family.GOLD_INCOME));
+        AchievementStats.reachedSeasonOne(data,1499);assertThrows(IllegalArgumentException.class,()->TraitSelections.save(data,four));
+        AchievementStats.reachedSeasonOne(data,1500);TraitSelections.save(data,four);
+        AchievementStats.reachedSeasonOne(data,1);assertEquals(1500,AchievementStats.seasonOneRound(data));
         assertEquals(four,TraitSelections.load(data).ids());
         assertEquals(18,TraitSelections.load(data).value(TraitCatalog.Family.SPEED));
         assertEquals(18,TraitSelections.load(data).value(TraitCatalog.Family.NORMAL_DAMAGE));
