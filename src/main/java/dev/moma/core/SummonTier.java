@@ -31,19 +31,19 @@ public enum SummonTier {
     public int weight(Rarity rarity,boolean openingBonus) {
         if(this==NORMAL)return rarity.weight(openingBonus);
         if(this==ASCENDED)return switch(rarity) {
-            case LEGENDARY -> 40198;
+            case LEGENDARY -> 40195;
             case EPIC -> 40000;
             case MYTHIC -> 16000;
             case PRIMORDIAL -> 3800;
-            case TRUE_PRIMORDIAL -> 2;
+            case TRUE_PRIMORDIAL -> 5;
             default -> 0;
         };
         if(this==MIRACLE)return switch(rarity) {
-            case EPIC -> 50494;
+            case EPIC -> 50485;
             case MYTHIC -> 40000;
             case PRIMORDIAL -> 9500;
-            case TRUE_PRIMORDIAL -> 5;
-            case MIRACLE -> 1;
+            case TRUE_PRIMORDIAL -> 12;
+            case MIRACLE -> 3;
             default -> 0;
         };
         return switch(rarity) {

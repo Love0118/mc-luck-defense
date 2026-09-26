@@ -14,8 +14,8 @@ class SummonEconomyTest {
         assertEquals(5.19701,mean(SummonTier.NORMAL),1e-9);
         assertEquals(mean(SummonTier.NORMAL)/10,mean(SummonTier.ADVANCED)/100,0.002);
         assertEquals(51.8324,mean(SummonTier.ADVANCED),1e-9);
-        assertEquals(997.786,mean(SummonTier.ASCENDED),1e-9);
-        assertEquals(2494.092,mean(SummonTier.MIRACLE),1e-9);
+        assertEquals(998.365,mean(SummonTier.ASCENDED),1e-9);
+        assertEquals(2503.730,mean(SummonTier.MIRACLE),1e-9);
         for(SummonTier tier:SummonTier.values())assertTrue(mean(tier)<tier.cost());
     }
     @Test void bothTiersUseSamePricesAndSalesCannotPayTwice() {

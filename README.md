@@ -1,5 +1,9 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
+## 1.0.3 진 태초·미라클 소환 확률 상향
+
+500~999라운드의 진 태초 소환 확률을 0.002%에서 0.005%로 높였습니다. 1,000라운드부터는 진 태초를 0.005%에서 0.012%, 미라클을 0.001%에서 0.003%로 높였습니다. 증가분은 각 단계의 최저 등급에서 차감해 전체 확률은 100%를 유지합니다. 이번 버전은 밸런스가 바뀌므로 진행 중인 게임이 모두 끝난 뒤 `/mud update`로 적용하세요. [변경 및 적용](docs/release-1.0.3.md) · [현재 확률표](docs/summon-economy.md)
+
 ## 1.0.2 자동 배치 계산 분산
 
 자동 배치 계산을 두 작업 스레드로 옮겼습니다. 포탑 상태를 복사해 계산하고, 완료된 결과는 서버 스레드에서 반영합니다. 계산 중 포탑 구성이 바뀌면 다시 계산합니다. 배속별 뽑기 횟수와 파티클 수는 유지합니다. 1.0.0·1.0.1의 진행 중인 세션을 유지하며 업데이트할 수 있습니다. [변경 및 적용](docs/release-1.0.2.md)
@@ -95,7 +99,7 @@ Paper **26.3 build 26 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-1.0.2.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 실행 중인 1.0.0·1.0.1은 /mud update로 진행 중인 게임을 유지하며 1.0.2를 적용할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 target/mc-luck-defense-1.0.3.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 기존 1.0.x에서 업데이트할 때는 진행 중인 게임이 모두 끝난 뒤 /mud update로 1.0.3을 적용합니다. 이번 버전은 소환 밸런스가 바뀌어 진행 중인 세션에서는 적용이 거절됩니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 

@@ -76,10 +76,11 @@ class ReserveProgressionTest {
             double recovery=Arrays.stream(Rarity.values()).mapToDouble(g->tier.weight(g,false)*tier.saleValue(g)/(double)Rarity.TOTAL_WEIGHT).sum()/tier.cost();
             assertTrue(recovery>.49 && recovery<.53,"Recovery "+tier+": "+recovery);
         }
-        assertEquals(2,SummonTier.ASCENDED.weight(Rarity.TRUE_PRIMORDIAL,false));
+        assertEquals(5,SummonTier.ASCENDED.weight(Rarity.TRUE_PRIMORDIAL,false));
         assertEquals(0,SummonTier.ASCENDED.weight(Rarity.MIRACLE,false));
-        assertEquals(1,SummonTier.MIRACLE.weight(Rarity.MIRACLE,false));
-        for(Rarity grade:List.of(Rarity.MYTHIC,Rarity.PRIMORDIAL,Rarity.TRUE_PRIMORDIAL))
+        assertEquals(12,SummonTier.MIRACLE.weight(Rarity.TRUE_PRIMORDIAL,false));
+        assertEquals(3,SummonTier.MIRACLE.weight(Rarity.MIRACLE,false));
+        for(Rarity grade:List.of(Rarity.MYTHIC,Rarity.PRIMORDIAL))
             assertEquals(SummonTier.ASCENDED.weight(grade,false)/(double)SummonTier.ASCENDED.cost(),
                     SummonTier.MIRACLE.weight(grade,false)/(double)SummonTier.MIRACLE.cost());
     }

@@ -24,8 +24,8 @@ class OddsItemTest {
             for(int index:new int[]{1,3}) {
                 var lore=org.mockito.ArgumentCaptor.forClass(List.class);verify(metas.get(index)).lore(lore.capture());
                 String text=lore.getValue().toString();
-                for(String expected:index==1?List.of("2000골드","40.198%","40%","16%","3.8%","0.002%")
-                        :List.of("5000골드","50.494%","40%","9.5%","0.005%","0.001%"))assertTrue(text.contains(expected),expected);
+                for(String expected:index==1?List.of("2000골드","40.195%","40%","16%","3.8%","0.005%")
+                        :List.of("5000골드","50.485%","40%","9.5%","0.012%","0.003%"))assertTrue(text.contains(expected),expected);
             }
         }
     }
