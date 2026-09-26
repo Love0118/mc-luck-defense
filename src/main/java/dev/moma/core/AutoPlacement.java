@@ -7,7 +7,11 @@ public final class AutoPlacement {
     private static final int SAMPLES = 336;
     private record CoverageKey(int size,double range) {}
     private static final Map<CoverageKey,double[]> SHARED_COVERAGE=new java.util.concurrent.ConcurrentHashMap<>();
-    private static final Comparator<Defender> PRIORITY=(a,b)-> {
+    public record Unit(UUID entityId,UnitType type,Rarity rarity,CombatProfile profile,Cell cell) {}
+    public static List<Unit> snapshot(List<Defender> units) {
+        return units.stream().map(d->new Unit(d.entityId(),d.type(),d.rarity(),d.profile(),d.cell())).toList();
+    }
+    private static final Comparator<Unit> PRIORITY=(a,b)-> {
         int grade=Integer.compare(b.rarity().ordinal(),a.rarity().ordinal());
         return grade!=0?grade:Double.compare(b.profile().damage()/b.profile().intervalTicks(),a.profile().damage()/a.profile().intervalTicks());
     };
@@ -49,17 +53,20 @@ public final class AutoPlacement {
     }
 
     public Map<UUID, Cell> arrange(List<Defender> units) {
+        return arrangeSnapshot(snapshot(units));
+    }
+    public Map<UUID, Cell> arrangeSnapshot(List<Unit> units) {
         int m=grid.placementOrder().size();
         units=units.stream().sorted(PRIORITY).limit(m).toList();
         int n=units.size();
         boolean same=n==lastSize;
         for(int i=0;same && i<n;i++) {
-            Defender d=units.get(i);
+            Unit d=units.get(i);
             same=d.entityId().equals(lastIds[i]) && d.profile().equals(lastProfiles[i]) && Objects.equals(d.cell(),lastCells[i]);
         }
         if(same)return new LinkedHashMap<>(lastLayout);
         lastSize=n;
-        for(int i=0;i<n;i++){Defender d=units.get(i);lastIds[i]=d.entityId();lastProfiles[i]=d.profile();lastCells[i]=d.cell();}
+        for(int i=0;i<n;i++){Unit d=units.get(i);lastIds[i]=d.entityId();lastProfiles[i]=d.profile();lastCells[i]=d.cell();}
         double maximum = 1;
         for (int i = 0; i < n; i++) {
             CombatProfile profile=units.get(i).profile();double[] fractions=fractions(profile.range());

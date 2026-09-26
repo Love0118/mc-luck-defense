@@ -6,6 +6,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 final class GameService {
     private final MomaPlugin plugin;
@@ -23,6 +24,7 @@ final class GameService {
     private final Map<UUID, Watch> spectators = new LinkedHashMap<>();
     record SessionInfo(UUID sessionId, UUID owner, String playerName, String arena, int round, int enemies) {}
     private final CombatEngine combat = new CombatEngine();
+    private ThreadPoolExecutor placementWorkers;
     private long tick;
     SessionState.Game saveState() {
         return new SessionState.Game(tick,sessions.values().stream().map(GameSession::save).toList(),
@@ -61,7 +63,14 @@ final class GameService {
         }
         spectators.forEach((id,watch)->appearance.enter(Objects.requireNonNull(Bukkit.getPlayer(id)),true));
     }
-    void suspendPresentation(){appearance.close();entities.close();}
+    void suspendPresentation(){stopPlacementWorkers();appearance.close();entities.close();}
+    private void stopPlacementWorkers() {
+        for(GameSession session:sessions.values())cancelPlacement(session);
+        if(placementWorkers!=null){placementWorkers.shutdownNow();placementWorkers=null;}
+    }
+    private void cancelPlacement(GameSession session) {
+        if(session.layoutTask!=null){session.layoutTask.result().cancel(true);session.layoutTask=null;}
+    }
 
     GameService(MomaPlugin plugin, ArenaMaps maps, CampaignRules settings) {
         this(plugin, maps, settings, null);
@@ -234,6 +243,7 @@ final class GameService {
         }
     }
     private void release(GameSession session) {
+        cancelPlacement(session);
         for (UUID id : List.copyOf(spectators.keySet())) {
             if (spectators.get(id).target != session) continue;
             Player viewer = Bukkit.getPlayer(id);
@@ -248,6 +258,7 @@ final class GameService {
         session.tickets.forEach(c -> c.removePluginChunkTicket(plugin));
     }
     void shutdown() {
+        stopPlacementWorkers();
         for (UUID id : List.copyOf(sessions.keySet())) {
             Player player = Bukkit.getPlayer(id);
             if (player != null) leave(player);
@@ -413,7 +424,7 @@ final class GameService {
         player.sendMessage(Ui.text("&a일괄구매 종료 &7· &e" + session.bulkPurchases + "회 소환"));
         Ui.sound(player, Ui.Cue.CLICK);
     }
-    /** Purchase and placement budgets advance once per simulation tick. */
+    /** Purchase counts follow simulation time, including accelerated games. */
     void processAutomation(Player player, GameSession session) {
         if (session(player) != session || session.arena.ended()) return;
         if (session.bulkBuying) {
@@ -426,10 +437,34 @@ final class GameService {
             if (session.bulkBuying && !canBuy(session)) stopBulkBuy(player, session);
             else if (session.bulkBuying && session.simulationTick % 4 == 0) Ui.sound(player, Ui.Cue.SUMMON);
         }
-        if (session.layoutDirty) {
-            session.layoutDirty = false;
-            if (session.autoPlacement)
-                applyLayout(player,session,session.placement.arrange(session.arena.units()));
+    }
+    void preparePlacement(GameSession session) {
+        if(!session.autoPlacement || !session.layoutDirty || session.layoutTask!=null || session.arena.ended())return;
+        if(placementWorkers==null)placementWorkers=new ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(64),Thread.ofPlatform().daemon().name("mud-placement-",0).factory());
+        var units=AutoPlacement.snapshot(session.arena.units());Grid grid=session.map.grid();
+        try {
+            session.layoutTask=new GameSession.LayoutTask(units,
+                    placementWorkers.submit(()->new AutoPlacement(grid).arrangeSnapshot(units)));
+        } catch(RejectedExecutionException busy) { /* Keep dirty and retry next tick without blocking purchases. */ }
+    }
+    void applyPreparedPlacement(Player player,GameSession session) {
+        var task=session.layoutTask;
+        if(task==null || !task.result().isDone())return;
+        session.layoutTask=null;
+        if(session(player)!=session || session.arena.ended() || !session.autoPlacement)return;
+        // A sale, summon, promotion, or manual move invalidates the worker's immutable input.
+        if(!task.units().equals(AutoPlacement.snapshot(session.arena.units())))return;
+        try {
+            var layout=task.result().get();
+            session.layoutDirty=false;
+            applyLayout(player,session,layout);
+        } catch(InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+        catch(CancellationException cancelled) { /* The next tick can prepare a fresh layout. */ }
+        catch(ExecutionException failed) {
+            session.autoPlacement=false;
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,"Automatic placement failed",failed.getCause());
+            player.sendMessage(Ui.text("&c자동 배치 계산에 실패해 자동 배치를 껐습니다."));
         }
     }
     private boolean applyLayout(Player player,GameSession session,Map<UUID,Cell> layout) {
@@ -567,9 +602,11 @@ final class GameService {
                 finish(player, session);
                 continue;
             }
+            applyPreparedPlacement(player,session);
             session.attackEffects.clear();
             for (int step = 0; step < session.speed(); step++) if (!step(player, session)) break;
             if (session(player) != session) continue;
+            preparePlacement(session);
             session.attackEffects.retainActive(session.arena.activeDefenders());
             session.attackEffects.forEachPrimary(entities::face);
             session.attackEffects.render(session.map, viewers(player, session));

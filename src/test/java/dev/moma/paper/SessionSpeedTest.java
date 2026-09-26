@@ -147,14 +147,28 @@ class SessionSpeedTest {
             rolls.when(()->SummonRoll.draw(any(),eq(session.arena))).thenReturn(new SummonRoll(UnitType.WOLF,Rarity.EPIC));
             session.arena.credit(100_000_000);session.bulkBuying=true;session.autoPlacement=true;
             games.speed(p,speed);for(int i=0;i<64/speed;i++)games.tick();
+            if(session.layoutTask!=null) {
+                session.layoutTask.result().get(5,java.util.concurrent.TimeUnit.SECONDS);
+                games.applyPreparedPlacement(p,session);
+            }
+            games.preparePlacement(session);
+            if(session.layoutTask!=null) {
+                session.layoutTask.result().get(5,java.util.concurrent.TimeUnit.SECONDS);
+                games.applyPreparedPlacement(p,session);
+            }
+            assertFalse(session.layoutDirty);
+            var layout=new AutoPlacement(session.map.grid()).arrange(session.arena.units());
+            // Equal-score cells can differ because completed layouts retain existing positions.
+            for(Defender d:session.arena.units())assertEquals(layout.get(d.entityId()),d.cell());
             var state=new ArrayList<Object>();state.add(session.arena.coins());state.add(session.bulkPurchases);state.add(session.arena.spentGold());
             state.add(session.campaign.round());state.add(session.arena.summonTier());state.add(session.simulationTick);
-            for(Defender d:session.arena.units())state.add(List.of(d.type(),d.rarity(),d.enhancement(),d.cell()==null?"reserve":d.cell(),d.nextAttackTick(),d.saleValue()));
+            for(Defender d:session.arena.units())state.add(List.of(d.type(),d.rarity(),d.enhancement(),d.deployed(),d.nextAttackTick(),d.saleValue()));
             assertEquals(256,session.bulkPurchases);assertEquals(SummonTier.atRound(gate),session.arena.summonTier());
+            games.suspendPresentation();
             return state;
         }
     }
-    @Test void purchasesPromotionPlacementAndTierTransitionAreIdenticalAtOneAndThirtyTwoSpeed()throws Exception {
+    @Test void purchasesPromotionAndTierTransitionMatchAcrossSpeedsWithAsyncPlacement()throws Exception {
         for(int gate:new int[]{500,1000})assertEquals(purchasesAtSpeed(1,gate),purchasesAtSpeed(32,gate));
     }
 }

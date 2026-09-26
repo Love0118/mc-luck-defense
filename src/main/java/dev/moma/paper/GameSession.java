@@ -21,7 +21,8 @@ final class GameSession {
     long simulationTick;
     private int speed = 1;
     final EnumSet<Rarity> autoSell = EnumSet.noneOf(Rarity.class);
-    final AutoPlacement placement;
+    record LayoutTask(List<AutoPlacement.Unit> units,java.util.concurrent.Future<Map<UUID,Cell>> result) {}
+    LayoutTask layoutTask;
     boolean autoPlacement, layoutDirty, bulkBuying;
     int bulkPurchases;
     long lastPrimordialSoundNanos;
@@ -37,7 +38,6 @@ final class GameSession {
     GameSession(Player player, ArenaMap map, CampaignRules settings) {
         sessionId=UUID.randomUUID();random=HashRandom.secure();
         this.map = map;
-        placement = new AutoPlacement(map.grid());
         arena = new Arena(map.id(), player.getUniqueId(), map.grid(), settings.startingCoins(), settings.enemyLimit(),
                 TraitSelections.load(player.getPersistentDataContainer()),HashRandom.secure());
         campaign = new Campaign(settings,true);
@@ -53,7 +53,7 @@ final class GameSession {
         if(map==null || !map.world().getUID().equals(saved.world()) || map.originX()!=saved.x() || map.originZ()!=saved.z()
                 || map.floorY()!=saved.y() || map.grid().size()!=saved.arena().grid().size())throw new IllegalArgumentException("진행 중인 전장 설정이 변경되었습니다.");
         this.map=map;sessionId=saved.id();arena=saved.arena();campaign=saved.campaign();random=saved.random();
-        placement=new AutoPlacement(map.grid());returnLocation=saved.returnLocation().location();returnMode=GameMode.valueOf(saved.returnMode());
+        returnLocation=saved.returnLocation().location();returnMode=GameMode.valueOf(saved.returnMode());
         returnAllowFlight=saved.returnFlight();returnFlying=saved.returnFlying();assisted=saved.assisted();announcedRound=saved.announcedRound();
         simulationTick=saved.simulationTick();speed(saved.speed());autoSell.addAll(saved.autoSell());autoPlacement=saved.autoPlacement();
         layoutDirty=saved.layoutDirty();bulkBuying=saved.bulkBuying();bulkPurchases=saved.bulkPurchases();bgmTrack=saved.bgmTrack();
