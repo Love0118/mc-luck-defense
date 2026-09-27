@@ -71,14 +71,17 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         Path staged=updates.resolve(installed.getFileName());
         return Files.isRegularFile(staged)?staged:active.artifact.path();
     }
-    private void compatible(RuntimeArtifact artifact) {
+    private void compatible(RuntimeArtifact artifact,boolean forceBalance) {
         if(!artifact.hostHash().equals(hostArtifact.hostHash()))
             throw new IllegalArgumentException("로더·의존성·플러그인 설정이 바뀐 업데이트는 정상 재시작이 필요합니다.");
-        if(active.module.hasSessions() && (!artifact.schema().equals(active.artifact.schema()) || !artifact.balanceHash().equals(active.artifact.balanceHash())))
-            throw new IllegalArgumentException("진행 중인 게임과 상태 형식 또는 밸런스가 다릅니다. 세션 종료 후 적용하세요.");
+        if(active.module.hasSessions() && !artifact.schema().equals(active.artifact.schema()))
+            throw new IllegalArgumentException("진행 중인 게임과 상태 형식이 다릅니다. 세션 종료 후 적용하세요.");
+        if(active.module.hasSessions() && !forceBalance && !artifact.balanceHash().equals(active.artifact.balanceHash()))
+            throw new IllegalArgumentException("진행 중인 게임과 밸런스가 다릅니다. /mud reload force 또는 /mud update force로 적용할 수 있습니다.");
     }
-    public String check()throws Exception {
-        requireMainThread();RuntimeArtifact artifact=cache(candidate());compatible(artifact);active.module.checkReloadReady();
+    public String check()throws Exception {return check(false);}
+    public String check(boolean forceBalance)throws Exception {
+        requireMainThread();RuntimeArtifact artifact=cache(candidate());compatible(artifact,forceBalance);active.module.checkReloadReady();
         byte[] state=active.module.hasSessions() || artifact.schema().equals(active.artifact.schema())?active.module.snapshot():null;
         Loaded next=load(artifact);
         try {
@@ -91,25 +94,28 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         if(updater!=null && updater.busy())throw new IllegalStateException("베타 업데이트가 진행 중입니다.");
     }
     String activeHash(){return active.artifact.sha256();}
-    boolean installDownloaded(Path path)throws Exception {
+    boolean installDownloaded(Path path)throws Exception {return installDownloaded(path,false);}
+    boolean installDownloaded(Path path,boolean forceBalance)throws Exception {
         requireMainThread();RuntimeArtifact artifact=cache(path);
         if(artifact.sha256().equals(activeHash()))return false;
         Path staged=updates.resolve(installed.getFileName());
         if(Files.exists(staged) && !RuntimeArtifact.hash(staged).equals(artifact.sha256()))
             throw new IllegalStateException("update 폴더에 다른 업데이트 파일이 있습니다. 먼저 정리해 주세요.");
-        replace(artifact);return true;
+        replace(artifact,forceBalance);return true;
     }
-    public void reload()throws Exception {requireMainThread();requireNoDownload();replace(cache(candidate()));}
-    public void rollback()throws Exception {
+    public void reload()throws Exception {reload(false);}
+    public void reload(boolean forceBalance)throws Exception {requireMainThread();requireNoDownload();replace(cache(candidate()),forceBalance);}
+    public void rollback()throws Exception {rollback(false);}
+    public void rollback(boolean forceBalance)throws Exception {
         requireMainThread();requireNoDownload();
         if(previous==null)throw new IllegalArgumentException("되돌릴 이전 버전이 없습니다.");
-        replace(previous);
+        replace(previous,forceBalance);
     }
-    private void replace(RuntimeArtifact artifact)throws Exception {
+    private void replace(RuntimeArtifact artifact,boolean forceBalance)throws Exception {
         requireMainThread();if(changing)throw new IllegalStateException("이미 업데이트 중입니다.");changing=true;
         Loaded next=null,old=active;boolean suspended=false;
         try {
-            compatible(artifact);old.module.checkReloadReady();
+            compatible(artifact,forceBalance);old.module.checkReloadReady();
             byte[] state=old.module.hasSessions() || artifact.schema().equals(old.artifact.schema())?old.module.snapshot():null;
             next=load(artifact);next.module.prepare(host,state);
             if(state!=null && !next.module.fingerprint().equals(old.module.fingerprint()))throw new IllegalStateException("세션 복원 검증이 일치하지 않습니다.");
@@ -162,17 +168,24 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         if(!sender.hasPermission("moma.admin")){sender.sendMessage(Component.text("관리자만 사용할 수 있습니다.",NamedTextColor.RED));return true;}
         try {
             if(action.equals("update")) {
-                if(args.length>2 || args.length==2 && !args[1].equalsIgnoreCase("check")) {
-                    sender.sendMessage(Component.text("/mud update [check]",NamedTextColor.YELLOW));return true;
+                if(args.length>2 || args.length==2 && !Set.of("check","force").contains(args[1].toLowerCase(Locale.ROOT))) {
+                    sender.sendMessage(Component.text("/mud update [check|force]",NamedTextColor.YELLOW));return true;
                 }
                 if(updater==null)updater=new BetaUpdater(host,this);
-                updater.start(sender,args.length==2);
+                updater.start(sender,args.length==2 && args[1].equalsIgnoreCase("check"),args.length==2 && args[1].equalsIgnoreCase("force"));
             }
             else if(action.equals("version"))sender.sendMessage(Component.text(status(),NamedTextColor.AQUA));
-            else if(action.equals("rollback")){rollback();sender.sendMessage(Component.text("세션을 유지하고 게임 "+version()+" 버전으로 되돌렸습니다.",NamedTextColor.GREEN));}
-            else if(args.length==2 && args[1].equalsIgnoreCase("check"))sender.sendMessage(Component.text("게임 "+check()+" · 세션 유지 업데이트 가능",NamedTextColor.GREEN));
-            else if(args.length==1){reload();sender.sendMessage(Component.text("게임 "+version()+" 적용 완료 · 진행 중인 세션을 유지했습니다.",NamedTextColor.GREEN));}
-            else sender.sendMessage(Component.text("/mud reload [check] | rollback | version",NamedTextColor.YELLOW));
+            else if(action.equals("rollback")) {
+                if(args.length>2 || args.length==2 && !args[1].equalsIgnoreCase("force"))sender.sendMessage(Component.text("/mud rollback [force]",NamedTextColor.YELLOW));
+                else {rollback(args.length==2);sender.sendMessage(Component.text("세션을 유지하고 게임 "+version()+" 버전으로 되돌렸습니다.",NamedTextColor.GREEN));}
+            }
+            else if(action.equals("reload")) {
+                if(args.length==2 && args[1].equalsIgnoreCase("check"))sender.sendMessage(Component.text("게임 "+check()+" · 세션 유지 업데이트 가능",NamedTextColor.GREEN));
+                else if(args.length==3 && args[1].equalsIgnoreCase("check") && args[2].equalsIgnoreCase("force"))sender.sendMessage(Component.text("게임 "+check(true)+" · 밸런스 변경을 허용하고 세션 유지 업데이트 가능",NamedTextColor.GREEN));
+                else if(args.length==1 || args.length==2 && args[1].equalsIgnoreCase("force")) {
+                    reload(args.length==2);sender.sendMessage(Component.text("게임 "+version()+" 적용 완료 · 진행 중인 세션을 유지했습니다.",NamedTextColor.GREEN));
+                } else sender.sendMessage(Component.text("/mud reload [check [force]|force]",NamedTextColor.YELLOW));
+            }
         } catch(Exception|LinkageError error) {
             host.getLogger().log(java.util.logging.Level.WARNING,"Runtime update rejected or rolled back",error);
             sender.sendMessage(Component.text("업데이트하지 못했습니다: "+error.getMessage(),NamedTextColor.RED));
@@ -180,7 +193,16 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         return true;
     }
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args) {
-        if(args.length==2 && Set.of("reload","update").contains(args[0].toLowerCase(Locale.ROOT)) && sender.hasPermission("moma.admin"))return List.of("check").stream().filter(s->s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
+        if(args.length==2 && sender.hasPermission("moma.admin")) {
+            List<String> choices=switch(args[0].toLowerCase(Locale.ROOT)) {
+                case "reload","update" -> List.of("check","force");
+                case "rollback" -> List.of("force");
+                default -> List.of();
+            };
+            if(!choices.isEmpty())return choices.stream().filter(s->s.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();
+        }
+        if(args.length==3 && args[0].equalsIgnoreCase("reload") && args[1].equalsIgnoreCase("check") && sender.hasPermission("moma.admin"))
+            return List.of("force").stream().filter(s->s.startsWith(args[2].toLowerCase(Locale.ROOT))).toList();
         var choices=new ArrayList<>(Optional.ofNullable(active.module.onTabComplete(sender,command,alias,args)).orElse(List.of()));
         if(args.length==1 && sender.hasPermission("moma.admin"))for(String extra:List.of("update","reload","rollback","version"))if(extra.startsWith(args[0].toLowerCase(Locale.ROOT)))choices.add(extra);
         return choices;

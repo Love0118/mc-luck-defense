@@ -115,6 +115,50 @@ class RuntimeControllerTest {
             }
         }
     }
+    @Test void explicitForceAcceptsBalanceChangeAndPreservesSessionsThroughRollback()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);advance(controller);
+                stage(jar("balance-only.jar","1.0.7","1","next","host","new-balance",""));
+                assertThrows(IllegalArgumentException.class,controller::check);
+                assertEquals("1.0.7",controller.check(true));
+                var admin=mock(CommandSender.class);when(admin.hasPermission("moma.admin")).thenReturn(true);
+                controller.onCommand(admin,null,"mud",new String[]{"reload","force"});
+                assertEquals("1.0.7",controller.version());assertEquals("next",state().get("marker"));
+                assertEquals(2,state().get("counter"));assertFalse(Files.exists(updates.resolve(installed.getFileName())));
+                advance(controller);assertEquals(3,state().get("counter"));
+                assertThrows(IllegalArgumentException.class,controller::rollback);
+                controller.onCommand(admin,null,"mud",new String[]{"rollback","force"});
+                assertEquals("0.16.0",controller.version());assertEquals("base",state().get("marker"));
+                assertEquals(3,state().get("counter"));
+            }
+        }
+    }
+    @Test void forceStillRejectsHostSchemaAndFailedRestoration()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);Object original=view.get("state");
+                for(String mismatch:List.of("host","schema","state")) {
+                    stage(jar(mismatch+"-forced.jar","1.0.7",mismatch.equals("schema")?"2":"1","next",
+                            mismatch.equals("host")?"other":"host","new-balance",mismatch.equals("state")?"reset":""));
+                    assertThrows(Exception.class,()->controller.reload(true),mismatch);
+                    assertSame(original,view.get("state"));assertEquals(1,state().get("counter"));
+                }
+            }
+        }
+    }
+    @Test void downloadedForceCanApplyDifferentBalanceWithoutStaging()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);
+                Path downloaded=jar("forced-download.jar","1.0.7","1","next","host","new-balance","");
+                assertThrows(IllegalArgumentException.class,()->controller.installDownloaded(downloaded));
+                assertTrue(controller.installDownloaded(downloaded,true));
+                assertEquals("next",state().get("marker"));assertEquals(1,state().get("counter"));
+                assertFalse(Files.exists(updates.resolve(installed.getFileName())));
+            }
+        }
+    }
     private Path jar(String file,String version,String schema,String marker,String hostMarker,String balance,String fault)throws Exception {
         Path work=Files.createTempDirectory(dir,"compile-"),source=work.resolve("GameRuntime.java");
         String code="""

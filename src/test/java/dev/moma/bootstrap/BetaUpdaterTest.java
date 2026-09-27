@@ -58,4 +58,12 @@ class BetaUpdaterTest {
         updater.start(mock(CommandSender.class),false);background.remove().run();updater.close();main.remove().run();
         verify(runtime,never()).installDownloaded(any());assertFalse(Files.exists(download));assertFalse(updater.busy());
     }
+    @Test void forcedUpdatePassesOverrideToMainThreadReplacement()throws Exception {
+        try(var updater=new BetaUpdater(host,runtime,feed,background::add)) {
+            updater.start(mock(CommandSender.class),false,true);
+            background.remove().run();verify(runtime,never()).installDownloaded(any(),anyBoolean());
+            main.remove().run();verify(runtime).installDownloaded(download,true);
+            assertFalse(updater.busy());assertFalse(Files.exists(download));
+        }
+    }
 }

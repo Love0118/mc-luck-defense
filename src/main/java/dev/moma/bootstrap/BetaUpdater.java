@@ -24,15 +24,16 @@ final class BetaUpdater implements AutoCloseable {
         this.host=host;this.runtime=runtime;this.feed=feed;this.executor=executor;
     }
     boolean busy(){return busy.get();}
-    void start(CommandSender sender,boolean checkOnly) {
+    void start(CommandSender sender,boolean checkOnly) {start(sender,checkOnly,false);}
+    void start(CommandSender sender,boolean checkOnly,boolean forceBalance) {
         if(closed)throw new IllegalStateException("업데이트 기능이 종료되었습니다.");
         if(!busy.compareAndSet(false,true)){tell(sender,"이미 베타 업데이트를 진행하고 있습니다.",NamedTextColor.YELLOW);return;}
         String currentHash=runtime.activeHash();
         tell(sender,checkOnly?"베타 배포를 확인하고 있습니다…":"베타 업데이트 확인 → 다운로드 → 검증 → 안전 리로드를 진행합니다…",NamedTextColor.AQUA);
-        try {executor.execute(()->download(sender,checkOnly,currentHash));}
+        try {executor.execute(()->download(sender,checkOnly,forceBalance,currentHash));}
         catch(RuntimeException error){busy.set(false);throw error;}
     }
-    private void download(CommandSender sender,boolean checkOnly,String currentHash) {
+    private void download(CommandSender sender,boolean checkOnly,boolean forceBalance,String currentHash) {
         Path pending=null;
         try {
             BetaFeed.Release release=feed.latest();
@@ -46,7 +47,8 @@ final class BetaUpdater implements AutoCloseable {
                     else if(checkOnly)tell(sender,"공개 베타: "+release.label()+" · /mud update",NamedTextColor.AQUA);
                     else {
                         tell(sender,"다운로드 검증 완료 · 세션을 확인하고 안전 리로드합니다…",NamedTextColor.AQUA);
-                        runtime.installDownloaded(downloaded);
+                        if(forceBalance)runtime.installDownloaded(downloaded,true);
+                        else runtime.installDownloaded(downloaded);
                         tell(sender,"베타 "+release.label()+" 적용 완료 · 게임 세션이 유지되었습니다.",NamedTextColor.GREEN);
                         host.getLogger().info("Beta update applied: "+release.label()+" sha256="+release.sha256());
                     }
