@@ -125,7 +125,7 @@ class BgmServiceTest {
                 var health=BgmService.class.getDeclaredField("nextHealthCheck");health.setAccessible(true);health.setLong(service,Long.MAX_VALUE);
                 var tick=BgmService.class.getDeclaredMethod("tick");tick.setAccessible(true);tick.invoke(service);
                 verify(owner,never()).addResourcePack(eq(old.packId()),anyString(),any(byte[].class),anyString(),anyBoolean());
-                var dropbox=mock(dev.moma.bgm.DropboxBgm.class);when(dropbox.connected()).thenReturn(true);when(dropbox.healthy(anyString(),anyString())).thenReturn(true);
+                var dropbox=mock(dev.moma.bgm.DropboxBgm.class);when(dropbox.connected()).thenReturn(true);
                 when(dropbox.publish(anyString(),anyString(),any())).thenReturn("https://www.dropbox.com/rebuilt?dl=1");
                 var media=mock(dev.moma.bgm.BgmMedia.class);Path audio=Files.writeString(temp.resolve("audio.ogg"),"audio"),pack=Files.writeString(temp.resolve("pack.zip"),"new full-track pack");
                 when(media.download(eq(old.youtubeUrl()),any())).thenReturn(new dev.moma.bgm.BgmMedia.Audio(audio,"old",8));
@@ -136,6 +136,7 @@ class BgmServiceTest {
                 Track rebuilt=new Track(old.id(),ownerId,"owner","old",old.youtubeUrl(),"https://www.dropbox.com/rebuilt?dl=1",dev.moma.bgm.BgmMedia.sha1(pack),8);
                 tick.invoke(service);verify(owner).addResourcePack(eq(rebuilt.packId()),eq(rebuilt.deliveryUrl()),any(byte[].class),anyString(),eq(false));
                 repair.invoke(service);verify(media,times(1)).download(eq(old.youtubeUrl()),any());
+                verify(dropbox,never()).healthy(anyString(),anyString());
             }
         }
     }

@@ -296,7 +296,7 @@ final class BgmService implements Listener, AutoCloseable {
         for(Track track:tracks) {
             Path temp=null;
             try {
-                if(track.synchronizedReady() && dropbox.healthy(track.deliveryUrl(),track.sha1()))continue;
+                if(track.synchronizedReady())continue;
                 temp=Files.createTempDirectory(work,"repair-");BgmMedia.Audio audio;
                 if(track.id().equals("default")) {
                     Path source=temp.resolve("default.ogg");
