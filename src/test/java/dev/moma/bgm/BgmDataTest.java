@@ -90,12 +90,37 @@ class BgmDataTest {
     }
     @Test void uploaderLimitAllowsRepairAndDoesNotAffectOtherOwners()throws Exception {
         UUID owner=UUID.randomUUID();
-        try(var store=new BgmStore(temp.resolve("limits.db"))) {
+        try(var store=new BgmStore(temp.resolve("limits.db"),3)) {
             for(int i=0;i<3;i++)store.save(new Track("track"+i,owner,"owner","title","https://youtu.be/abcdefghijk","","",10));
             assertThrows(java.sql.SQLException.class,()->store.save(new Track("fourth",owner,"owner","title","https://youtu.be/abcdefghijk","","",10)));
             store.save(new Track("track0",owner,"owner","title","https://youtu.be/abcdefghijk","https://www.dropbox.com/a?dl=1","a".repeat(40),10));
             store.save(new Track("other",UUID.randomUUID(),"other","title","https://youtu.be/abcdefghijk","","",10));
             assertEquals(4,store.list().size());assertTrue(store.list().getFirst().ready());
+        }
+    }
+    @Test void seasonOneHundredRoundStepsIncreaseUploadCapacityWithoutWeakeningTheDatabaseCheck()throws Exception {
+        var limits=BgmLimits.DEFAULT;
+        assertEquals(20,limits.uploadsForRound(0));
+        assertEquals(20,limits.uploadsForRound(99));
+        assertEquals(25,limits.uploadsForRound(100));
+        assertEquals(25,limits.uploadsForRound(199));
+        assertEquals(30,limits.uploadsForRound(200));
+        assertEquals(120,limits.uploadsForRound(2000));
+        UUID owner=UUID.randomUUID();Path file=temp.resolve("round-uploads.db");
+        try(var store=new BgmStore(file,limits.uploadsPerPlayer())) {
+            for(int i=0;i<20;i++)store.save(new Track("track"+i,owner,"owner","title","","","",10));
+            var next=new Track("track20",owner,"owner","title","","","",10);
+            assertThrows(java.sql.SQLException.class,()->store.save(next,limits.uploadsForRound(99)));
+            store.save(next,limits.uploadsForRound(100));
+            for(int i=21;i<25;i++)store.save(new Track("track"+i,owner,"owner","title","","","",10),limits.uploadsForRound(100));
+            assertThrows(java.sql.SQLException.class,()->store.save(new Track("track25",owner,"owner","title","","","",10),limits.uploadsForRound(199)));
+            store.save(new Track("track25",owner,"owner","title","","","",10),limits.uploadsForRound(200));
+            store.save(new Track("track0",owner,"owner","repaired","","","",10),limits.uploadsForRound(0));
+            assertEquals(26,store.list().size());assertEquals("repaired",store.list().getFirst().title());
+        }
+        try(var store=new BgmStore(file,20)) {
+            assertEquals(26,store.list().size());
+            assertThrows(java.sql.SQLException.class,()->store.save(new Track("track26",owner,"owner","title","","","",10)));
         }
     }
     @Test void legacyDatabaseIsMigratedAndOwnerPlaylistsSurviveRestart()throws Exception {

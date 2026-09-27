@@ -1,16 +1,16 @@
 # BGM 제한 설정과 단축바
 
-`plugins/MCLuckDefense/bgm.yml`에서 다음 값을 조정합니다. 모두 양의 정수이며 아래는 기존 동작과 같은 기본값입니다.
+`plugins/MCLuckDefense/bgm.yml`에서 다음 값을 조정합니다. 모두 양의 정수이며 아래는 1.0.8부터의 기준값입니다.
 
 ```yaml
 limits:
-  uploads-per-player: 3
+  uploads-per-player: 20
   playlist-tracks: 3
   duration-seconds: 300
   file-size-mb: 25
 ```
 
-- `uploads-per-player`: 플레이어당 등록 가능한 곡 수. 서버 기본곡은 제외합니다.
+- `uploads-per-player`: 플레이어당 기본 등록 곡 수이며 최소 20곡입니다. 시즌 1 최고 라운드 100마다 5곡씩 추가됩니다. 서버 기본곡과 프리시즌 기록은 제외합니다. 예전 설정 파일에 3이 남아 있어도 실제 기본 한도는 20곡으로 적용하며 파일은 자동 변경하지 않습니다.
 - `playlist-tracks`: 개인 재생 목록에 추가 가능한 곡 수. 다른 플레이어의 곡도 포함합니다. 45곡을 넘으면 GUI에 페이지 이동 버튼이 표시됩니다.
 - `duration-seconds`: 곡 최대 길이(초). 다운로드 전 검사와 변환·팩 생성에 적용합니다.
 - `file-size-mb`: 다운로드한 원본, 변환한 OGG, 최종 ZIP 각각의 최대 크기. 1MB는 1,048,576바이트입니다. 배포 파일 검증에도 같은 제한을 적용합니다.

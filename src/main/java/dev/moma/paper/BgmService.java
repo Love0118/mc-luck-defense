@@ -154,6 +154,7 @@ final class BgmService implements Listener, AutoCloseable {
         Ui.sound(player,Ui.Cue.CLICK);open(player,false,0);tick();
     }
     private boolean muted(Player player){return player.getPersistentDataContainer().getOrDefault(MUTED,PersistentDataType.BYTE,(byte)0)!=0;}
+    private int uploadLimit(Player player){return limits.uploadsForRound(AchievementStats.seasonOneRound(player.getPersistentDataContainer()));}
     private void message(UUID player,String text){main(()->{Player p=Bukkit.getPlayer(player);if(p!=null)p.sendMessage(Ui.text(text));});}
     private void main(Runnable task){if(!closed)Bukkit.getScheduler().runTask(plugin,()->{if(!closed)task.run();});}
     private boolean submit(Runnable task){try{worker.execute(task);return true;}catch(RejectedExecutionException e){return false;}}
@@ -194,7 +195,8 @@ final class BgmService implements Listener, AutoCloseable {
             holder.inventory.setItem(DEFAULT_TRACK,Ui.item(Material.MUSIC_DISC_13,"&b기본 BGM"));
             holder.inventory.setItem(MODE,Ui.item(Material.REPEATER,"&b재생 모드 · &e"+(selected.mode()==BgmTimeline.Mode.SINGLE?"단일곡":"메들리"),"&7클릭: 단일곡 반복 / 순서대로 반복"));
             holder.inventory.setItem(MUTE,Ui.item(muted(player)?Material.GRAY_DYE:Material.LIME_DYE,muted(player)?"&7BGM OFF":"&aBGM ON"));
-            holder.inventory.setItem(UPLOAD,Ui.item(Material.HOPPER,"&a노래 업로드", "&7YouTube 링크로 등록 · 최대 "+limits.uploadsPerPlayer()+"곡",
+            long owned=tracks.stream().filter(t->t.uploader().equals(player.getUniqueId())).count();
+            holder.inventory.setItem(UPLOAD,Ui.item(Material.HOPPER,"&a노래 업로드", "&7등록: "+owned+"/"+uploadLimit(player)+"곡 · 시즌 1 최고 100R마다 +5곡",
                     "&7최대 "+limits.durationSeconds()+"초 · "+limits.fileSizeMb()+"MB", "&7재생 목록 최대 "+limits.playlistTracks()+"곡"));
             holder.inventory.setItem(LIBRARY,Ui.item(Material.BOOK,"&e업로드된 곡 모두 보기"));
             if(page>0)holder.inventory.setItem(51,Ui.item(Material.ARROW,"&e이전 페이지"));
@@ -239,8 +241,9 @@ final class BgmService implements Listener, AutoCloseable {
     }
     private void promptUpload(Player player,GameSession session) {
         if(!dropbox.connected()){player.sendMessage(Ui.text("&e관리자가 Dropbox 연결을 완료해야 합니다."));player.closeInventory();return;}
-        if(tracks.stream().filter(t->t.uploader().equals(player.getUniqueId())).count()>=limits.uploadsPerPlayer() || uploading.contains(player.getUniqueId())) {
-            player.sendMessage(Ui.text("&e최대 "+limits.uploadsPerPlayer()+"곡까지 등록할 수 있으며 업로드는 한 번에 하나씩 가능합니다."));player.closeInventory();return;
+        int quota=uploadLimit(player);
+        if(tracks.stream().filter(t->t.uploader().equals(player.getUniqueId())).count()>=quota || uploading.contains(player.getUniqueId())) {
+            player.sendMessage(Ui.text("&e최대 "+quota+"곡까지 등록할 수 있으며 업로드는 한 번에 하나씩 가능합니다."));player.closeInventory();return;
         }
         prompts.put(player.getUniqueId(),new Prompt(session.sessionId,false,System.currentTimeMillis()+120000));player.closeInventory();
         player.sendMessage(Ui.text("&a채팅에 YouTube 링크를 입력하세요. &7취소: 취소 · 제한: "+limits.durationSeconds()+"초, "+limits.fileSizeMb()+"MB"));
@@ -269,19 +272,20 @@ final class BgmService implements Listener, AutoCloseable {
             GameSession s=games.session(p);if(s==null || !s.sessionId.equals(prompt.session))return;
             final String url;try{url=BgmMedia.youtube(input);}catch(IllegalArgumentException e){p.sendMessage(Ui.text("&c"+e.getMessage()));return;}
             if(!uploading.add(id))return;String name=p.getName();
-            if(!submit(()->upload(id,name,url))) {uploading.remove(id);p.sendMessage(Ui.text("&e업로드 대기열이 가득 찼습니다."));}
+            int quota=uploadLimit(p);
+            if(!submit(()->upload(id,name,url,quota))) {uploading.remove(id);p.sendMessage(Ui.text("&e업로드 대기열이 가득 찼습니다."));}
             else p.sendMessage(Ui.text("&e다운로드·변환·배포를 시작했습니다."));
         });
     }
-    private void upload(UUID owner,String name,String url) {
+    private void upload(UUID owner,String name,String url,int quota) {
         Path temp=null;
         try {
             if(store==null)throw new IllegalStateException();
-            if(store.list().stream().filter(t->t.uploader().equals(owner)).count()>=limits.uploadsPerPlayer())
-                throw new BgmMedia.RejectedAudio("최대 "+limits.uploadsPerPlayer()+"곡까지 등록할 수 있습니다.");
+            if(store.list().stream().filter(t->t.uploader().equals(owner)).count()>=quota)
+                throw new BgmMedia.RejectedAudio("최대 "+quota+"곡까지 등록할 수 있습니다.");
             temp=Files.createTempDirectory(work,"upload-");BgmMedia.Audio audio=media.download(url,temp);
             Track draft=new Track(UUID.randomUUID().toString().replace("-",""),owner,name,audio.title(),url,"","",audio.seconds());
-            Track ready=publish(draft,audio.file(),temp);store.save(ready);tracks=store.list();
+            Track ready=publish(draft,audio.file(),temp);store.save(ready,quota);tracks=store.list();
             message(owner,"&aBGM 등록 완료: &f"+audio.title());
         } catch(BgmMedia.RejectedAudio e) {message(owner,"&e"+e.getMessage());}
         catch(Exception e) {message(owner,"&cBGM 등록 실패: 영상 접근·외부 도구·Dropbox 연결을 확인하세요.");plugin.getLogger().warning("BGM upload failed: "+e.getClass().getSimpleName());}

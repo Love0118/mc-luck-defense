@@ -24,12 +24,17 @@ class BgmMenuTest {
         Player player=mock(Player.class);UUID owner=UUID.randomUUID();when(player.getUniqueId()).thenReturn(owner);
         World world=mock(World.class);when(player.getLocation()).thenReturn(new Location(world,0,65,0));
         var data=mock(PersistentDataContainer.class);when(player.getPersistentDataContainer()).thenReturn(data);
-        when(data.getOrDefault(any(),any(),any())).thenAnswer(call->call.getArgument(2));
+        long[] bestRound={99};
+        when(data.getOrDefault(any(),any(),any())).thenAnswer(call->call.getArgument(0).toString().equals("mcluckdefense:season_one_round")?bestRound[0]:call.getArgument(2));
         var games=mock(GameService.class);var session=new GameSession(player,new ArenaMap("a",world,0,64,0,new Grid(6)),CampaignRules.standard());
         when(games.session(player)).thenReturn(session);
-        var menus=new ArrayList<Inventory>();var slots=new IdentityHashMap<Inventory,Map<Integer,ItemStack>>();int[] tick={1};
+        var menus=new ArrayList<Inventory>();var slots=new IdentityHashMap<Inventory,Map<Integer,ItemStack>>();
+        var lores=new IdentityHashMap<ItemStack,List<net.kyori.adventure.text.Component>>();int[] tick={1};
         try(var bukkit=mockStatic(Bukkit.class);
-            var items=mockConstruction(ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(mock(ItemMeta.class)))) {
+            var items=mockConstruction(ItemStack.class,(item,context)->{
+                var meta=mock(ItemMeta.class);when(item.getItemMeta()).thenReturn(meta);
+                doAnswer(call->{lores.put(item,call.getArgument(0));return null;}).when(meta).lore(anyList());
+            })) {
             bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));
             bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));
             bukkit.when(Bukkit::getCurrentTick).thenAnswer(call->tick[0]);
@@ -45,11 +50,17 @@ class BgmMenuTest {
                 var tracks=new ArrayList<Track>();for(int i=0;i<46;i++)tracks.add(new Track("t"+i,i<3?owner:UUID.randomUUID(),"u","song"+i,"","https://example.com/"+i,"a".repeat(40),10));
                 var field=BgmService.class.getDeclaredField("tracks");field.setAccessible(true);field.set(service,tracks);
                 service.open(player,false,0);assertEquals(Set.of(0,1,2,45,46,48,49,53),slots.get(menus.getLast()).keySet());
+                var plain=net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
+                assertTrue(lores.get(slots.get(menus.getLast()).get(49)).stream().anyMatch(line->plain.serialize(line).contains("3/20곡")));
+                bestRound[0]=100;service.open(player,false,0);
+                assertTrue(lores.get(slots.get(menus.getLast()).get(49)).stream().anyMatch(line->plain.serialize(line).contains("3/25곡")));
+                bestRound[0]=200;service.open(player,false,0);
+                assertTrue(lores.get(slots.get(menus.getLast()).get(49)).stream().anyMatch(line->plain.serialize(line).contains("3/30곡")));
                 service.open(player,true,0);assertEquals(47,slots.get(menus.getLast()).size());assertTrue(slots.get(menus.getLast()).containsKey(44));
                 assertFalse(slots.get(menus.getLast()).containsKey(45));
                 var view=mock(InventoryView.class);when(view.getTopInventory()).thenAnswer(call->menus.getLast());
                 var event=mock(InventoryClickEvent.class);when(event.getView()).thenReturn(view);when(event.getWhoClicked()).thenReturn(player);when(event.getClick()).thenReturn(ClickType.LEFT);
-                when(event.getRawSlot()).thenReturn(54);service.click(event);assertEquals(2,menus.size());
+                when(event.getRawSlot()).thenReturn(54);service.click(event);assertEquals(4,menus.size());
                 when(event.getRawSlot()).thenReturn(53);service.click(event);
                 assertEquals(Set.of(0,45,49),slots.get(menus.getLast()).keySet());
                 tick[0]++;when(event.getRawSlot()).thenReturn(45);service.click(event);assertEquals(47,slots.get(menus.getLast()).size());

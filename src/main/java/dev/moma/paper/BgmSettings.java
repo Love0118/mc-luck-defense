@@ -7,7 +7,7 @@ final class BgmSettings {
     private BgmSettings() {}
     static BgmLimits limits(YamlConfiguration config) {
         BgmLimits defaults = BgmLimits.DEFAULT;
-        return new BgmLimits(positive(config, "limits.uploads-per-player", defaults.uploadsPerPlayer()),
+        return new BgmLimits(Math.max(defaults.uploadsPerPlayer(),positive(config, "limits.uploads-per-player", defaults.uploadsPerPlayer())),
                 positive(config, "limits.playlist-tracks", defaults.playlistTracks()),
                 positive(config, "limits.duration-seconds", defaults.durationSeconds()),
                 positive(config, "limits.file-size-mb", defaults.fileSizeMb()));

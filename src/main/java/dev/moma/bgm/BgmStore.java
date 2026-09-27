@@ -34,12 +34,14 @@ public final class BgmStore implements AutoCloseable {
         }
         return List.copyOf(result);
     }
-    public void save(Track track) throws SQLException {
+    public void save(Track track) throws SQLException {save(track,uploadsPerPlayer);}
+    public void save(Track track,int uploadLimit) throws SQLException {
+        if(uploadLimit<1)throw new IllegalArgumentException("Invalid upload limit");
         if(!track.id().equals("default")) {
             // Existing tracks remain repairable even after lowering the upload limit.
             try(var limit=connection.prepareStatement("SELECT COUNT(*) FROM tracks WHERE uploader=? AND NOT EXISTS (SELECT 1 FROM tracks WHERE id=?)")) {
                 limit.setString(1,track.uploader().toString());limit.setString(2,track.id());
-                try(var rows=limit.executeQuery()){if(rows.next() && rows.getInt(1)>=uploadsPerPlayer)throw new SQLException("Uploader reached track limit: "+uploadsPerPlayer);}
+                try(var rows=limit.executeQuery()){if(rows.next() && rows.getInt(1)>=uploadLimit)throw new SQLException("Uploader reached track limit: "+uploadLimit);}
             }
         }
         try(var statement=connection.prepareStatement("INSERT INTO tracks VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,delivery_url=excluded.delivery_url,sha1=excluded.sha1,seconds=excluded.seconds,pack_version=excluded.pack_version")) {
