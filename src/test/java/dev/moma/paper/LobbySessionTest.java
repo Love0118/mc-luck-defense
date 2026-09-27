@@ -93,7 +93,7 @@ class LobbySessionTest {
                 games.tick(); games.tick();
             }
             assertFalse(games.playing(player)); assertTrue(games.available("a"));
-            assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
+            assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
             verify(lobby,times(1)).send(player); verify(defenderEntity).remove(); verify(enemyEntity).remove();
             for (Chunk chunk:session.tickets) verify(chunk).removePluginChunkTicket(any());
             verify(player,times(2)).sendMessage(any(Component.class)); // Entry + result.
@@ -114,14 +114,14 @@ class LobbySessionTest {
         GameService games=mock(GameService.class); LobbyMenu menu=mock(LobbyMenu.class);
         LobbyListener listener=new LobbyListener(lobby,games,menu); Player player=player(world);
         PlayerJoinEvent join=mock(PlayerJoinEvent.class); when(join.getPlayer()).thenReturn(player); listener.join(join);
-        assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
+        assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
         verify(player).teleport(lobby.spawn()); verify(games,never()).start(any());
         var move=mock(PlayerMoveEvent.class); when(move.getPlayer()).thenReturn(player); when(move.getTo()).thenReturn(new Location(world,0,-2,0));
         listener.move(move); verify(move).setTo(lobby.spawn());
         var respawn=mock(PlayerRespawnEvent.class); when(respawn.getPlayer()).thenReturn(player);
         player.setAllowFlight(true); player.setFlying(true);
         listener.respawn(respawn); verify(games).disconnect(player); verify(respawn).setRespawnLocation(lobby.spawn());
-        assertFalse(player.getAllowFlight()); assertFalse(player.isFlying());
+        assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
     }
     @Test void startMenuRejectsShiftBottomAndRepeatedClicksAndDefersEntry() {
         var plugin=plugin(); GameService games=mock(GameService.class); World world=mock(World.class);
@@ -183,7 +183,7 @@ class LobbySessionTest {
             assertTrue(games.spectatorDestination(viewer,new Location(world,4,72,4)));
             games.leave(owner);verify(lobby).send(viewer);assertFalse(games.watching(viewer));
             assertEquals(0,games.spectatorCount(session.sessionId));
-            assertFalse(viewer.getAllowFlight()); assertFalse(viewer.isFlying());
+            assertTrue(viewer.getAllowFlight()); assertTrue(viewer.isFlying());
             games.start(owner);assertNotEquals(session.sessionId,games.session(owner).sessionId);
             assertThrows(IllegalArgumentException.class,()->games.spectate(viewer,session.sessionId));
         }

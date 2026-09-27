@@ -45,15 +45,19 @@ final class Lobby {
     boolean outside(Location location) {
         return location.getY() < 1 || Math.abs(location.getX()) >= halfSize || Math.abs(location.getZ()) >= halfSize;
     }
+    void enableFlight(Player player) {
+        player.setAllowFlight(true);player.setFlying(true);
+    }
     void prepare(Player player) {
         player.closeInventory();
         player.setFallDistance(0); player.setFireTicks(0); player.setFoodLevel(20);
         player.setGameMode(GameMode.ADVENTURE);
-        player.setFlying(false); player.setAllowFlight(false);
+        enableFlight(player);
         if (tools != null) tools.giveLobby(player);
     }
     void send(Player player) {
         prepare(player);
         if (!player.teleport(spawn())) throw new IllegalStateException("Lobby teleport rejected for " + player.getUniqueId());
+        enableFlight(player);
     }
 }
