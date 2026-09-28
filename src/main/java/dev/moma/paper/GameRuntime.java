@@ -17,6 +17,7 @@ public final class GameRuntime implements GameModule {
     private Lobby lobby;
     private CampaignRules settings;
     private MomaCommand command;
+    private RebootCommand reboot;
     private BgmService.Saved savedBgm;
     private String bgmConfiguration;
     private boolean active;
@@ -62,6 +63,7 @@ public final class GameRuntime implements GameModule {
             games.rebindPresentation();
         }
         command=new MomaCommand(maps,games,settings,menu);
+        reboot=RebootCommand.register(host);
         Bukkit.getScheduler().runTaskTimer(host,games::tick,1,1);
         Bukkit.getScheduler().runTaskTimer(host,shop::refreshOpen,5,5);
         Bukkit.getScheduler().runTaskTimer(host,menu::refreshOpen,20,20);
@@ -90,6 +92,7 @@ public final class GameRuntime implements GameModule {
         }
     }
     private void detach() {
+        if(reboot!=null){reboot.remove();reboot=null;}
         for(var player:Bukkit.getOnlinePlayers()) {
             var holder=player.getOpenInventory().getTopInventory().getHolder();
             if(holder!=null && holder.getClass().getClassLoader()==getClass().getClassLoader())player.closeInventory();
@@ -102,6 +105,7 @@ public final class GameRuntime implements GameModule {
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args){return this.command.onTabComplete(sender,command,alias,args);}
     @Override public void shutdown() {
         if(games==null)return;active=false;
+        if(reboot!=null){reboot.remove();reboot=null;}
         Bukkit.getScheduler().cancelTasks(host);HandlerList.unregisterAll(host);
         if(games.bgm!=null)games.bgm.close();games.shutdown();
         if(games.leaderboard!=null)games.leaderboard.close();

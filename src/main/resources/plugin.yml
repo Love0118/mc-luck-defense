@@ -9,10 +9,6 @@ commands:
   mud:
     description: 운빨 디펜스 참가 및 관리
     usage: /mud <start|join|spectate|speed|lobby|leave|list|create|spawn|coins|update [check|force]|reload [check [force]|force]|rollback [force]|version>
-  reboot:
-    description: 서버를 정상 종료한 뒤 운영 서비스가 재시작합니다.
-    usage: /reboot
-    permission: moma.admin
 permissions:
   moma.play:
     default: true

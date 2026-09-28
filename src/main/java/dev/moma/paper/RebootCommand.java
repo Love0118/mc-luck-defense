@@ -1,20 +1,44 @@
-package dev.moma.bootstrap;
+package dev.moma.paper;
 
-import dev.moma.paper.MomaPlugin;
+import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
 
-public final class RebootCommand implements CommandExecutor {
+final class RebootCommand extends Command {
     private final MomaPlugin plugin;
     private boolean pending;
 
-    public RebootCommand(MomaPlugin plugin) { this.plugin=plugin; }
+    private RebootCommand(MomaPlugin plugin) {
+        super("reboot","서버를 정상 종료한 뒤 운영 서비스가 재시작합니다.","/reboot",List.of());
+        this.plugin=plugin;
+        setPermission("moma.admin");
+    }
 
-    @Override public boolean onCommand(CommandSender sender,Command command,String label,String[] args) {
+    static RebootCommand register(MomaPlugin plugin) {
+        CommandMap map=Bukkit.getCommandMap();
+        if(map.getCommand("reboot")!=null)throw new IllegalStateException("/reboot 명령어가 이미 등록되어 있습니다.");
+        RebootCommand command=new RebootCommand(plugin);
+        if(!map.register("mcluckdefense",command)) {
+            command.unregister(map);
+            map.getKnownCommands().entrySet().removeIf(entry->entry.getValue()==command);
+            throw new IllegalStateException("/reboot 명령어를 등록할 수 없습니다.");
+        }
+        Bukkit.getOnlinePlayers().forEach(player->player.updateCommands());
+        return command;
+    }
+
+    void remove() {
+        CommandMap map=Bukkit.getCommandMap();
+        map.getKnownCommands().entrySet().removeIf(entry->entry.getValue()==this);
+        unregister(map);
+        Bukkit.getOnlinePlayers().forEach(player->player.updateCommands());
+    }
+
+    @Override public boolean execute(CommandSender sender,String label,String[] args) {
         if(!sender.hasPermission("moma.admin")) {
             sender.sendMessage(Component.text("관리자만 사용할 수 있습니다.",NamedTextColor.RED));
             return true;
