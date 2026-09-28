@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -73,6 +75,63 @@ class RebootCommandTest {
             verify(scheduler,times(2)).runTask(eq(plugin),any(Runnable.class));
             bukkit.verify(Bukkit::shutdown,never());
             command.remove();
+        }
+    }
+
+    @Test void idleRebootWaitsForTheLastPlayerAndRunsOnlyOnce() {
+        var plugin=mock(MomaPlugin.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger("reboot-test"));
+        var map=new SimpleCommandMap(mock(Server.class),new HashMap<>());
+        var scheduler=mock(BukkitScheduler.class);
+        var task=mock(BukkitTask.class);
+        var checks=new ArrayList<Runnable>();
+        when(scheduler.runTaskTimer(eq(plugin),any(Runnable.class),eq(20L),eq(20L)))
+                .thenAnswer(call->{checks.add(call.getArgument(1));return task;});
+        var player=mock(Player.class);
+        var admin=mock(CommandSender.class);
+        when(admin.hasPermission("moma.admin")).thenReturn(true);
+        when(admin.getName()).thenReturn("admin");
+        var occupied=new AtomicBoolean(true);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCommandMap).thenReturn(map);
+            bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+            bukkit.when(Bukkit::getOnlinePlayers).thenAnswer(call->occupied.get()?List.of(player):List.of());
+            var command=RebootCommand.register(plugin);
+            assertTrue(command.execute(admin,"reboot",new String[]{"est"}));
+            assertTrue(command.execute(admin,"reboot",new String[]{"est"}));
+            assertEquals(1,checks.size());
+            checks.getFirst().run();
+            bukkit.verify(Bukkit::shutdown,never());
+            occupied.set(false);
+            checks.getFirst().run();
+            checks.getFirst().run();
+            bukkit.verify(Bukkit::shutdown,times(1));
+            verify(task,times(1)).cancel();
+            command.remove();
+        }
+    }
+
+    @Test void idleRebootCanBeCancelledAndRuntimeRemovalStopsItsWatcher() {
+        var plugin=mock(MomaPlugin.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger("reboot-test"));
+        var map=new SimpleCommandMap(mock(Server.class),new HashMap<>());
+        var scheduler=mock(BukkitScheduler.class);
+        var first=mock(BukkitTask.class);var second=mock(BukkitTask.class);
+        when(scheduler.runTaskTimer(eq(plugin),any(Runnable.class),eq(20L),eq(20L))).thenReturn(first,second);
+        var admin=mock(CommandSender.class);
+        when(admin.hasPermission("moma.admin")).thenReturn(true);
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCommandMap).thenReturn(map);
+            bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of());
+            var command=RebootCommand.register(plugin);
+            assertTrue(command.execute(admin,"reboot",new String[]{"est"}));
+            assertTrue(command.execute(admin,"reboot",new String[]{"cancel"}));
+            verify(first).cancel();
+            assertTrue(command.execute(admin,"reboot",new String[]{"est"}));
+            command.remove();
+            verify(second).cancel();
+            bukkit.verify(Bukkit::shutdown,never());
         }
     }
 }
