@@ -1,6 +1,7 @@
 package dev.moma.paper;
 
 import dev.moma.bootstrap.RuntimeController;
+import dev.moma.bootstrap.RebootCommand;
 import java.util.Objects;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +17,7 @@ public final class MomaPlugin extends JavaPlugin {
             runtime=new RuntimeController(this,getFile().toPath(),getServer().getUpdateFolderFile().toPath());
             runtime.start();
             var command=Objects.requireNonNull(getCommand("mud"));command.setExecutor(runtime);command.setTabCompleter(runtime);
+            Objects.requireNonNull(getCommand("reboot")).setExecutor(new RebootCommand(this));
             getLogger().info("MC Luck Defense enabled: "+runtime.status());
         } catch(Exception|LinkageError error) {
             getLogger().log(java.util.logging.Level.SEVERE,"MC Luck Defense runtime failed to start",error);
