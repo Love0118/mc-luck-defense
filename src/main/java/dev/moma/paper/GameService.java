@@ -599,7 +599,7 @@ final class GameService {
             GameSession target = entry.getValue().target;
             if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
             recoverPosition(viewer, target.map, true);
-            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· /mud: 메뉴"));
+            if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· &c적 " + target.arena.enemyCount() + "/" + target.arena.enemyLimit() + " &7· /mud: 메뉴"));
         }
         for (GameSession session : List.copyOf(sessions.values())) {
             Player player = Bukkit.getPlayer(session.arena.owner());
@@ -626,7 +626,7 @@ final class GameService {
             }
             if (tick % 10 == 0) {
                 session.arena.selected().ifPresent(d -> player.spawnParticle(Particle.HAPPY_VILLAGER, unitLocation(session,d).add(0, 1.5, 0), 6, 0.4, 0.2, 0.4, 0));
-                player.sendActionBar(Component.text("R" + session.campaign.round() + " · " + session.speed() + "배 · " + session.campaign.secondsRemaining() + "초 · " + Gold.format(session.arena.coins()) + "골드 · 적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit(), NamedTextColor.GOLD));
+                player.sendActionBar(Ui.text("&eR" + session.campaign.round() + " &7· &b" + session.speed() + "배 &7· &f" + session.campaign.secondsRemaining() + "초 &7· &6" + Gold.format(session.arena.coins()) + "골드 &7· &c적 " + session.arena.enemyCount() + "/" + session.arena.enemyLimit()));
             }
         }
     }

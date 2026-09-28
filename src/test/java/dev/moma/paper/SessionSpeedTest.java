@@ -2,6 +2,8 @@ package dev.moma.paper;
 
 import dev.moma.core.*;
 import java.util.*;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.*;
@@ -49,6 +51,32 @@ class SessionSpeedTest {
             assertThrows(IllegalArgumentException.class,()->games.speed(viewer,8)); assertEquals(2,b.speed());
             games.leave(first); games.join(first,"a");
             assertEquals(1,games.session(first).speed()); assertEquals(0,games.session(first).simulationTick);
+        }
+    }
+    @Test void ownerAndSpectatorActionBarsColorValuesAndShowEnemyLimit() {
+        World world=mock(World.class);
+        try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->when(adapter.advanceAll(any(),any())).thenReturn(true));
+            var bukkit=mockStatic(Bukkit.class)) {
+            GameService games=games(world);Player owner=player(world),viewer=player(world);
+            bukkit.when(()->Bukkit.getPlayer(owner.getUniqueId())).thenReturn(owner);
+            bukkit.when(()->Bukkit.getPlayer(viewer.getUniqueId())).thenReturn(viewer);
+            games.join(owner,"a");GameSession session=games.session(owner);
+            games.speed(owner,4);games.spectate(viewer,session.sessionId);
+            session.arena.addEnemy(new Enemy(UUID.randomUUID(),"a",EnemyType.ZOMBIE,1e10,1,0,false));
+            for(int i=0;i<20;i++)games.tick();
+            var ownerBar=org.mockito.ArgumentCaptor.forClass(Component.class);
+            var viewerBar=org.mockito.ArgumentCaptor.forClass(Component.class);
+            verify(owner,atLeastOnce()).sendActionBar(ownerBar.capture());
+            verify(viewer,atLeastOnce()).sendActionBar(viewerBar.capture());
+            String ownerText=LegacyComponentSerializer.legacyAmpersand().serialize(ownerBar.getValue());
+            String viewerText=LegacyComponentSerializer.legacyAmpersand().serialize(viewerBar.getValue());
+            for(String text:List.of(ownerText,viewerText)) {
+                assertTrue(text.contains("&eR0"),text);
+                assertTrue(text.contains("&b4배"),text);
+                assertTrue(text.contains("&c적 1/100"),text);
+            }
+            assertTrue(ownerText.contains("&6"+Gold.format(session.arena.coins())+"골드"),ownerText);
+            assertTrue(viewerText.contains("&b관전"),viewerText);
         }
     }
     private List<Object> runCombat(int[] frameSpeeds,boolean boosted) {
