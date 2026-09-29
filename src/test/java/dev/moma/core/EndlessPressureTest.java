@@ -8,7 +8,7 @@ class EndlessPressureTest {
         return wave.entries().stream().filter(e->!e.enemy().boss()).mapToDouble(e->e.enemy().health()).sum();
     }
     @Test void ordinaryPressureAndExactGoldBudgetDoNotResetWithThemesOrWardens() {
-        var rules=CampaignRules.standard().withEndlessPressureBend(0);
+        var rules=CampaignRules.standard().withEndlessPressureBend(0).withHealthCurve(HealthCurve.parse("1:60,100:48000"));
         double initial=regularHealth(WaveSchedule.create(100,rules)),previous=initial;
         for(int round=101;round<=10000;round++) {
             Wave wave=WaveSchedule.create(round,rules);

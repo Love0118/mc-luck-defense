@@ -1,7 +1,7 @@
 package dev.moma.core;
 
 public enum SummonTier {
-    NORMAL(10,1), ADVANCED(100,101), ASCENDED(2000,500), MIRACLE(5000,1000);
+    NORMAL(10,1), ADVANCED(100,101), ASCENDED(1400,500), MIRACLE(3300,1000);
     private final long cost;
     private final int round;
     SummonTier(long cost,int round) { this.cost=cost;this.round=round; }
@@ -13,35 +13,22 @@ public enum SummonTier {
         return tier;
     }
     public long saleValue(Rarity rarity) {
-        if(this==ASCENDED)return switch(rarity) {
-            case LEGENDARY -> 700;
-            case EPIC -> 1000;
-            case MYTHIC -> 1500;
-            case PRIMORDIAL -> 2000;
-            default -> rarity.salePrice().orElse(0);
-        };
-        if(this==MIRACLE)return switch(rarity) {
-            case EPIC -> 1800;
-            case MYTHIC -> 3000;
-            case PRIMORDIAL -> 4000;
-            default -> rarity.salePrice().orElse(0);
-        };
         return rarity.salePrice().orElse(0);
     }
     public int weight(Rarity rarity,boolean openingBonus) {
         if(this==NORMAL)return rarity.weight(openingBonus);
         if(this==ASCENDED)return switch(rarity) {
-            case LEGENDARY -> 40195;
-            case EPIC -> 40000;
-            case MYTHIC -> 16000;
-            case PRIMORDIAL -> 3800;
+            case LEGENDARY -> 38829;
+            case EPIC -> 38829;
+            case MYTHIC -> 18050;
+            case PRIMORDIAL -> 4287;
             case TRUE_PRIMORDIAL -> 5;
             default -> 0;
         };
         if(this==MIRACLE)return switch(rarity) {
-            case EPIC -> 50485;
-            case MYTHIC -> 40000;
-            case PRIMORDIAL -> 9500;
+            case EPIC -> 43132;
+            case MYTHIC -> 45942;
+            case PRIMORDIAL -> 10911;
             case TRUE_PRIMORDIAL -> 12;
             case MIRACLE -> 3;
             default -> 0;

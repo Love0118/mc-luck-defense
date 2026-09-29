@@ -35,5 +35,6 @@ class ProgressionBenchmarkTest {
                 new String[]{"1","0","x","none","--unknown","1"}))
             assertThrows(IllegalArgumentException.class,()->ProgressionBenchmarkMain.Options.parse(args));
         assertEquals(3,ProgressionBenchmarkMain.loadouts().get("equipped").entries().size());
+        assertEquals(4,ProgressionBenchmarkMain.loadouts().get("top_fusion_four").entries().size());
     }
 }

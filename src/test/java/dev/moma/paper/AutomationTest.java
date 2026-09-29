@@ -215,7 +215,7 @@ class AutomationTest {
     }
     @Test void primordialAutoSaleWorksButTruePrimordialAndMiracleRequireManualSale() {
         session.arena.credit(1000);games.toggleAutoSell(player,Rarity.PRIMORDIAL);draw(Rarity.PRIMORDIAL);games.summon(player);
-        assertEquals(2020,session.arena.coins());assertEquals(0,session.arena.unitCount());
+        assertEquals(2520,session.arena.coins());assertEquals(0,session.arena.unitCount());
         for(Rarity rarity:List.of(Rarity.TRUE_PRIMORDIAL,Rarity.MIRACLE)) {
             games.toggleAutoSell(player,rarity);assertFalse(session.autoSell.contains(rarity));
             draw(rarity);games.summon(player);Defender d=session.arena.lastSummoned();

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class HealthCurveTest {
     @Test void standardCurveSpansTheSimulationAndHealthDoesNotRepeatWithTheField() {
         var rules=CampaignRules.standard();
-        assertEquals(100,rules.healthCurve().anchors().getLast().round());
+        assertEquals(1000,rules.healthCurve().anchors().getLast().round());
         for(int round=101;round<=10000;round+=100) {
             var previous=WaveSchedule.create(round-100,rules).entries();
             var current=WaveSchedule.create(round,rules).entries();
@@ -15,6 +15,20 @@ class HealthCurveTest {
                 assertTrue(Double.isFinite(current.get(i).enemy().health()));
                 assertTrue(current.get(i).enemy().health()>previous.get(i).enemy().health());
                 assertEquals(previous.get(i).enemy().type(),current.get(i).enemy().type());
+            }
+        }
+    }
+    @Test void newEarlyCurvePreservesEveryLateWaveFromRoundOneThousand() {
+        var rules=CampaignRules.standard();
+        var original=rules.withHealthCurve(HealthCurve.parse("1:60,10:150,20:900,26:1120,30:1220,40:2050,50:3200,60:6000,70:9000,80:15000,90:26000,100:48000"));
+        for(int round=1000;round<=10000;round++) {
+            var before=WaveSchedule.create(round,original).entries();
+            var after=WaveSchedule.create(round,rules).entries();
+            assertEquals(before.size(),after.size());
+            for(int i=0;i<before.size();i++) {
+                var a=before.get(i).enemy();var b=after.get(i).enemy();
+                assertEquals(a.health(),b.health(),a.health()*1e-12);
+                assertEquals(a.reward(),b.reward());assertEquals(a.speed(),b.speed());
             }
         }
     }

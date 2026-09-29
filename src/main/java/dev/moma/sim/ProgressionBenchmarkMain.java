@@ -52,6 +52,8 @@ public final class ProgressionBenchmarkMain {
         result.put("top_combat",new TraitLoadout(combat));
         var fusion=new ArrayList<>(passives);fusion.addAll(List.of("round_10000","duplicate_10000","miracle_100"));
         result.put("top_fusion",new TraitLoadout(fusion));
+        var fusionFour=new ArrayList<>(fusion);fusionFour.add("quick_clear_150");
+        result.put("top_fusion_four",new TraitLoadout(fusionFour));
         var incomeDamage=new ArrayList<>(passives);incomeDamage.addAll(List.of("round_10000","duplicate_10000","gold_spent_10000000"));
         result.put("top_income_damage",new TraitLoadout(incomeDamage));
         result.put("equipped",new TraitLoadout(List.of("round_350","session_100","session_250","session_500",

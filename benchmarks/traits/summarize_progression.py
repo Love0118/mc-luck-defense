@@ -8,10 +8,10 @@ import json
 import math
 from pathlib import Path
 
-SCENARIOS = ("none", "equipped", "top_growth", "top_combat", "top_fusion", "top_income_damage")
+SCENARIOS = ("none", "equipped", "top_growth", "top_combat", "top_fusion", "top_fusion_four", "top_income_damage")
 ROUNDS = (30, 60, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1250, 1500, 1750, 2000, 2100, 2250, 2400,
           2500, 3000, 4000, 5000, 6000, 7500, 9000, 10000)
-NAMES = dict(none="무특성", equipped="중간 티어 장착", top_growth="최고 성장", top_combat="피해·공속 비교", top_fusion="최고 합성·전투", top_income_damage="최고 수입·전투")
+NAMES = dict(none="무특성", equipped="중간 티어 장착", top_growth="최고 성장", top_combat="피해·공속 비교", top_fusion="최고 합성·전투", top_fusion_four="최고 합성·전투·공속 4특성", top_income_damage="최고 수입·전투")
 
 
 def require(condition, message):

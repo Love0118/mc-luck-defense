@@ -25,8 +25,12 @@ class AchievementTest {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of());
             var service=new AchievementService(plugin);
             var arena=new Arena("a",UUID.randomUUID(),new Grid(6),2_000_000,100);
+            arena.reachedRound(101);
+            long budget=AchievementCatalog.budget(500),cost=SummonTier.ASCENDED.cost();
+            for(long i=0;i<budget%cost/SummonTier.ADVANCED.cost();i++)
+                assertEquals(Arena.Result.OK,arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY),(t,r,c)->UUID.randomUUID()));
             arena.reachedRound(500);
-            for(int i=0;i<750;i++)assertEquals(Arena.Result.OK,arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY),(t,r,c)->UUID.randomUUID()));
+            for(long i=0;i<budget/cost;i++)assertEquals(Arena.Result.OK,arena.summon(arena.owner(),new SummonRoll(UnitType.WOLF,Rarity.LEGENDARY),(t,r,c)->UUID.randomUUID()));
             assertEquals(1_500_000,arena.spentGold());
             service.challengesReached(player,arena,500);
             assertTrue(TraitSelections.unlocked(data,TraitCatalog.find("budget_500")));

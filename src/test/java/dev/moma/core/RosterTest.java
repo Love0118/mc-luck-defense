@@ -44,14 +44,14 @@ class RosterTest {
         }
     }
     @Test void saleTableAndExpectedRecovery() {
-        int[] expected = {1, 3, 5, 24, 35, 60, 300, 750,1000,20000,420000};
+        int[] expected = {1, 3, 5, 24, 35, 60, 400, 1000,1500,30000,630000};
         double mean = 0;
         for (Rarity rarity : Rarity.values()) {
             if (rarity.ordinal() < expected.length) assertEquals(expected[rarity.ordinal()], rarity.salePrice().orElseThrow());
             else assertTrue(rarity.salePrice().isEmpty());
             mean += rarity.weight() / 100_000.0 * rarity.salePrice().orElse(0);
         }
-        assertEquals(5.19701, mean, 1e-9);
+        assertEquals(5.69201, mean, 1e-9);
         assertTrue(mean < Arena.SUMMON_COST);
     }
     @ParameterizedTest @EnumSource(UnitType.class)
@@ -74,9 +74,31 @@ class RosterTest {
         CombatProfile epic = type.profile().at(Rarity.EPIC);
         CombatProfile mythic = type.profile().at(Rarity.MYTHIC);
         CombatProfile primordial = type.profile().at(Rarity.PRIMORDIAL);
-        assertTrue(dps(epic) >= dps(legend) * 3);
-        assertTrue(dps(mythic) >= dps(epic) * 5);
+        assertTrue(dps(epic) >= dps(legend) * 2.5);
+        assertTrue(dps(mythic) >= dps(epic) * 2.25);
         assertTrue(dps(primordial) >= dps(mythic) * 20);
+    }
+    @ParameterizedTest @EnumSource(UnitType.class)
+    void legendaryBeatsCommonNineteenEvenWithMaximumEnhancementTrait(UnitType type) {
+        var d=new Defender(UUID.randomUUID(),UUID.randomUUID(),"a",type,Rarity.COMMON,new Cell(0,0),.30,1);
+        for(int i=0;i<19;i++)d.merge();
+        assertTrue(dps(type.profile().at(Rarity.LEGENDARY))>dps(d.profile()));
+        var mythic=new Defender(UUID.randomUUID(),UUID.randomUUID(),"a",type,Rarity.MYTHIC,new Cell(0,0),.30,1000);
+        for(int i=0;i<19;i++)mythic.merge();
+        assertTrue(dps(type.profile().at(Rarity.PRIMORDIAL))>dps(mythic.profile()));
+    }
+    @ParameterizedTest @EnumSource(UnitType.class)
+    void primordialThroughMiracleKeepTheirOriginalCombatProfiles(UnitType type) {
+        double[] damage={4800,480000,48000000};int[] abilities={4,4,5};
+        Rarity[] grades={Rarity.PRIMORDIAL,Rarity.TRUE_PRIMORDIAL,Rarity.MIRACLE};
+        for(int i=0;i<grades.length;i++) {
+            var original=type.profile();var profile=original.at(grades[i]);
+            assertEquals(original.damage()*damage[i],profile.damage());
+            assertEquals(Math.max(2,(int)Math.ceil(original.intervalTicks()/2.3)),profile.intervalTicks());
+            assertEquals(original.range()*1.4,profile.range());
+            assertEquals(original.areaRadius(),profile.areaRadius());assertEquals(original.targets(),profile.targets());
+            assertEquals(abilities[i],grades[i].abilityLevel());
+        }
     }
     private double dps(CombatProfile profile) { return profile.damage() * 20 / profile.intervalTicks(); }
 }

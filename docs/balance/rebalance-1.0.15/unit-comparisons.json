@@ -1,0 +1,242 @@
+[
+  {
+    "unit": "WOLF",
+    "name": "늑대",
+    "legendary0_over_common9": 4.21978021978022,
+    "legendary0_over_common19_max_trait": 1.6289592760180995,
+    "primordial0_over_mythic19_max_trait": 1.2254901960784315,
+    "moving_normal": 6.928253968253989,
+    "moving_boss": 6.928253968253989,
+    "moving_crowd48": 4.403605259798278
+  },
+  {
+    "unit": "POLAR_BEAR",
+    "name": "북극곰",
+    "legendary0_over_common9": 4.24016563146998,
+    "legendary0_over_common19_max_trait": 1.6368286445012787,
+    "primordial0_over_mythic19_max_trait": 1.1904761904761905,
+    "moving_normal": 6.6133333333333395,
+    "moving_boss": 6.6133333333333395,
+    "moving_crowd48": 4.335165532879818
+  },
+  {
+    "unit": "PANDA",
+    "name": "판다",
+    "legendary0_over_common9": 4.203612479474549,
+    "legendary0_over_common19_max_trait": 1.622718052738337,
+    "primordial0_over_mythic19_max_trait": 1.1982570806100217,
+    "moving_normal": 5.668571428571425,
+    "moving_boss": 5.668571428571425,
+    "moving_crowd48": 4.308752834467122
+  },
+  {
+    "unit": "RABBIT",
+    "name": "토끼",
+    "legendary0_over_common9": 3.809523809523809,
+    "legendary0_over_common19_max_trait": 1.4705882352941178,
+    "primordial0_over_mythic19_max_trait": 1.1764705882352942,
+    "moving_normal": 6.424380952380975,
+    "moving_boss": 6.424380952380975,
+    "moving_crowd48": 4.053333333333317
+  },
+  {
+    "unit": "IRON_GOLEM",
+    "name": "철골렘",
+    "legendary0_over_common9": 4.1558441558441555,
+    "legendary0_over_common19_max_trait": 1.6042780748663101,
+    "primordial0_over_mythic19_max_trait": 1.1204481792717087,
+    "moving_normal": 5.257142857142857,
+    "moving_boss": 5.257142857142857,
+    "moving_crowd48": 6.903474903474903
+  },
+  {
+    "unit": "HOGLIN",
+    "name": "호글린",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803921,
+    "primordial0_over_mythic19_max_trait": 1.158645276292335,
+    "moving_normal": 5.866666666666666,
+    "moving_boss": 5.866666666666666,
+    "moving_crowd48": 6.186507936507937
+  },
+  {
+    "unit": "GOAT",
+    "name": "염소",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803921,
+    "primordial0_over_mythic19_max_trait": 1.2605042016806722,
+    "moving_normal": 5.142857142857143,
+    "moving_boss": 5.142857142857143,
+    "moving_crowd48": 5.994196961938897
+  },
+  {
+    "unit": "RAVAGER",
+    "name": "파괴수",
+    "legendary0_over_common9": 4.203612479474549,
+    "legendary0_over_common19_max_trait": 1.6227180527383367,
+    "primordial0_over_mythic19_max_trait": 1.1982570806100217,
+    "moving_normal": 5.142857142857142,
+    "moving_boss": 5.142857142857142,
+    "moving_crowd48": 6.597127739984883
+  },
+  {
+    "unit": "SKELETON",
+    "name": "스켈레톤",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803921,
+    "primordial0_over_mythic19_max_trait": 1.1586452762923352,
+    "moving_normal": 4.70995670995671,
+    "moving_boss": 7.064935064935065,
+    "moving_crowd48": 4.059863945578231
+  },
+  {
+    "unit": "STRAY",
+    "name": "스트레이",
+    "legendary0_over_common9": 4.240165631469979,
+    "legendary0_over_common19_max_trait": 1.6368286445012787,
+    "primordial0_over_mythic19_max_trait": 1.1904761904761905,
+    "moving_normal": 5.417989417989418,
+    "moving_boss": 8.126984126984127,
+    "moving_crowd48": 4.237641723356009
+  },
+  {
+    "unit": "BOGGED",
+    "name": "보그드",
+    "legendary0_over_common9": 4.219780219780221,
+    "legendary0_over_common19_max_trait": 1.6289592760180998,
+    "primordial0_over_mythic19_max_trait": 1.2254901960784315,
+    "moving_normal": 4.923076923076923,
+    "moving_boss": 7.384615384615385,
+    "moving_crowd48": 4.224179752329886
+  },
+  {
+    "unit": "PIGLIN",
+    "name": "피글린",
+    "legendary0_over_common9": 4.203612479474548,
+    "legendary0_over_common19_max_trait": 1.6227180527383367,
+    "primordial0_over_mythic19_max_trait": 1.1982570806100217,
+    "moving_normal": 8.0,
+    "moving_boss": 12.0,
+    "moving_crowd48": 4.208616780045351
+  },
+  {
+    "unit": "WITCH",
+    "name": "마녀",
+    "legendary0_over_common9": 4.1558441558441555,
+    "legendary0_over_common19_max_trait": 1.6042780748663101,
+    "primordial0_over_mythic19_max_trait": 1.1204481792717087,
+    "moving_normal": 6.4380952380952285,
+    "moving_boss": 6.4380952380952285,
+    "moving_crowd48": 4.6971035837015505
+  },
+  {
+    "unit": "LLAMA",
+    "name": "라마",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803924,
+    "primordial0_over_mythic19_max_trait": 1.1982570806100217,
+    "moving_normal": 6.339047619047633,
+    "moving_boss": 6.339047619047633,
+    "moving_crowd48": 5.230564784053126
+  },
+  {
+    "unit": "SNOW_GOLEM",
+    "name": "눈골렘",
+    "legendary0_over_common9": 4.266666666666667,
+    "legendary0_over_common19_max_trait": 1.6470588235294121,
+    "primordial0_over_mythic19_max_trait": 1.1204481792717087,
+    "moving_normal": 6.68571428571431,
+    "moving_boss": 6.68571428571431,
+    "moving_crowd48": 5.50569867291172
+  },
+  {
+    "unit": "GUARDIAN",
+    "name": "가디언",
+    "legendary0_over_common9": 4.203612479474549,
+    "legendary0_over_common19_max_trait": 1.6227180527383367,
+    "primordial0_over_mythic19_max_trait": 1.198257080610022,
+    "moving_normal": 6.2258503401360645,
+    "moving_boss": 6.2258503401360645,
+    "moving_crowd48": 4.629478458049868
+  },
+  {
+    "unit": "BLAZE",
+    "name": "블레이즈",
+    "legendary0_over_common9": 4.219780219780219,
+    "legendary0_over_common19_max_trait": 1.6289592760180993,
+    "primordial0_over_mythic19_max_trait": 1.1642156862745099,
+    "moving_normal": 4.789115646258503,
+    "moving_boss": 4.789115646258503,
+    "moving_crowd48": 4.90199042579995
+  },
+  {
+    "unit": "GHAST",
+    "name": "가스트",
+    "legendary0_over_common9": 4.25249169435216,
+    "legendary0_over_common19_max_trait": 1.6415868673050618,
+    "primordial0_over_mythic19_max_trait": 1.1619462599854757,
+    "moving_normal": 5.485714285714286,
+    "moving_boss": 5.485714285714286,
+    "moving_crowd48": 6.789632308619651
+  },
+  {
+    "unit": "WITHER_SKELETON",
+    "name": "위더 스켈레톤",
+    "legendary0_over_common9": 4.266666666666667,
+    "legendary0_over_common19_max_trait": 1.647058823529412,
+    "primordial0_over_mythic19_max_trait": 1.1312217194570138,
+    "moving_normal": 5.224489795918372,
+    "moving_boss": 5.224489795918372,
+    "moving_crowd48": 4.273291925465862
+  },
+  {
+    "unit": "WARDEN",
+    "name": "워든",
+    "legendary0_over_common9": 4.219780219780219,
+    "legendary0_over_common19_max_trait": 1.6289592760180993,
+    "primordial0_over_mythic19_max_trait": 1.1642156862745099,
+    "moving_normal": 4.571428571428571,
+    "moving_boss": 4.571428571428571,
+    "moving_crowd48": 4.260182370820669
+  },
+  {
+    "unit": "EVOKER",
+    "name": "소환사",
+    "legendary0_over_common9": 4.1558441558441555,
+    "legendary0_over_common19_max_trait": 1.6042780748663101,
+    "primordial0_over_mythic19_max_trait": 1.1204481792717087,
+    "moving_normal": 4.952380952380959,
+    "moving_boss": 4.952380952380959,
+    "moving_crowd48": 5.532879818594116
+  },
+  {
+    "unit": "SHULKER",
+    "name": "셜커",
+    "legendary0_over_common9": 4.203612479474548,
+    "legendary0_over_common19_max_trait": 1.6227180527383367,
+    "primordial0_over_mythic19_max_trait": 1.1982570806100217,
+    "moving_normal": 4.7891156462585,
+    "moving_boss": 4.7891156462585,
+    "moving_crowd48": 5.611489040060406
+  },
+  {
+    "unit": "ALLAY",
+    "name": "알레이",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803921,
+    "primordial0_over_mythic19_max_trait": 1.260504201680672,
+    "moving_normal": 5.079365079365087,
+    "moving_boss": 5.079365079365087,
+    "moving_crowd48": 5.4179894179891885
+  },
+  {
+    "unit": "VEX",
+    "name": "벡스",
+    "legendary0_over_common9": 4.063492063492063,
+    "legendary0_over_common19_max_trait": 1.5686274509803924,
+    "primordial0_over_mythic19_max_trait": 1.1586452762923352,
+    "moving_normal": 4.571428571428568,
+    "moving_boss": 4.571428571428568,
+    "moving_crowd48": 5.0748299319727135
+  }
+]

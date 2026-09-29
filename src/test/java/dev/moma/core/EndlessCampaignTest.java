@@ -31,7 +31,7 @@ class EndlessCampaignTest {
         assertEquals(150,campaign.quickClearStreak());assertFalse(arena.ended());
     }
     @Test void survivesPastFormerVictoryAndTimeoutAndGeneratesFiniteBoundedWaves() {
-        var rules=new CampaignRules(6,30,100,0,100,1,1,CampaignRules.standard().healthCurve(),1,3.4,.8);
+        var rules=new CampaignRules(6,30,100,0,100,1,1,HealthCurve.parse("1:60,100:48000"),1,3.4,.8);
         var campaign=new Campaign(rules,true);var arena=new Arena("endless",UUID.randomUUID(),new Grid(6),30,100);
         for(int tick=0;tick<10200;tick++) {
             campaign.beforeCombat(arena,s->UUID.randomUUID());
