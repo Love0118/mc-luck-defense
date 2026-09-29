@@ -6,6 +6,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static dev.moma.core.Arena.Result.*;
 
 class AutoPlacementTest {
+    @Test void tinyEarlyDamageKeepsTheSamePlacementWhenAllDamageIsRescaled() {
+        var units=new ArrayList<AutoPlacement.Unit>();
+        for(int i=0;i<12;i++) {
+            UnitType type=UnitType.values()[i];Rarity rarity=i%2==0?Rarity.COMMON:Rarity.RARE;
+            units.add(new AutoPlacement.Unit(new UUID(0,i),type,rarity,type.profile().at(rarity),new Cell(i%6,i/6)));
+        }
+        var scaled=units.stream().map(d->{var p=d.profile();return new AutoPlacement.Unit(d.entityId(),d.type(),d.rarity(),
+                new CombatProfile(Math.scalb(p.damage(),40),p.intervalTicks(),p.range(),p.areaRadius(),p.targets()),d.cell());}).toList();
+        assertEquals(new AutoPlacement(new Grid(6)).arrangeSnapshot(scaled),new AutoPlacement(new Grid(6)).arrangeSnapshot(units));
+    }
     @Test void reusedWorkspaceAndCacheMatchFreshSolverAcrossMovesAndRosterChanges() {
         Grid grid=new Grid(6);AutoPlacement cached=new AutoPlacement(grid);List<Defender> roster=new ArrayList<>();
         for(int i=0;i<48;i++)roster.add(new Defender(new UUID(0,i+1),new UUID(0,1),"a",UnitType.values()[i%24],Rarity.values()[i%11],null));

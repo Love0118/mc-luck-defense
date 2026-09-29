@@ -81,9 +81,9 @@ final class ShopMenu implements Listener {
             holder.inventory.setItem(DETAILS, item(Material.PAPER, "&#" + String.format(Locale.ROOT, "%06x", EntityAdapter.rarityColor(d.rarity()).value()) + (d.rarity()==Rarity.TRUE_PRIMORDIAL?"&l":"") + "[" + d.rarity().label() + "] " + d.label(),
                     d.type().role().label(),
                     "강화 +" + d.enhancement() + (d.rarity()==Rarity.MIRACLE?"":" · +20 달성 시 다음 등급"),
-                    "공격력 " + String.format(Locale.ROOT, "%.1f", profile.damage()),
-                    "특성 적용 · 일반 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),false))
-                            +" / 보스 "+String.format(Locale.ROOT,"%.1f",profile.damage()*arena.traits().damageMultiplier(d.type().role(),true)),
+                    "공격력 " + Ui.damage(profile.damage()),
+                    "특성 적용 · 일반 "+Ui.damage(profile.damage()*arena.traits().damageMultiplier(d.type().role(),false))
+                            +" / 보스 "+Ui.damage(profile.damage()*arena.traits().damageMultiplier(d.type().role(),true)),
                     "기본 타격 평균 간격 "+String.format(Locale.ROOT,"%.2f",Math.max(1,profile.intervalTicks()/(1+arena.traits().value(TraitCatalog.Family.SPEED)/100.0)))+"틱",
                     "사거리 " + String.format(Locale.ROOT, "%.1f", profile.range()),
                     d.rarity().abilityLevel() == 0 ? "특수효과: 전설부터 해금" : d.type().role().ability() + " · " + d.rarity().abilityLevel() + "단계",

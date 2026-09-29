@@ -88,6 +88,27 @@ class RosterTest {
         assertTrue(dps(type.profile().at(Rarity.PRIMORDIAL))>dps(mythic.profile()));
     }
     @ParameterizedTest @EnumSource(UnitType.class)
+    void everyAdjacentGradeBeatsLowerNineteenAndPromotionKeepsCanonicalStats(UnitType type) {
+        double maximumBonus=TraitCatalog.ALL.stream().filter(t->t.family()==TraitCatalog.Family.ENHANCEMENT)
+                .mapToInt(TraitCatalog.Entry::value).max().orElseThrow()/100.0;
+        Rarity[] grades=Rarity.values();
+        for(int i=0;i<grades.length-1;i++)for(double bonus:new double[]{0,maximumBonus}) {
+            var lower=new Defender(UUID.randomUUID(),UUID.randomUUID(),"a",type,grades[i],new Cell(0,0),bonus,0);
+            for(int n=0;n<19;n++)lower.merge();
+            var higher=type.profile().at(grades[i+1]);
+            assertTrue(higher.damage()>lower.profile().damage(),type+" "+grades[i]);
+            assertTrue(dps(higher)>dps(lower.profile()),type+" "+grades[i]);
+            lower.merge();
+            assertEquals(grades[i+1],lower.rarity());assertEquals(0,lower.enhancement());
+            assertEquals(higher,lower.profile(),"Promotion must not carry hidden damage");
+        }
+        var chained=new Defender(UUID.randomUUID(),UUID.randomUUID(),"a",type,Rarity.COMMON,new Cell(0,0),maximumBonus,0);
+        for(int i=1;i<grades.length;i++) {
+            for(int n=0;n<20;n++)chained.merge();
+            assertEquals(type.profile().at(grades[i]),chained.profile());
+        }
+    }
+    @ParameterizedTest @EnumSource(UnitType.class)
     void primordialThroughMiracleKeepTheirOriginalCombatProfiles(UnitType type) {
         double[] damage={4800,480000,48000000};int[] abilities={4,4,5};
         Rarity[] grades={Rarity.PRIMORDIAL,Rarity.TRUE_PRIMORDIAL,Rarity.MIRACLE};

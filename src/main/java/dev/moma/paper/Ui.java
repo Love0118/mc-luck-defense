@@ -30,6 +30,11 @@ final class Ui {
     static Component text(String value) {
         return plain(LegacyComponentSerializer.legacyAmpersand().deserialize(value.replace('§', '&')));
     }
+    static String damage(double value) {
+        if(value>0 && value<.1)return java.math.BigDecimal.valueOf(value)
+                .round(new java.math.MathContext(4)).stripTrailingZeros().toPlainString();
+        return String.format(java.util.Locale.ROOT,"%.1f",value);
+    }
     private static Component plain(Component value) {
         return value.decoration(TextDecoration.ITALIC, false).children(value.children().stream().map(Ui::plain).toList());
     }

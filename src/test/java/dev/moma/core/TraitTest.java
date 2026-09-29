@@ -118,7 +118,7 @@ class TraitTest {
         for(int i=5;i<20;i++)summon(boosted,Rarity.COMMON);
         assertEquals(Rarity.RARE,boosted.lastSummoned().rarity());
         assertTrue(boosted.lastSummoned().profile().damage()>before);
-        assertEquals(base*25,boosted.lastSummoned().profile().damage(),1e-9);
+        assertEquals(UnitType.WOLF.profile().at(Rarity.RARE),boosted.lastSummoned().profile());
         assertEquals(21,boosted.lastSummoned().saleValue());
     }
     @Test void fractionalAttackSpeedAccumulatesWithoutMoveOrMergeResettingCooldown() {

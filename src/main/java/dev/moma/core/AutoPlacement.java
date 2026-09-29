@@ -70,7 +70,7 @@ public final class AutoPlacement {
         if(same)return new LinkedHashMap<>(lastLayout);
         lastSize=n;
         for(int i=0;i<n;i++){Unit d=units.get(i);lastIds[i]=d.entityId();lastProfiles[i]=d.profile();lastCells[i]=d.cell();}
-        double maximum = 1;
+        double maximum = 0;
         for (int i = 0; i < n; i++) {
             CombatProfile profile=units.get(i).profile();double[] fractions=fractions(profile.range());
             for (int j = 0; j < m; j++) {
@@ -78,6 +78,7 @@ public final class AutoPlacement {
                 maximum = Math.max(maximum, -cost[i][j]);
             }
         }
+        if(maximum==0)maximum=1;
         for (int i = 0; i < n; i++) for (int j = 0; j < m; j++) {
             Cell cell = grid.placementOrder().get(j);
             // Equal-coverage ties keep ranged units inside and avoid unnecessary moves.

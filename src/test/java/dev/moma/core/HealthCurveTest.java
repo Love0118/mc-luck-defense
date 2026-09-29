@@ -32,6 +32,11 @@ class HealthCurveTest {
             }
         }
     }
+    @Test void upperMidgameAnchorsRemainAtThePreviousBalanceFromRoundFourHundred() {
+        var old=HealthCurve.parse("1:45,10:110,20:700,26:850,30:950,40:1600,50:3000,60:6200,70:11000,80:22000,90:44000,100:100000,150:600000,200:2000000,300:5000000,400:8500000,500:16000000,600:29215470.930176035,700:46419190.23836803,800:68183714.92227086,900:102364663.51858358,1000:146879926.25949115");
+        var current=CampaignRules.standard().healthCurve();
+        for(int round=400;round<=1000;round++)assertEquals(old.at(round),current.at(round),old.at(round)*1e-12);
+    }
     @org.junit.jupiter.api.Test void endlessAnchorsInterpolateAndRejectOutOfRange() {
         var curve=HealthCurve.parse("1:60,100:250000,300:1500000,500:10000000,1000:25000000,2000:80000000");
         assertEquals(80000000,curve.at(2000));
