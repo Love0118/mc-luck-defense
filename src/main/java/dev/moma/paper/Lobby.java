@@ -48,8 +48,16 @@ final class Lobby {
     void enableFlight(Player player) {
         player.setAllowFlight(true);player.setFlying(true);
     }
+    void restoreVisibility(Player player) {
+        for (var effect : player.getActivePotionEffects()) {
+            if (effect.getType().getKey().equals(NamespacedKey.minecraft("invisibility")))
+                player.removePotionEffect(effect.getType());
+        }
+        player.setInvisible(false);
+    }
     void prepare(Player player) {
         player.closeInventory();
+        restoreVisibility(player);
         player.setFallDistance(0); player.setFireTicks(0); player.setFoodLevel(20);
         player.setGameMode(GameMode.ADVENTURE);
         enableFlight(player);

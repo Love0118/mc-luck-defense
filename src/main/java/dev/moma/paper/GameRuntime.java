@@ -56,7 +56,10 @@ public final class GameRuntime implements GameModule {
                 if(games.playing(player))games.tools.refreshActive(player,false);
                 else if(games.watching(player))games.tools.refreshActive(player,true);
                 else if(lobby!=null) {
-                    if(lobby.contains(player.getLocation()))lobby.enableFlight(player);
+                    if(lobby.contains(player.getLocation())) {
+                        lobby.restoreVisibility(player);
+                        lobby.enableFlight(player);
+                    }
                     games.tools.giveLobby(player);
                 }
             }

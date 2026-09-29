@@ -116,11 +116,13 @@ class LobbySessionTest {
         PlayerJoinEvent join=mock(PlayerJoinEvent.class); when(join.getPlayer()).thenReturn(player); listener.join(join);
         assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
         verify(player).teleport(lobby.spawn()); verify(games,never()).start(any());
+        verify(player).setInvisible(false);
         var move=mock(PlayerMoveEvent.class); when(move.getPlayer()).thenReturn(player); when(move.getTo()).thenReturn(new Location(world,0,-2,0));
         listener.move(move); verify(move).setTo(lobby.spawn());
         var respawn=mock(PlayerRespawnEvent.class); when(respawn.getPlayer()).thenReturn(player);
         player.setAllowFlight(true); player.setFlying(true);
         listener.respawn(respawn); verify(games).disconnect(player); verify(respawn).setRespawnLocation(lobby.spawn());
+        verify(player,times(2)).setInvisible(false);
         assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
     }
     @Test void startMenuRejectsShiftBottomAndRepeatedClicksAndDefersEntry() {
