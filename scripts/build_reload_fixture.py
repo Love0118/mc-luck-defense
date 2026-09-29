@@ -18,6 +18,13 @@ def main(a):
     subprocess.run(["jar","--create","--file",str(a.output/"ReloadSmoke.jar"),"-C",str(classes),"."],check=True)
     candidates=a.output/"candidates";candidates.mkdir(exist_ok=True)
     shutil.copy2(a.plugin,candidates/"base.jar")
+    with zipfile.ZipFile(a.plugin) as jar:
+        descriptor=jar.read("mud-runtime.properties").decode("utf-8")
+    def metadata(version,incompatible=False):
+        import re
+        result=re.sub(r"(?m)^version=.*$",f"version={version}",descriptor)
+        if incompatible:result=re.sub(r"(?m)^state-schema=.*$","state-schema=999999",result)
+        return result.encode("utf-8")
     original=(root/"src/main/java/dev/moma/paper/GameRuntime.java").read_text(encoding="utf-8")
     for name,version,fail in [("compatible","0.16.1-test",False),("activation-failure","0.16.2-test",True)]:
         code=original.rsplit("\n}",1)[0]+'\n    public String validationMarker(){return "candidate-one";}\n}\n'
@@ -25,9 +32,9 @@ def main(a):
         folder=a.output/name;folder.mkdir(exist_ok=True);source=folder/"GameRuntime.java";source.write_text(code,encoding="utf-8")
         subprocess.run(["javac","-encoding","UTF-8","-cp",classpath,"-d",str(folder),str(source)],check=True)
         patch={"dev/moma/paper/GameRuntime.class":(folder/"dev/moma/paper/GameRuntime.class").read_bytes(),
-               "mud-runtime.properties":f"host-api=1\nstate-schema=1\nversion={version}\n".encode()}
+               "mud-runtime.properties":metadata(version)}
         rewrite(a.plugin,candidates/(name+".jar"),patch,version)
-    rewrite(a.plugin,candidates/"incompatible.jar",{"mud-runtime.properties":b"host-api=1\nstate-schema=2\nversion=0.16.3-test\n"},"0.16.3-test")
+    rewrite(a.plugin,candidates/"incompatible.jar",{"mud-runtime.properties":metadata("0.16.3-test",True)},"0.16.3-test")
 
 
 def rewrite(source,target,patch,version):

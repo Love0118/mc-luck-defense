@@ -18,10 +18,17 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class RebootCommandTest {
+    /** Paper supports map.remove(key), but its entry iterator inherits unsupported remove(). */
+    private static final class PaperLikeMap extends java.util.AbstractMap<String,org.bukkit.command.Command> {
+        private final java.util.Map<String,org.bukkit.command.Command> backing=new HashMap<>();
+        @Override public java.util.Set<Entry<String,org.bukkit.command.Command>> entrySet(){return java.util.Collections.unmodifiableMap(backing).entrySet();}
+        @Override public org.bukkit.command.Command put(String key,org.bukkit.command.Command value){return backing.put(key,value);}
+        @Override public org.bukkit.command.Command remove(Object key){return backing.remove(key);}
+    }
     @Test void runtimeSwapRemovesOldCommandAndTheNewCommandCanRebootOnce() {
         var plugin=mock(MomaPlugin.class);
         when(plugin.getLogger()).thenReturn(Logger.getLogger("reboot-test"));
-        var map=new SimpleCommandMap(mock(Server.class),new HashMap<>());
+        var map=new SimpleCommandMap(mock(Server.class),new PaperLikeMap());
         var scheduler=mock(BukkitScheduler.class);
         var tasks=new ArrayList<Runnable>();
         when(scheduler.runTask(eq(plugin),any(Runnable.class))).thenAnswer(call->{tasks.add(call.getArgument(1));return null;});

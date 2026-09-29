@@ -26,7 +26,7 @@ final class RebootCommand extends Command {
         RebootCommand command=new RebootCommand(plugin);
         if(!map.register("mcluckdefense",command)) {
             command.unregister(map);
-            map.getKnownCommands().entrySet().removeIf(entry->entry.getValue()==command);
+            command.removeMappings(map);
             throw new IllegalStateException("/reboot 명령어를 등록할 수 없습니다.");
         }
         Bukkit.getOnlinePlayers().forEach(player->player.updateCommands());
@@ -36,9 +36,17 @@ final class RebootCommand extends Command {
     void remove() {
         cancelIdle();
         CommandMap map=Bukkit.getCommandMap();
-        map.getKnownCommands().entrySet().removeIf(entry->entry.getValue()==this);
+        removeMappings(map);
         unregister(map);
         Bukkit.getOnlinePlayers().forEach(player->player.updateCommands());
+    }
+
+    private void removeMappings(CommandMap map) {
+        var known=map.getKnownCommands();
+        // Paper forwards this map to Brigadier; its entry iterator cannot remove entries.
+        var labels=known.entrySet().stream().filter(entry->entry.getValue()==this)
+                .map(java.util.Map.Entry::getKey).toList();
+        for(String label:labels)if(known.get(label)==this)known.remove(label);
     }
 
     @Override public boolean execute(CommandSender sender,String label,String[] args) {

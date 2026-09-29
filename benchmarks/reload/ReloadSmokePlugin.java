@@ -18,6 +18,7 @@ public final class ReloadSmokePlugin extends JavaPlugin {
     private UUID sessionId,defenderId,enemyId;
     private long tickAt;
     private int phaseAt;
+    private String baseVersion;
     private final List<String> checks=new ArrayList<>();
     @Override public void onEnable() {
         if(!Bukkit.getIp().equals("127.0.0.1"))throw new IllegalStateException("Localhost only");
@@ -39,6 +40,7 @@ public final class ReloadSmokePlugin extends JavaPlugin {
         owner=Bukkit.getPlayerExact("ReloadOwner");viewer=Bukkit.getPlayerExact("ReloadViewer");
         if(owner==null || viewer==null)return;
         if(phase==0) {
+            baseVersion=host.runtime().version();
             Object maps=field(games(),"maps");call(maps,"create","reload",6);
             var data=owner.getPersistentDataContainer();
             data.set(new NamespacedKey("mcluckdefense","achievement_round"),PersistentDataType.LONG,500L);
@@ -89,7 +91,7 @@ public final class ReloadSmokePlugin extends JavaPlugin {
             phase=5;phaseAt=ticks;
             String before=module().fingerprint();host.runtime().rollback();
             require(before.equals(module().fingerprint()),"Explicit rollback preserves current state");
-            require(host.runtime().version().equals("0.16.0"),"Explicit rollback version");
+            require(host.runtime().version().equals(baseVersion),"Explicit rollback version");
             validatePlayers();checks.add("explicit-rollback");return;
         }
         if(phase==5) {
@@ -128,6 +130,9 @@ public final class ReloadSmokePlugin extends JavaPlugin {
         require(sessionId.equals(field(call(games(),"listeningSession",viewer),"sessionId")),"Spectator target");
         require(Bukkit.getEntity(defenderId)!=null && Bukkit.getEntity(enemyId)!=null,"Entities survive");
         require(owner.getAllowFlight() && viewer.getAllowFlight(),"Flight preserved");
+        var reboot=Bukkit.getCommandMap().getCommand("reboot");
+        require(reboot!=null && reboot.getClass().getClassLoader()==games().getClass().getClassLoader(),"Reboot command belongs to active runtime");
+        require(reboot==Bukkit.getCommandMap().getCommand("mcluckdefense:reboot"),"Reboot namespaced alias matches");
         require(viewer.getGameMode()==GameMode.ADVENTURE && viewer.isInvisible(),"Spectator appearance restored");
         require(owner.getPersistentDataContainer().getOrDefault(new NamespacedKey("mcluckdefense","achievement_session"),PersistentDataType.LONG,0L)==1L,"Reload must not count as another session");
     }
