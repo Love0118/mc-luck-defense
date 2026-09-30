@@ -1,0 +1,24 @@
+{
+  "version": "1.0.17",
+  "source_base_commit": "4c517e59028c0e8779ca94c153a91aaa5250ff69",
+  "tested_jar_sha256": "047d92abd727fa7838b22f07d0785e2e0b6c3719d6e06654fa25fc929ea4d0a9",
+  "validation_games": 16384,
+  "files": {
+    ".gitattributes": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+    "analysis\\analysis.json": "a697bf5aa0ba22fdb2ddc7266c42413e250989e7477183986c50806f03694a28",
+    "analysis\\conditional.csv": "c984a3ead6cbdb37b0a0004243bc97be3e8227f04ec0a0aeae4c215f6040af2b",
+    "analysis\\paired.csv": "244897a617625432d111ecf99eed634592cb82979ed12fcb95b6596a09968ee4",
+    "analysis\\reach.csv": "4b3dce1792b46bc531033a286189af8f3d11ac33473f02e9f3679f6845920471",
+    "analysis\\round-distribution.csv": "8822bcae9f1bd20d92192a12559adcc44a7e6d082faceb38b3282c1d9eb674c1",
+    "campaign.properties": "dce2c2b8734536b445927ae2908fcd2f242acdd76f46d61503743c26af2e226b",
+    "none-traits.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "none.jsonl.gz": "9d3a610ebaee7550a500bc02c88a79638fac48e46b42f3b5ebc7aa2375fc0a32",
+    "paired-baseline.csv": "161bf1113a07388791e96bed576c9de1b9e7ba14200ceb967d4ad7bde7f6208b",
+    "performance.csv": "a836391737f1774aac2b5ed2df64abeb673e5021b49453583481ed3e92f04a01",
+    "REPORT.md": "a6856f0130d3d143cb31c65c8e2f0230a8f7b425a43ef0c89ccb318e343c1458",
+    "rules.txt": "5f33cf6869daa1631620c50a1fdbc357542c8fb58869ec9e719daf7519c4ae05",
+    "summary.csv": "b8547267fe911d667d396108c9b93c3f0203f56aa6d6cf113ca2312d7de7ccb6",
+    "top_fusion_four-traits.txt": "e146aa74e58f837c786e8a1f5888118f51be2660849b564f329227afbd9de429",
+    "top_fusion_four.jsonl.gz": "6c312c18bb29d878602e47ca3d5dc5da3f021051d66fcc7982b8bc8fd2e85742"
+  }
+}

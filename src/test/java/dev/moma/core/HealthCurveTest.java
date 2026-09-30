@@ -32,10 +32,22 @@ class HealthCurveTest {
             }
         }
     }
-    @Test void upperMidgameAnchorsRemainAtThePreviousBalanceFromRoundFourHundred() {
-        var old=HealthCurve.parse("1:45,10:110,20:700,26:850,30:950,40:1600,50:3000,60:6200,70:11000,80:22000,90:44000,100:100000,150:600000,200:2000000,300:5000000,400:8500000,500:16000000,600:29215470.930176035,700:46419190.23836803,800:68183714.92227086,900:102364663.51858358,1000:146879926.25949115");
-        var current=CampaignRules.standard().healthCurve();
-        for(int round=400;round<=1000;round++)assertEquals(old.at(round),current.at(round),old.at(round)*1e-12);
+    @Test void laterReliefPreservesEarlyWavesAndEveryRewardSpeedAndSpawn() {
+        var current=CampaignRules.standard();
+        var old=current.withHealthCurve(HealthCurve.parse("1:0.0000003,10:0.000005,20:0.00008,26:0.00018,30:0.00025,40:0.0007,50:0.004,60:0.04,70:0.6,80:6,90:250,100:4000,150:12000,200:200000,300:3500000,400:8500000,500:16000000,600:29215470.930176035,700:46419190.23836803,800:68183714.92227086,900:102364663.51858358,1000:146879926.25949115"));
+        for(int round=1;round<=10000;round++) {
+            var before=WaveSchedule.create(round,old).entries();
+            var after=WaveSchedule.create(round,current).entries();
+            assertEquals(before.size(),after.size());
+            for(int i=0;i<before.size();i++) {
+                var a=before.get(i);var b=after.get(i);
+                assertEquals(a.offsetTick(),b.offsetTick());
+                assertEquals(a.enemy().type(),b.enemy().type());assertEquals(a.enemy().boss(),b.enemy().boss());
+                assertEquals(a.enemy().reward(),b.enemy().reward());assertEquals(a.enemy().speed(),b.enemy().speed());
+                if(round<=200 || round>=1000)assertEquals(a.enemy().health(),b.enemy().health());
+                else assertTrue(b.enemy().health()<a.enemy().health(),"No relief at round "+round);
+            }
+        }
     }
     @org.junit.jupiter.api.Test void endlessAnchorsInterpolateAndRejectOutOfRange() {
         var curve=HealthCurve.parse("1:60,100:250000,300:1500000,500:10000000,1000:25000000,2000:80000000");
