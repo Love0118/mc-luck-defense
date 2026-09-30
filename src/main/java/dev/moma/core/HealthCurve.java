@@ -27,14 +27,14 @@ public record HealthCurve(List<Anchor> anchors) implements java.io.Serializable 
     }
     public double at(int round) {
         if (round < 1 || round > anchors.getLast().round()) throw new IllegalArgumentException("Round outside health curve");
-        for (int i = 1; i < anchors.size(); i++) {
-            Anchor end = anchors.get(i), start = anchors.get(i - 1);
-            if (round <= end.round()) {
-                double fraction = (round - start.round()) / (double) (end.round() - start.round());
-                return start.health() * Math.pow(end.health() / start.health(), fraction);
-            }
+        int low=1,high=anchors.size()-1;
+        while(low<high) {
+            int middle=(low+high)>>>1;
+            if(anchors.get(middle).round()<round)low=middle+1;else high=middle;
         }
-        throw new IllegalStateException();
+        Anchor end=anchors.get(low),start=anchors.get(low-1);
+        double fraction=(round-start.round())/(double)(end.round()-start.round());
+        return start.health()*Math.pow(end.health()/start.health(),fraction);
     }
     public String specification() {
         return String.join(",", anchors.stream().map(a -> a.round() + ":" + a.health()).toList());

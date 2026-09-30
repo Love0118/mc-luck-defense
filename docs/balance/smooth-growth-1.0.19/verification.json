@@ -1,0 +1,20 @@
+{
+  "java_tests": 448,
+  "java_failures": 0,
+  "python_tests": 3,
+  "changed_classes_after_simulation": [
+    "dev/moma/sim/ProgressionBenchmarkMain.class"
+  ],
+  "campaign_properties_identical": true,
+  "parity": {
+    "none": {
+      "early_exact_matches": 64,
+      "launcher_exact_matches": 64
+    },
+    "top_fusion_four": {
+      "early_exact_matches": 64,
+      "launcher_exact_matches": 64
+    }
+  },
+  "live_reload_performed": false
+}

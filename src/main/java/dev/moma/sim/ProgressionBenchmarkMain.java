@@ -90,11 +90,19 @@ public final class ProgressionBenchmarkMain {
     }
     private record Completed(Cohort cohort,String row) {}
     public static void main(String[] args)throws Exception {
-        Options options=Options.parse(args);CampaignRules rules=CampaignRules.standard();
-        if(options.curve()!=null)rules=rules.withHealthCurve(HealthCurve.parse(options.curve()));
-        if(options.healthPower()!=null)rules=rules.withEndlessHealthPower(options.healthPower());
-        if(options.pressureBend()!=null)rules=rules.withEndlessPressureBend(options.pressureBend());
-        run(options,rules);
+        Options options=Options.parse(args);run(options,loadRules(options));
+    }
+    static CampaignRules loadRules(Options options)throws IOException {
+        Properties properties=new Properties();
+        try(var input=CampaignRules.class.getResourceAsStream("/campaign.properties")) {
+            if(input==null)throw new IOException("Missing campaign.properties");properties.load(input);
+        }
+        if(options.curve()!=null) {
+            properties.setProperty("health-curve",options.curve());properties.setProperty("smooth-growth.enabled","false");
+        }
+        if(options.healthPower()!=null)properties.setProperty("endless-health-power",options.healthPower().toString());
+        if(options.pressureBend()!=null)properties.setProperty("endless-pressure-bend",options.pressureBend().toString());
+        return CampaignRules.fromProperties(properties);
     }
     static void run(Options options,CampaignRules rules)throws Exception {
         Files.createDirectories(options.output());

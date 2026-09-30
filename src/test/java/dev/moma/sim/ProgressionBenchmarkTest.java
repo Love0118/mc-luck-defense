@@ -13,6 +13,17 @@ class ProgressionBenchmarkTest {
     private byte[] rows(Path output)throws Exception {
         try(var in=new GZIPInputStream(Files.newInputStream(output.resolve("none.jsonl.gz")))){return in.readAllBytes();}
     }
+    @Test void growthOverridesRebuildTheSmoothModelAndExplicitCurvesRemainLegacy()throws Exception {
+        var defaults=ProgressionBenchmarkMain.loadRules(ProgressionBenchmarkMain.Options.parse(new String[0]));
+        assertEquals(CampaignRules.standard(),defaults);
+        var power=ProgressionBenchmarkMain.loadRules(ProgressionBenchmarkMain.Options.parse(
+                new String[]{"1","0","x","none","--health-power","3.2"}));
+        assertEquals(defaults.healthCurve().at(200),power.healthCurve().at(200));
+        assertNotEquals(defaults.healthCurve().at(1500),power.healthCurve().at(1500));
+        var custom=ProgressionBenchmarkMain.loadRules(ProgressionBenchmarkMain.Options.parse(
+                new String[]{"1","0","x","none","--health-curve","1:10,100:1000","--health-power","3.2"}));
+        assertEquals(HealthCurve.parse("1:10,100:1000"),custom.healthCurve());assertEquals(3.2,custom.endlessHealthPower());
+    }
     @Test void workersAndResumePreserveSeedOrderAndDiscardOnlyIncompleteTrailingRecord()throws Exception {
         Path one=folder.resolve("one"),many=folder.resolve("many");
         ProgressionBenchmarkMain.main(new String[]{"8","100",one.toString(),"none","--threads","1","--cap","5"});

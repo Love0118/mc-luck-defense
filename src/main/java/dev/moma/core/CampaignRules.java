@@ -22,12 +22,19 @@ public record CampaignRules(int gridSize, long startingCoins, int enemyLimit, in
             if (stream == null) throw new IllegalStateException("Missing campaign.properties");
             p.load(stream);
         } catch (IOException exception) { throw new UncheckedIOException(exception); }
+        return fromProperties(p);
+    }
+    public static CampaignRules fromProperties(Properties p) {
+        double power=Double.parseDouble(p.getProperty("endless-health-power"));
+        double bend=Double.parseDouble(p.getProperty("endless-pressure-bend"));
+        HealthCurve curve=HealthCurve.parse(p.getProperty("health-curve"));
+        if(Boolean.parseBoolean(p.getProperty("smooth-growth.enabled","false")))
+            curve=SmoothHealthGrowth.from(p).compile(curve,power,bend);
         return new CampaignRules(Integer.parseInt(p.getProperty("grid-size")), Long.parseLong(p.getProperty("starting-coins")),
                 Integer.parseInt(p.getProperty("enemy-limit")), Integer.parseInt(p.getProperty("preparation-ticks")),
                 Integer.parseInt(p.getProperty("round-ticks")), Integer.parseInt(p.getProperty("cleanup-ticks")),
-                Double.parseDouble(p.getProperty("health-scale")), HealthCurve.parse(p.getProperty("health-curve")),
-                Double.parseDouble(p.getProperty("boss-health-scale")), Double.parseDouble(p.getProperty("endless-health-power")),
-                Double.parseDouble(p.getProperty("endless-pressure-bend")));
+                Double.parseDouble(p.getProperty("health-scale")), curve,
+                Double.parseDouble(p.getProperty("boss-health-scale")), power,bend);
     }
     public CampaignRules withHealthScale(double scale) { return new CampaignRules(gridSize, startingCoins, enemyLimit, preparationTicks, roundTicks, cleanupTicks, scale, healthCurve, bossHealthScale, endlessHealthPower, endlessPressureBend); }
     public CampaignRules withHealthCurve(HealthCurve curve) { return new CampaignRules(gridSize, startingCoins, enemyLimit, preparationTicks, roundTicks, cleanupTicks, healthScale, curve, bossHealthScale, endlessHealthPower, endlessPressureBend); }

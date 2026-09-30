@@ -1,0 +1,10 @@
+{
+  "none": {
+    "early_exact_matches": 64,
+    "launcher_exact_matches": 64
+  },
+  "top_fusion_four": {
+    "early_exact_matches": 64,
+    "launcher_exact_matches": 64
+  }
+}

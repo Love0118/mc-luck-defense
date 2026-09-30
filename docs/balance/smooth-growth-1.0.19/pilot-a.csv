@@ -1,0 +1,2 @@
+scenario,runs,wall_seconds,simulated_seconds,effective_speed,mean_round,reach30,reach60,reach100,reach200,reach300,reach400,reach500,reach600,reach700,reach800,reach900,reach1000,reach1250,reach1500,reach1750,reach2000,reach2100,reach2250,reach2400,reach2500,reach3000,reach4000,reach5000,reach7500,reach10000
+top_fusion_four,1024,114.3042693,1.865625125E7,163215.699328214,607.3115234375,1023,1005,654,566,558,549,532,492,416,350,333,318,201,10,7,5,5,5,3,3,0,0,0,0,0

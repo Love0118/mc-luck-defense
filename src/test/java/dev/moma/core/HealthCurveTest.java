@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class HealthCurveTest {
     @Test void standardCurveSpansTheSimulationAndHealthDoesNotRepeatWithTheField() {
         var rules=CampaignRules.standard();
-        assertEquals(1000,rules.healthCurve().anchors().getLast().round());
+        assertEquals(SmoothHealthGrowth.SAMPLED_ROUNDS,rules.healthCurve().anchors().getLast().round());
         for(int round=101;round<=10000;round+=100) {
             var previous=WaveSchedule.create(round-100,rules).entries();
             var current=WaveSchedule.create(round,rules).entries();
@@ -18,23 +18,23 @@ class HealthCurveTest {
             }
         }
     }
-    @Test void endlessReliefMaintainsReducedHealthAtEveryLaterRound() {
+    @Test void fittedCompensationConvergesToTheUnchangedVeryLateGrowthLaw() {
         var rules=CampaignRules.standard();
         var original=rules.withHealthCurve(HealthCurve.parse("1:60,10:150,20:900,26:1120,30:1220,40:2050,50:3200,60:6000,70:9000,80:15000,90:26000,100:48000"));
-        for(int round=1000;round<=10000;round++) {
+        for(int round=10000;round<=11000;round++) {
             var before=WaveSchedule.create(round,original).entries();
             var after=WaveSchedule.create(round,rules).entries();
             assertEquals(before.size(),after.size());
             for(int i=0;i<before.size();i++) {
                 var a=before.get(i).enemy();var b=after.get(i).enemy();
-                assertEquals(a.health()*.85,b.health(),a.health()*1e-12);
+                assertEquals(a.health(),b.health(),a.health()*1e-12);
                 assertEquals(a.reward(),b.reward());assertEquals(a.speed(),b.speed());
             }
         }
         for(int round:new int[]{10001,20000,100000}) {
             var before=WaveSchedule.create(round,original).entries();
             var after=WaveSchedule.create(round,rules).entries();
-            for(int i=0;i<before.size();i++)assertEquals(before.get(i).enemy().health()*.85,
+            for(int i=0;i<before.size();i++)assertEquals(before.get(i).enemy().health(),
                     after.get(i).enemy().health(),before.get(i).enemy().health()*1e-12);
         }
     }
@@ -50,8 +50,19 @@ class HealthCurveTest {
                 assertEquals(a.offsetTick(),b.offsetTick());
                 assertEquals(a.enemy().type(),b.enemy().type());assertEquals(a.enemy().boss(),b.enemy().boss());
                 assertEquals(a.enemy().reward(),b.enemy().reward());assertEquals(a.enemy().speed(),b.enemy().speed());
-                if(round<=800)assertEquals(a.enemy().health(),b.enemy().health());
-                else assertTrue(b.enemy().health()<a.enemy().health(),"No relief at round "+round);
+                if(round<=200)assertEquals(a.enemy().health(),b.enemy().health());
+            }
+        }
+    }
+    @Test void binaryLookupPreservesLegacyInterpolationBitForBit() {
+        var curve=HealthCurve.parse("1:0.0000003,30:0.00025,100:4000,200:200000,500:6000000,1000:124847937.32056747");
+        for(int round=1;round<=1000;round++) {
+            for(int i=1;i<curve.anchors().size();i++) {
+                var end=curve.anchors().get(i);var start=curve.anchors().get(i-1);
+                if(round<=end.round()) {
+                    double fraction=(round-start.round())/(double)(end.round()-start.round());
+                    assertEquals(start.health()*Math.pow(end.health()/start.health(),fraction),curve.at(round));break;
+                }
             }
         }
     }
