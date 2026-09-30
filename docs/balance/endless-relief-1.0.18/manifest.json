@@ -1,0 +1,30 @@
+{
+  "version": "1.0.18",
+  "source_base_commit": "b4c7ea9b1a3d652aead1f8c2b0da3bcf241bee9b",
+  "tested_jar_sha256": "a1dbde59dae7e0f85ffd9cf2d3840786e70e7d26a640e0973e523a57f85e03d2",
+  "validation_games": 16384,
+  "reused_games": 14095,
+  "rerun_games": 2289,
+  "files": {
+    ".gitattributes": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+    "analysis\\analysis.json": "d32732cbb153f17794eca1778880aac1bd3fef914f68170861dc375f6c9eb4de",
+    "analysis\\conditional.csv": "e94471d6c1833f37f9f64ea1000694b9561f08ccc8db09540ec71f3317c8c885",
+    "analysis\\paired.csv": "59c5f80bb7c22d2198212ae6f9a8df36323f8a85706d807df35079537f5b45b3",
+    "analysis\\reach.csv": "cfbef7f22e41ec1a2d3943010fdfa9109bb9230423aedef623058fafdd1ead38",
+    "analysis\\round-distribution.csv": "d5e3dc1833be47f8fa2f683b7c040f21cb2a6e6253fc153b8d3f06da8b1335b1",
+    "campaign.properties": "77403d44aef6a71390c7f5a82a1da60c30ce188e18bb2517ce19fae138d644ed",
+    "none-traits.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "none.jsonl.gz": "95c1bf4d651adf6dd89f52aae5eb190ce58b8ed8abbf8531ceb22142b7f608c5",
+    "performance.csv": "d331967ae836e07265ef3b6a8f7d7e20cbad50d53071b9046c6f02c5ea75bfeb",
+    "pilot-85-rules.txt": "099232cee9f5af839b56ea9f9dfa9e48303329361aecbdb3df1f949c4812eba6",
+    "pilot-85-summary.csv": "7014cd2e918b77485d27811476aacac4fffa20fa95c35119ae60c8a6d6db1d02",
+    "prefix-reuse.json": "cdc32bcbcaf64eec9bd8125105e23c3e6b431e7c361f2bcda3fdbd941ca00f9f",
+    "rejected-65-rules.txt": "ae1fe4af3ac20e826a61d86db3f3be5abe1a443c54101105deb680a88eeea4ba",
+    "rejected-65-summary.csv": "7d165e752d35dd27628f5d879b73121e7359846aaa810147f310b7de19a9142b",
+    "REPORT.md": "a6ec0d069ae55d8be1f99e5c873fc6bdc78f13114270ed5979a4e3fed4e65700",
+    "rules.txt": "4d9bf0c8a1dc3afcd972c896cc59419c7b6f3341d25dbd0e42720059ae148ff0",
+    "summary.csv": "3a242182fff9a5781e39a078fb2fe060489a1724b8a428db31bb12e7083c8614",
+    "top_fusion_four-traits.txt": "e146aa74e58f837c786e8a1f5888118f51be2660849b564f329227afbd9de429",
+    "top_fusion_four.jsonl.gz": "cfe0dbe8c10d709371de6092b7f33f2df21521b6bf89ae60be772709d4e360e8"
+  }
+}

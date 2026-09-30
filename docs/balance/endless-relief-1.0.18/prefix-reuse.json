@@ -1,0 +1,21 @@
+{
+  "source_version": "1.0.17",
+  "boundary": 800,
+  "runs_per_cohort": 8192,
+  "seed": 42000000,
+  "old_jar_sha256": "047d92abd727fa7838b22f07d0785e2e0b6c3719d6e06654fa25fc929ea4d0a9",
+  "new_jar_sha256": "a1dbde59dae7e0f85ffd9cf2d3840786e70e7d26a640e0973e523a57f85e03d2",
+  "identical_game_classes": 169,
+  "source_records": {
+    "none.jsonl.gz": "9d3a610ebaee7550a500bc02c88a79638fac48e46b42f3b5ebc7aa2375fc0a32",
+    "top_fusion_four.jsonl.gz": "6c312c18bb29d878602e47ca3d5dc5da3f021051d66fcc7982b8bc8fd2e85742"
+  },
+  "reused": {
+    "none": 8178,
+    "top_fusion_four": 5917
+  },
+  "rerun": {
+    "none": 14,
+    "top_fusion_four": 2275
+  }
+}

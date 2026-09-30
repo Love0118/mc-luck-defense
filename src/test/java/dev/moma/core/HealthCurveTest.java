@@ -18,7 +18,7 @@ class HealthCurveTest {
             }
         }
     }
-    @Test void newEarlyCurvePreservesEveryLateWaveFromRoundOneThousand() {
+    @Test void endlessReliefMaintainsReducedHealthAtEveryLaterRound() {
         var rules=CampaignRules.standard();
         var original=rules.withHealthCurve(HealthCurve.parse("1:60,10:150,20:900,26:1120,30:1220,40:2050,50:3200,60:6000,70:9000,80:15000,90:26000,100:48000"));
         for(int round=1000;round<=10000;round++) {
@@ -27,14 +27,20 @@ class HealthCurveTest {
             assertEquals(before.size(),after.size());
             for(int i=0;i<before.size();i++) {
                 var a=before.get(i).enemy();var b=after.get(i).enemy();
-                assertEquals(a.health(),b.health(),a.health()*1e-12);
+                assertEquals(a.health()*.85,b.health(),a.health()*1e-12);
                 assertEquals(a.reward(),b.reward());assertEquals(a.speed(),b.speed());
             }
+        }
+        for(int round:new int[]{10001,20000,100000}) {
+            var before=WaveSchedule.create(round,original).entries();
+            var after=WaveSchedule.create(round,rules).entries();
+            for(int i=0;i<before.size();i++)assertEquals(before.get(i).enemy().health()*.85,
+                    after.get(i).enemy().health(),before.get(i).enemy().health()*1e-12);
         }
     }
     @Test void laterReliefPreservesEarlyWavesAndEveryRewardSpeedAndSpawn() {
         var current=CampaignRules.standard();
-        var old=current.withHealthCurve(HealthCurve.parse("1:0.0000003,10:0.000005,20:0.00008,26:0.00018,30:0.00025,40:0.0007,50:0.004,60:0.04,70:0.6,80:6,90:250,100:4000,150:12000,200:200000,300:3500000,400:8500000,500:16000000,600:29215470.930176035,700:46419190.23836803,800:68183714.92227086,900:102364663.51858358,1000:146879926.25949115"));
+        var old=current.withHealthCurve(HealthCurve.parse("1:0.0000003,10:0.000005,20:0.00008,26:0.00018,30:0.00025,40:0.0007,50:0.004,60:0.04,70:0.6,80:6,90:250,100:4000,150:12000,200:200000,300:400000,400:1800000,500:6000000,600:22000000,700:38000000,800:58000000,900:93000000,1000:146879926.25949115"));
         for(int round=1;round<=10000;round++) {
             var before=WaveSchedule.create(round,old).entries();
             var after=WaveSchedule.create(round,current).entries();
@@ -44,7 +50,7 @@ class HealthCurveTest {
                 assertEquals(a.offsetTick(),b.offsetTick());
                 assertEquals(a.enemy().type(),b.enemy().type());assertEquals(a.enemy().boss(),b.enemy().boss());
                 assertEquals(a.enemy().reward(),b.enemy().reward());assertEquals(a.enemy().speed(),b.enemy().speed());
-                if(round<=200 || round>=1000)assertEquals(a.enemy().health(),b.enemy().health());
+                if(round<=800)assertEquals(a.enemy().health(),b.enemy().health());
                 else assertTrue(b.enemy().health()<a.enemy().health(),"No relief at round "+round);
             }
         }
