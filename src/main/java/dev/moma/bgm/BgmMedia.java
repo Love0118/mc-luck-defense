@@ -41,7 +41,8 @@ public final class BgmMedia {
     List<String> downloaderCommand(String... arguments)throws IOException {
         List<String> command=new ArrayList<>(List.of(downloader,"--ignore-config"));
         if(cookies!=null) {
-            if(!Files.isRegularFile(cookies) || !Files.isReadable(cookies))throw new IOException("YouTube 쿠키 파일을 읽을 수 없습니다.");
+            if(!Files.isRegularFile(cookies) || !Files.isReadable(cookies))
+                throw new BgmToolFailure(BgmToolFailure.Stage.METADATA,BgmToolFailure.Reason.COOKIE_UNAVAILABLE,-1);
             command.add("--cookies");command.add(cookies.toAbsolutePath().toString());
         }
         command.addAll(List.of(arguments));return command;
@@ -65,12 +66,12 @@ public final class BgmMedia {
     public Audio download(String url,Path workspace) throws Exception {
         url=youtube(url);
         Path metadata=workspace.resolve("metadata.json");
-        run(downloaderCommand("--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
+        run(BgmToolFailure.Stage.METADATA,downloaderCommand("--js-runtimes","node","--no-playlist","--skip-download","--dump-single-json","--",url),metadata,Duration.ofMinutes(2));
         JsonObject info=JsonParser.parseString(Files.readString(metadata)).getAsJsonObject();
         double duration=checkedDuration(info,limits.durationSeconds());
         String title=info.get("title").getAsString().replaceAll("[\\p{Cntrl}]","");
         if(title.length()>160)title=title.substring(0,160);
-        run(downloaderCommand("--js-runtimes","node","--no-playlist","--max-filesize",Long.toString(limits.fileSizeBytes()),"--socket-timeout","20","--retries","2",
+        run(BgmToolFailure.Stage.DOWNLOAD,downloaderCommand("--js-runtimes","node","--no-playlist","--max-filesize",Long.toString(limits.fileSizeBytes()),"--socket-timeout","20","--retries","2",
                 "-f","bestaudio","-o",workspace.resolve("source.%(ext)s").toString(),"--",url),workspace.resolve("download.log"),Duration.ofMinutes(8));
         Path source;
         try(var files=Files.list(workspace)) { source=files.filter(p->p.getFileName().toString().startsWith("source.") && !p.toString().endsWith(".part")).findFirst().orElseThrow(()->new IOException("영상 오디오를 다운로드하지 못했습니다.")); }
@@ -80,16 +81,19 @@ public final class BgmMedia {
     public Audio convert(Path source,Path workspace,String title,double seconds) throws Exception {
         validateDuration(seconds,limits.durationSeconds());
         Path audio=workspace.resolve("audio.ogg");
-        run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t",Integer.toString(limits.durationSeconds()),"-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
+        run(BgmToolFailure.Stage.CONVERT,List.of(ffmpeg,"-hide_banner","-nostdin","-y","-i",source.toString(),"-vn","-t",Integer.toString(limits.durationSeconds()),"-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",audio.toString()),
                 workspace.resolve("convert.log"),Duration.ofMinutes(5));
         if(!Files.isRegularFile(audio)||Files.size(audio)>limits.fileSizeBytes())throw new IOException("OGG 변환 결과가 없거나 "+limits.fileSizeMb()+"MB를 초과합니다.");
         return new Audio(audio,title,seconds);
     }
-    static void run(List<String> command,Path output,Duration timeout) throws Exception {
-        Process process=new ProcessBuilder(command).redirectOutput(output.toFile()).redirectError(output.resolveSibling(output.getFileName()+".err").toFile()).start();
+    static void run(BgmToolFailure.Stage stage,List<String> command,Path output,Duration timeout) throws Exception {
+        Path errors=output.resolveSibling(output.getFileName()+".err");
+        Process process;
+        try {process=new ProcessBuilder(command).redirectOutput(output.toFile()).redirectError(errors.toFile()).start();}
+        catch(IOException error){throw new BgmToolFailure(stage,BgmToolFailure.Reason.TOOL_START,-1);}
         try {
-            if(!process.waitFor(timeout.toMillis(),TimeUnit.MILLISECONDS))throw new IOException("오디오 처리 시간이 초과되었습니다.");
-            if(process.exitValue()!=0)throw new IOException("오디오 처리에 실패했습니다. 다운로드 도구와 영상 접근 가능 여부를 확인하세요.");
+            if(!process.waitFor(timeout.toMillis(),TimeUnit.MILLISECONDS))throw new BgmToolFailure(stage,BgmToolFailure.Reason.TIMEOUT,-1);
+            if(process.exitValue()!=0)throw BgmToolFailure.fromStderr(stage,process.exitValue(),errors);
         } finally { if(process.isAlive()){process.descendants().forEach(ProcessHandle::destroyForcibly);process.destroyForcibly();} }
     }
     public static Path pack(String id,Path audio,Path workspace) throws IOException {
@@ -100,7 +104,7 @@ public final class BgmMedia {
         List<Path> segments=new ArrayList<>();
         for(int i=0;i<(int)Math.ceil(seconds/2);i++) {
             Path segment=workspace.resolve("part_"+i+".ogg");
-            run(List.of(ffmpeg,"-hide_banner","-nostdin","-y","-ss",Integer.toString(i*2),"-i",audio.toString(),
+            run(BgmToolFailure.Stage.SEGMENT,List.of(ffmpeg,"-hide_banner","-nostdin","-y","-ss",Integer.toString(i*2),"-i",audio.toString(),
                     "-t",Double.toString(Math.min(2,seconds-i*2)),"-vn","-ac","2","-ar","48000","-c:a","libvorbis","-q:a","4",segment.toString()),
                     workspace.resolve("segment.log"),Duration.ofSeconds(30));
             segments.add(segment);

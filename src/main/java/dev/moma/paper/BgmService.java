@@ -288,6 +288,7 @@ final class BgmService implements Listener, AutoCloseable {
             Track ready=publish(draft,audio.file(),temp);store.save(ready,quota);tracks=store.list();
             message(owner,"&aBGM 등록 완료: &f"+audio.title());
         } catch(BgmMedia.RejectedAudio e) {message(owner,"&e"+e.getMessage());}
+        catch(BgmToolFailure e) {message(owner,"&cBGM 등록 실패: "+e.getMessage());plugin.getLogger().warning("BGM upload failed: "+e.diagnostic());}
         catch(Exception e) {message(owner,"&cBGM 등록 실패: 영상 접근·외부 도구·Dropbox 연결을 확인하세요.");plugin.getLogger().warning("BGM upload failed: "+e.getClass().getSimpleName());}
         finally {cleanup(temp);uploading.remove(owner);}
     }
@@ -309,7 +310,8 @@ final class BgmService implements Listener, AutoCloseable {
                 } else audio=media.download(track.youtubeUrl(),temp);
                 Track draft=new Track(track.id(),track.uploader(),track.uploaderName(),audio.title(),track.youtubeUrl(),"","",audio.seconds());
                 store.save(publish(draft,audio.file(),temp));tracks=store.list();
-            } catch(Exception e){plugin.getLogger().warning("BGM repair pending for "+track.id()+": "+e.getClass().getSimpleName());}
+            } catch(BgmToolFailure e){plugin.getLogger().warning("BGM repair pending for "+track.id()+": "+e.diagnostic());}
+            catch(Exception e){plugin.getLogger().warning("BGM repair pending for "+track.id()+": "+e.getClass().getSimpleName());}
             finally{cleanup(temp);}
         }
     }
