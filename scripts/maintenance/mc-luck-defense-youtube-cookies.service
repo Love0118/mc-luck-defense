@@ -1,0 +1,18 @@
+[Unit]
+Description=Refresh MC Luck Defense YouTube browser cookies
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/mc-luck-defense
+Environment=PLAYWRIGHT_BROWSERS_PATH=/home/ubuntu/mc-luck-defense/tools/cookie-browser-bin
+ExecStart=/home/ubuntu/mc-luck-defense/tools/cookie-browser-venv/bin/python /home/ubuntu/mc-luck-defense/tools/youtube_cookie_refresh.py --server-root /home/ubuntu/mc-luck-defense --probe-url https://www.youtube.com/watch?v=40WtnlJwTM8
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+Nice=10
+CPUQuota=100%
+MemoryMax=512M
+TimeoutStartSec=240
