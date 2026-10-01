@@ -1,0 +1,143 @@
+{
+  "server": {
+    "base": "1.0.20",
+    "candidate": "1.0.22",
+    "activeSession": true,
+    "spectator": true,
+    "fullStateMatched": true,
+    "sessionId": "2d1221a3-60ae-4932-93cf-b1ea4dcfef8d",
+    "checks": [
+      "1.0.20-to-1.0.22-normal-update-with-active-session",
+      "full-state-fingerprint-and-entities-preserved",
+      "owner-viewer-lobby-settings-gui",
+      "gui-toggle-and-duplicate-guard",
+      "round-progress-while-alert-off",
+      "single-game-loop-and-continued-rounds"
+    ]
+  },
+  "clients": {
+    "version": "1.21.8",
+    "players": {
+      "ReloadOwner": {
+        "position": true,
+        "errors": [],
+        "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+        "completed": true,
+        "settingsWindows": 3,
+        "phases": {
+          "OWN_OFF_OTHER_OFF": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          },
+          "OWN_ON_OTHER_ON": {
+            "summonChat": 1,
+            "sounds": 1,
+            "roundChat": 0
+          },
+          "ROUND_OFF": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          },
+          "ROUND_ON": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 1
+          }
+        }
+      },
+      "ReloadViewer": {
+        "position": true,
+        "errors": [],
+        "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+        "completed": true,
+        "settingsWindows": 2,
+        "phases": {
+          "OWN_OFF_OTHER_OFF": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          },
+          "OWN_ON_OTHER_ON": {
+            "summonChat": 1,
+            "sounds": 1,
+            "roundChat": 0
+          },
+          "ROUND_OFF": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          },
+          "ROUND_ON": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          }
+        }
+      },
+      "ReloadLobby": {
+        "position": true,
+        "errors": [],
+        "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+        "completed": true,
+        "settingsWindows": 1,
+        "phases": {
+          "OWN_OFF_OTHER_OFF": {
+            "summonChat": 1,
+            "sounds": 1,
+            "roundChat": 0
+          },
+          "OWN_ON_OTHER_ON": {
+            "summonChat": 1,
+            "sounds": 1,
+            "roundChat": 0
+          },
+          "ROUND_OFF": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          },
+          "ROUND_ON": {
+            "summonChat": 0,
+            "sounds": 0,
+            "roundChat": 0
+          }
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "server": {
+      "sha256": "2c4920b64b6848aae1dd624be7937e7195fd7fa294b27d59788c32fef0337eb7",
+      "bytes": 66010131
+    },
+    "base": {
+      "sha256": "2c78190913a2b66a74b0fd2c15390e5d9b25f512e2022f15cde5dba21c04b418",
+      "bytes": 16270264,
+      "runtime": {
+        "host-api": "1",
+        "state-schema": "5",
+        "version": "1.0.20",
+        "commit": "e0e2d6629af95b5beca6941b187ea3ad3e4d4d10"
+      }
+    },
+    "candidate": {
+      "sha256": "a5d6649a5cfd60f8cf1f40cabb342f810160762e07cc888ca28f8db33103b021",
+      "bytes": 16275663,
+      "runtime": {
+        "host-api": "1",
+        "state-schema": "5",
+        "version": "1.0.22",
+        "commit": "cf1c817c8920741f664ea6df9b0dda3bee19c824"
+      }
+    },
+    "fixture": {
+      "sha256": "ae8b9f06c11c9fa029d6e8195261ecc03cd510473ef91e1ce7109a3af0e7167f",
+      "bytes": 9404
+    }
+  },
+  "execution": "Paper 26.3 with three Minecraft 1.21.8 protocol clients through ViaVersion/ViaBackwards",
+  "actions": "Normal installDownloaded(path), no force; GUI interactions dispatched through Bukkit events",
+  "live_server_modified": false
+}

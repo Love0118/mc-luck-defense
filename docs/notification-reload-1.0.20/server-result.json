@@ -1,0 +1,16 @@
+{
+  "base": "1.0.20",
+  "candidate": "1.0.22",
+  "activeSession": true,
+  "spectator": true,
+  "fullStateMatched": true,
+  "sessionId": "2d1221a3-60ae-4932-93cf-b1ea4dcfef8d",
+  "checks": [
+    "1.0.20-to-1.0.22-normal-update-with-active-session",
+    "full-state-fingerprint-and-entities-preserved",
+    "owner-viewer-lobby-settings-gui",
+    "gui-toggle-and-duplicate-guard",
+    "round-progress-while-alert-off",
+    "single-game-loop-and-continued-rounds"
+  ]
+}

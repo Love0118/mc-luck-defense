@@ -1,0 +1,92 @@
+{
+  "version": "1.21.8",
+  "players": {
+    "ReloadOwner": {
+      "position": true,
+      "errors": [],
+      "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+      "completed": true,
+      "settingsWindows": 3,
+      "phases": {
+        "OWN_OFF_OTHER_OFF": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        },
+        "OWN_ON_OTHER_ON": {
+          "summonChat": 1,
+          "sounds": 1,
+          "roundChat": 0
+        },
+        "ROUND_OFF": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        },
+        "ROUND_ON": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 1
+        }
+      }
+    },
+    "ReloadViewer": {
+      "position": true,
+      "errors": [],
+      "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+      "completed": true,
+      "settingsWindows": 2,
+      "phases": {
+        "OWN_OFF_OTHER_OFF": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        },
+        "OWN_ON_OTHER_ON": {
+          "summonChat": 1,
+          "sounds": 1,
+          "roundChat": 0
+        },
+        "ROUND_OFF": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        },
+        "ROUND_ON": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        }
+      }
+    },
+    "ReloadLobby": {
+      "position": true,
+      "errors": [],
+      "disconnect": "{\"reason\":{\"type\":\"string\",\"value\":\"Server closed\"}}",
+      "completed": true,
+      "settingsWindows": 1,
+      "phases": {
+        "OWN_OFF_OTHER_OFF": {
+          "summonChat": 1,
+          "sounds": 1,
+          "roundChat": 0
+        },
+        "OWN_ON_OTHER_ON": {
+          "summonChat": 1,
+          "sounds": 1,
+          "roundChat": 0
+        },
+        "ROUND_OFF": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        },
+        "ROUND_ON": {
+          "summonChat": 0,
+          "sounds": 0,
+          "roundChat": 0
+        }
+      }
+    }
+  }
+}
