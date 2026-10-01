@@ -27,7 +27,7 @@ final class SummonAnnouncement {
         var message=EntityAdapter.rarityName(roll.rarity(),owner.getName()+" 님이 ["+roll.rarity().label()+"] "+roll.type().label()+(traitUpgrade?" 특성 승급!":" 획득!"));
         for(Player player:Bukkit.getOnlinePlayers()) {
             boolean local=sameSession.test(player);
-            if(!local && !SessionTools.otherSummonAlerts(player))continue;
+            if(!NotificationPreferences.summonEnabled(player,owner))continue;
             player.sendMessage(message);
             if(!playSound)continue;
             if(roll.rarity()==Rarity.PRIMORDIAL && tier!=SummonTier.NORMAL && !local)continue;

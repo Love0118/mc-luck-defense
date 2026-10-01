@@ -10,20 +10,10 @@ import java.util.Arrays;
 /** Session hotbar tools with a player-persistent backup of replaced slots. */
 final class SessionTools {
     private static final NamespacedKey SOUND_LEVEL = new NamespacedKey("momadefense", "attack_volume");
-    private static final NamespacedKey OTHER_SUMMON_ALERTS = new NamespacedKey("momadefense", "other_summon_alerts");
     private static final int[] VOLUMES = {100, 50, 25, 0};
-    static boolean otherSummonAlerts(Player player) {
-        var data=player.getPersistentDataContainer();
-        return data==null || data.getOrDefault(OTHER_SUMMON_ALERTS,PersistentDataType.BYTE,(byte)1)!=0;
-    }
-    void toggleSummonAlerts(Player player) {
-        var data=player.getPersistentDataContainer();
-        data.set(OTHER_SUMMON_ALERTS,PersistentDataType.BYTE,otherSummonAlerts(player)?(byte)0:(byte)1);
-        giveSummonAlerts(player);
-    }
-    private void giveSummonAlerts(Player player) {
-        player.getInventory().setItem(5,tool(Material.PAPER,"summon_alerts","&e다른 세션 소환 알림 &7· "
-                +(otherSummonAlerts(player)?"&aON":"&7OFF"),"&7우클릭: 알림과 소리 켜기·끄기"));
+    private void giveSettings(Player player) {
+        player.getInventory().setItem(5,tool(Material.COMPARATOR,"summon_alerts","&e환경설정",
+                "&7우클릭: 알림 설정"));
     }
     static float soundVolume(Player player) {
         var data=player.getPersistentDataContainer();
@@ -64,7 +54,7 @@ final class SessionTools {
             inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 선택 → 빈 칸 이동 / 다른 기물과 교환","&7같은 기물 다시 클릭·다른 아이템: 선택 해제"));
             inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7좌클릭: 포탑 선택 · 우클릭: 판매","&7다른 아이템을 들면 선택 해제","&7진 태초·미라클: 수동판매"));
         }
-        giveSummonAlerts(player);
+        giveSettings(player);
     }
     void downgrade(Player player,boolean playing) {
         var data=player.getPersistentDataContainer();byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
@@ -93,7 +83,7 @@ final class SessionTools {
         if (lobby) inventory.setItem(1,tool(Material.ENCHANTED_BOOK,"traits","&d특성 선택","&7우클릭: 특성 장착·해제","&7최고 100·250·500라운드에 슬롯 해금"));
         if (!lobby) inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
         if (!lobby) giveSound(player);
-        giveSummonAlerts(player);
+        giveSettings(player);
         if (!lobby) {
             boolean enabled=data.getOrDefault(new NamespacedKey("momadefense","bgm_muted"),PersistentDataType.BYTE,(byte)0)==0;
             updateBgm(player,viewer,enabled);

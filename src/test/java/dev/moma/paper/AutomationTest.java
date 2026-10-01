@@ -250,6 +250,7 @@ class AutomationTest {
     @Test void purchaseAnnouncementsChangeAfterRoundOneHundred() {
         session.arena.credit(100000);session.arena.toggleMerging(player.getUniqueId());
         Player other=mock(Player.class);Location at=player.getLocation();when(other.getLocation()).thenReturn(at);
+        when(other.getUniqueId()).thenReturn(UUID.randomUUID());
         bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(player,other));
         for(int round:new int[]{100,101,500,1000}) {
             session.arena.reachedRound(round);

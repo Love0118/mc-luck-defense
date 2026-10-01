@@ -94,7 +94,6 @@ final class GameService {
     boolean usingManageTool(Player player) { return playing(player) && tools.holding(player,"manage"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }
     boolean usingSoundTool(Player player) { return active(player) && tools.holding(player,"sound"); }
-    boolean usingSummonAlertsTool(Player player) { return active(player) && tools.holding(player,"summon_alerts"); }
     private void showSelection(Player player,GameSession session) {
         UUID selected=session.arena.selected().map(Defender::entityId).orElse(null);
         if(selected!=null && tools.holding(player,"sell"))entities.selectGlow(player,selected,true);
@@ -651,7 +650,8 @@ final class GameService {
         if (session.arena.ended()) return false;
         if (session.campaign.round() != session.announcedRound) {
             session.announcedRound = session.campaign.round();
-            player.sendMessage(Component.text("라운드 " + session.announcedRound + " · " + session.campaign.wave().name(), NamedTextColor.AQUA));
+            if(NotificationPreferences.ROUND.enabled(player))
+                player.sendMessage(Component.text("라운드 " + session.announcedRound + " · " + session.campaign.wave().name(), NamedTextColor.AQUA));
             if(leaderboard!=null && !session.assisted)leaderboard.record(player,session.announcedRound);
             if(achievements!=null && !session.assisted)achievements.reached(player,session.announcedRound);
             if(achievements!=null && !session.assisted)achievements.challengesReached(player,session.arena,session.announcedRound);

@@ -31,6 +31,27 @@ class SessionSpeedTest {
         when(world.getChunkAt(anyInt(),anyInt())).thenAnswer(call->mock(Chunk.class));
         return new GameService(plugin,maps,CampaignRules.standard());
     }
+    @Test void disablingRoundChatKeepsRoundProgressAchievementsAndLaterReenable() {
+        World world=mock(World.class);
+        try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->{
+                when(adapter.advanceAll(any(),any())).thenReturn(true);
+                when(adapter.spawnEnemy(any(),any(),any(),anyBoolean())).thenAnswer(call->UUID.randomUUID());
+            });var bukkit=mockStatic(Bukkit.class)) {
+            GameService games=games(world);Player owner=player(world);
+            var data=TraitSelectionsTest.data();when(owner.getPersistentDataContainer()).thenReturn(data);
+            bukkit.when(()->Bukkit.getPlayer(owner.getUniqueId())).thenReturn(owner);
+            games.join(owner,"a");games.achievements=mock(AchievementService.class);
+            NotificationPreferences.ROUND.toggle(owner);clearInvocations(owner);
+            while(games.session(owner).campaign.round()<1)games.tick();
+            verify(owner,never()).sendMessage(any(Component.class));
+            assertEquals(1,games.session(owner).announcedRound);verify(games.achievements).reached(owner,1);
+            NotificationPreferences.ROUND.toggle(owner);
+            while(games.session(owner).campaign.round()<2)games.tick();
+            var message=org.mockito.ArgumentCaptor.forClass(Component.class);verify(owner).sendMessage(message.capture());
+            assertTrue(LegacyComponentSerializer.legacyAmpersand().serialize(message.getValue()).contains("라운드 2 · "));
+            verify(games.achievements).reached(owner,2);
+        }
+    }
     @Test void speedsAreIndependentBoundedAndDoNotResetClockOrCooldownOnChange() {
         World world=mock(World.class);
         try(var adapters=mockConstruction(EntityAdapter.class,(adapter,context)->when(adapter.advanceAll(any(),any())).thenReturn(true));

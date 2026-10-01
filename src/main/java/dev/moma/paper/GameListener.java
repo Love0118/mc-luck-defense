@@ -78,9 +78,6 @@ final class GameListener implements Listener {
         if (hand==EquipmentSlot.HAND && games.usingSoundTool(player) && beginClick(player)) {
             games.tools.cycleSound(player); Ui.sound(player, Ui.Cue.CLICK); return;
         }
-        if (hand==EquipmentSlot.HAND && games.usingSummonAlertsTool(player) && beginClick(player)) {
-            games.tools.toggleSummonAlerts(player); Ui.sound(player, Ui.Cue.CLICK); return;
-        }
         if (hand==EquipmentSlot.HAND && games.usingLeaveTool(player) && beginClick(player)) {
             Ui.sound(player, Ui.Cue.CLICK); games.leave(player); return;
         }

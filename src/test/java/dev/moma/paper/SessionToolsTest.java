@@ -53,9 +53,9 @@ class SessionToolsTest {
             inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"leave"));
             inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));
             inventory.setHeldItemSlot(5);assertTrue(tools.holding(player,"summon_alerts"));
-            assertTrue(SessionTools.otherSummonAlerts(player));tools.toggleSummonAlerts(player);
-            assertFalse(SessionTools.otherSummonAlerts(player));tools.toggleSummonAlerts(player);
-            assertTrue(SessionTools.otherSummonAlerts(player));
+            assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
+            assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
+            assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));
             assertEquals(1f,SessionTools.soundVolume(player));
             for(float level:new float[]{.5f,.25f,0f,1f}) { tools.cycleSound(player); assertEquals(level,SessionTools.soundVolume(player)); }
             slots[10]=slots[2]; // A stale copied session item must not survive cleanup.
