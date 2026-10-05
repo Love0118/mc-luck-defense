@@ -39,6 +39,9 @@ final class LobbyListener implements Listener {
         boolean viewer=games.watching(event.getPlayer());
         if (!viewer && !lobby.contains(event.getPlayer().getLocation())) return;
         event.setCancelled(true);
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
+            games.returnToPortal(event.getPlayer());
         if ((viewer || !games.active(event.getPlayer())) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
                 && games.tools.holding(event.getPlayer(), "sessions")) menu.open(event.getPlayer());
@@ -49,7 +52,12 @@ final class LobbyListener implements Listener {
     @EventHandler public void drag(org.bukkit.event.inventory.InventoryDragEvent event) {
         if (lobby.contains(event.getWhoClicked().getLocation())) event.setCancelled(true);
     }
-    @EventHandler public void interactEntity(PlayerInteractEntityEvent event) { if (lobby.contains(event.getPlayer().getLocation())) event.setCancelled(true); }
+    @EventHandler public void interactEntity(PlayerInteractEntityEvent event) {
+        if (!lobby.contains(event.getPlayer().getLocation())) return;
+        event.setCancelled(true);
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND) games.returnToPortal(event.getPlayer());
+    }
+    @EventHandler public void interactAtEntity(PlayerInteractAtEntityEvent event) { interactEntity(event); }
     @EventHandler public void drop(PlayerDropItemEvent event) { if (lobby.contains(event.getPlayer().getLocation())) event.setCancelled(true); }
     @EventHandler public void pickup(EntityPickupItemEvent event) { if (lobby.contains(event.getEntity().getLocation())) event.setCancelled(true); }
     @EventHandler public void portal(PlayerPortalEvent event) { if (lobby.contains(event.getFrom())) event.setCancelled(true); }

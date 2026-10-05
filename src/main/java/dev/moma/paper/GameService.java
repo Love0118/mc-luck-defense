@@ -90,6 +90,21 @@ final class GameService {
     void useBgm(Player player) { if(bgm!=null)bgm.use(player); }
     boolean active(Player player) { return playing(player) || watching(player); }
     boolean usingLeaveTool(Player player) { return active(player) && tools.holding(player,"leave"); }
+    void returnToPortal(Player player) {
+        if (lobby == null || !lobby.contains(player.getLocation()) || active(player)
+                || !tools.holding(player,"portal_return")) return;
+        player.closeInventory();
+        if (bgm != null) bgm.stop(player);
+        tools.restore(player);
+        try {
+            player.removeResourcePacks();
+            player.transfer("stevegallery.kr",25565);
+        } catch (IllegalArgumentException | IllegalStateException error) {
+            tools.giveLobby(player);
+            player.sendMessage(Ui.text("&c포탈섭으로 이동하지 못했습니다. 다시 시도해 주세요."));
+            Ui.sound(player,Ui.Cue.ERROR);
+        }
+    }
     boolean usingMoveTool(Player player) { return playing(player) && tools.holding(player,"move"); }
     boolean usingManageTool(Player player) { return playing(player) && tools.holding(player,"manage"); }
     boolean usingSellTool(Player player) { return playing(player) && tools.holding(player,"sell"); }

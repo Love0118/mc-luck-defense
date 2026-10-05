@@ -81,7 +81,8 @@ final class SessionTools {
         }
         if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
         if (lobby) inventory.setItem(1,tool(Material.ENCHANTED_BOOK,"traits","&d특성 선택","&7우클릭: 특성 장착·해제","&7최고 100·250·500라운드에 슬롯 해금"));
-        if (!lobby) inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
+        if (lobby) inventory.setItem(8,tool(Material.RED_BED,"portal_return","&c포탈섭으로 돌아가기","&7우클릭: 포탈섭으로 이동"));
+        else inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
         if (!lobby) giveSound(player);
         giveSettings(player);
         if (!lobby) {
@@ -99,7 +100,7 @@ final class SessionTools {
                 viewer ? "&7우클릭: BGM 켜기·끄기" : "&7우클릭: 노래 선택·업로드"));
     }
     boolean holding(Player player,String id) {
-        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave" -> 8; default -> -1; };
+        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave", "portal_return" -> 8; default -> -1; };
         var inventory=player.getInventory();
         return inventory!=null && inventory.getHeldItemSlot()==slot && id.equals(id(inventory.getItemInMainHand()));
     }

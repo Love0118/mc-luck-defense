@@ -63,6 +63,8 @@ class SessionToolsTest {
             assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"portal_return"));assertFalse(tools.holding(player,"leave"));
+            verify(slots[8].getItemMeta()).displayName(Ui.text("&c포탈섭으로 돌아가기"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"traits"));
             inventory.setHeldItemSlot(0);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
