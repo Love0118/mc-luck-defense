@@ -233,6 +233,15 @@ final class GameService {
         if(!session.arena.traits().allEntries().isEmpty())
             player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
     }
+    void requestLeave(Player player) {
+        GameSession session=session(player);
+        if(session!=null && !session.arena.ended() && session.campaign.round()>=100 && SessionExitPreferences.enabled(player)) {
+            player.sendMessage(Ui.text("&e세션 나가기가 잠겨 있습니다. &f환경설정에서 해제하세요."));
+            Ui.sound(player,Ui.Cue.ERROR);return;
+        }
+        Ui.sound(player,Ui.Cue.CLICK);
+        leave(player);
+    }
     void leave(Player player) {
         if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);

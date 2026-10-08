@@ -86,7 +86,7 @@ final class LobbyMenu implements Listener {
             try {
                 if (previous || next) open(player, holder.page + (next ? 1 : -1));
                 else if (slot == JOIN) games.start(player);
-                else if (slot == LEAVE) games.leave(player);
+                else if (slot == LEAVE) {games.requestLeave(player);return;}
                 else games.spectate(player, holder.sessions.get(slot).sessionId());
                 if (!previous && !next) Ui.sound(player,Ui.Cue.CLICK);
             } catch (IllegalArgumentException error) {

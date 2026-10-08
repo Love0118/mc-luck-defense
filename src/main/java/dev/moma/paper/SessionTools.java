@@ -13,7 +13,7 @@ final class SessionTools {
     private static final int[] VOLUMES = {100, 50, 25, 0};
     private void giveSettings(Player player) {
         player.getInventory().setItem(5,tool(Material.COMPARATOR,"summon_alerts","&e환경설정",
-                "&7우클릭: 알림 설정"));
+                "&7우클릭: 환경설정"));
     }
     static float soundVolume(Player player) {
         var data=player.getPersistentDataContainer();

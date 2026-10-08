@@ -15,6 +15,7 @@ import static org.mockito.Mockito.*;
 class SettingsMenuTest {
     @Test void defaultsLegacySettingAndIndependentPreferencesPersistOnThePlayer() {
         Player player=mock(Player.class);var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
+        assertFalse(SessionExitPreferences.enabled(player));
         for(var option:NotificationPreferences.values())assertTrue(option.enabled(player));
         data.set(new NamespacedKey("momadefense","other_summon_alerts"),org.bukkit.persistence.PersistentDataType.BYTE,(byte)0);
         assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));
@@ -24,6 +25,8 @@ class SettingsMenuTest {
         for(var option:NotificationPreferences.values())assertFalse(option.enabled(reconnected));
         NotificationPreferences.OTHER_SUMMON.toggle(reconnected);
         assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));assertFalse(NotificationPreferences.OWN_SUMMON.enabled(player));
+        SessionExitPreferences.toggle(player);assertTrue(SessionExitPreferences.enabled(reconnected));
+        SessionExitPreferences.toggle(reconnected);assertFalse(SessionExitPreferences.enabled(player));
     }
     @Test void guiOpensFromTheExistingToolAndRejectsDuplicateForeignStaleAndInventoryTransferActions() {
         Player player=mock(Player.class),stranger=mock(Player.class);SessionTools tools=mock(SessionTools.class);
@@ -51,17 +54,21 @@ class SettingsMenuTest {
                 tick[0]++;when(click.getRawSlot()).thenReturn(slot);menu.click(click);menu.click(click);
             }
             for(var option:NotificationPreferences.values())assertFalse(option.enabled(player));
+            tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);menu.click(click);menu.click(click);
+            assertTrue(SessionExitPreferences.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(38);menu.click(click);
-            when(click.getRawSlot()).thenReturn(11);when(click.getClick()).thenReturn(ClickType.SHIFT_LEFT);menu.click(click);
+            when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);when(click.getClick()).thenReturn(ClickType.SHIFT_LEFT);menu.click(click);
             when(click.getClick()).thenReturn(ClickType.NUMBER_KEY);menu.click(click);
             when(click.getClick()).thenReturn(ClickType.LEFT);when(click.getWhoClicked()).thenReturn(stranger);menu.click(click);
             when(click.getWhoClicked()).thenReturn(player);when(player.getOpenInventory()).thenReturn(mock(InventoryView.class));menu.click(click);
             when(player.getOpenInventory()).thenReturn(view);
             var drag=mock(InventoryDragEvent.class);when(drag.getView()).thenReturn(view);menu.drag(drag);verify(drag).setCancelled(true);
             Inventory current=view.getTopInventory();var close=mock(InventoryCloseEvent.class);when(close.getInventory()).thenReturn(current);menu.close(close);menu.click(click);
+            assertTrue(SessionExitPreferences.enabled(player));
             assertFalse(NotificationPreferences.OWN_SUMMON.enabled(player));
             tick[0]++;menu.interact(use);assertEquals(2,inventories.size());
             when(click.getRawSlot()).thenReturn(11);menu.click(click);assertTrue(NotificationPreferences.OWN_SUMMON.enabled(player));
+            tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);menu.click(click);assertFalse(SessionExitPreferences.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(22);menu.click(click);verify(player).closeInventory();
         }
     }

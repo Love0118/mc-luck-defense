@@ -10,6 +10,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.*;
 
 final class SettingsMenu implements Listener {
+    static final int EXIT_LOCK=17;
     private final SessionTools tools;
     private final Map<UUID,Integer> openedAt=new HashMap<>();
     private static final class Holder implements InventoryHolder {
@@ -33,6 +34,11 @@ final class SettingsMenu implements Listener {
             holder.inventory.setItem(11+i*2,Ui.item(enabled?Material.LIME_DYE:Material.GRAY_DYE,
                     "&e"+options[i].label+" &7· "+(enabled?"&aON":"&7OFF"),"&7클릭하여 켜기·끄기"));
         }
+        boolean exitLocked=SessionExitPreferences.enabled(player);
+        holder.inventory.setItem(EXIT_LOCK,Ui.item(exitLocked?Material.LIME_DYE:Material.GRAY_DYE,
+                "&e100라운드 이후 세션 나가기 비활성화 &7· "+(exitLocked?"&aON":"&7OFF"),
+                "&7100라운드부터 실수로 나가는 것을 막습니다.",
+                "&7나가려면 이 설정을 OFF로 변경하세요.","&7클릭하여 켜기·끄기"));
         holder.inventory.setItem(22,Ui.item(Material.BARRIER,"&c닫기"));
     }
     private boolean use(Player player,EquipmentSlot hand) {
@@ -59,9 +65,10 @@ final class SettingsMenu implements Listener {
                 || event.getClick()!=ClickType.LEFT || holder.lastClick==Bukkit.getCurrentTick())return;
         int slot=event.getRawSlot();
         if(slot==22){holder.closed=true;player.closeInventory();Ui.sound(player,Ui.Cue.CLICK);return;}
-        if(slot!=11 && slot!=13 && slot!=15)return;
+        if(slot!=11 && slot!=13 && slot!=15 && slot!=EXIT_LOCK)return;
         holder.lastClick=Bukkit.getCurrentTick();
-        NotificationPreferences.values()[(slot-11)/2].toggle(player);
+        if(slot==EXIT_LOCK)SessionExitPreferences.toggle(player);
+        else NotificationPreferences.values()[(slot-11)/2].toggle(player);
         render(player,holder);Ui.sound(player,Ui.Cue.CLICK);
     }
     @EventHandler public void drag(InventoryDragEvent event) {

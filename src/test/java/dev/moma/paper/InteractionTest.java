@@ -218,15 +218,15 @@ class InteractionTest {
     @Test void viewerBedUsesMainHandOnceAndBlocksOtherInteractions() {
         doReturn(true).when(games).watching(player);
         doReturn(true).when(games).usingLeaveTool(player);
-        doNothing().when(games).leave(player);
+        doNothing().when(games).requestLeave(player);
         when(player.getLocation()).thenReturn(new Location(mock(World.class),0,70,0));
         var event=mock(PlayerInteractEvent.class);when(event.getPlayer()).thenReturn(player);
         when(event.getAction()).thenReturn(Action.RIGHT_CLICK_AIR);
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getCurrentTick).thenReturn(10);
-            when(event.getHand()).thenReturn(EquipmentSlot.OFF_HAND); listener.interact(event);verify(games,never()).leave(player);
+            when(event.getHand()).thenReturn(EquipmentSlot.OFF_HAND); listener.interact(event);verify(games,never()).requestLeave(player);
             when(event.getHand()).thenReturn(EquipmentSlot.HAND);listener.interact(event);listener.interact(event);
-            verify(games,times(1)).leave(player);verify(event,times(3)).setCancelled(true);
+            verify(games,times(1)).requestLeave(player);verify(event,times(3)).setCancelled(true);
         }
         var damage=mock(EntityDamageEvent.class);when(damage.getEntity()).thenReturn(player);
         when(player.getPersistentDataContainer()).thenReturn(mock(org.bukkit.persistence.PersistentDataContainer.class));

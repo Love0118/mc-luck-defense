@@ -43,7 +43,7 @@ final class MomaCommand implements TabExecutor {
                 case "spectate" -> { require(args, 2, "/mud spectate <플레이어>"); games.spectate(player(sender), args[1]); }
                 case "speed" -> { require(args, 2, "/mud speed <1|2|4|8|16|32>"); games.speed(player(sender), Integer.parseInt(args[1])); }
                 case "join" -> { if (args.length == 1) games.start(player(sender)); else games.join(player(sender), args[1]); }
-                case "leave", "lobby" -> games.leave(player(sender));
+                case "leave", "lobby" -> games.requestLeave(player(sender));
                 case "spawn" -> {
                     require(args, 2, "/mud spawn <ZOMBIE|HUSK|DROWNED|SPIDER|SLIME|MAGMA_CUBE> [1~100] [boss]");
                     EnemyType type;
