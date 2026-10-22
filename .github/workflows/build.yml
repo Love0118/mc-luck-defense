@@ -16,6 +16,8 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+      - run: python3 noqui/lobby-assets/build_pack.py --check
+      - run: python3 noqui/lobby-assets/test_pack.py
       - run: mvn -B -ntp -f noqui/plugin/pom.xml clean install
       - run: mvn -B -ntp -Dbuild.commit=${{ github.sha }} clean verify
       - run: python3 -m unittest discover -s benchmarks/traits -p test_progression_report.py

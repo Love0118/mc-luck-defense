@@ -139,6 +139,7 @@ class LobbySessionTest {
                     .thenAnswer(call->{when(inventory.getHolder()).thenReturn(call.getArgument(0));return inventory;});
             var meta=mock(org.bukkit.inventory.meta.ItemMeta.class);
             try (var items=mockConstruction(org.bukkit.inventory.ItemStack.class,(item,context)->when(item.getItemMeta()).thenReturn(meta))) { menu.open(player); }
+            verify(meta).lore(List.of(Ui.text("&7최고 라운드에 도전하세요.")));
             var event=mock(org.bukkit.event.inventory.InventoryClickEvent.class);
             when(event.getView()).thenReturn(view); when(event.getWhoClicked()).thenReturn(player);
             when(event.getRawSlot()).thenReturn(LobbyMenu.JOIN); when(event.getClick()).thenReturn(org.bukkit.event.inventory.ClickType.SHIFT_LEFT);

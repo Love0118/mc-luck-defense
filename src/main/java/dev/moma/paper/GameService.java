@@ -11,13 +11,26 @@ import java.util.concurrent.*;
 final class GameService {
     NoquiHooks noqui=NoquiHooks.NONE;
     boolean routeNoquiJoin(Player player){return noqui.routeJoin(player);}
-    boolean quizParticipant(Player player){return noqui.owns(player);}
+    boolean quizParticipant(Player player){return noqui.participant(player);}
+    boolean quizCabinOwner(Player player){return noqui.owns(player);}
+    boolean canReturnToNoqui(Player player) {
+        return noqui.started() && !noqui.owns(player) && (active(player) || lobby!=null && lobby.contains(player.getLocation()));
+    }
+    void refreshNoquiTool(Player player) {
+        if(!noqui.owns(player))tools.updateNoqui(player,canReturnToNoqui(player),playing(player));
+    }
+    void refreshNoquiTools() {for(Player player:Bukkit.getOnlinePlayers())refreshNoquiTool(player);}
+    void requestNoquiReturn(Player player) {
+        if(!canReturnToNoqui(player)){refreshNoquiTool(player);return;}
+        if(noqui.participant(player))noqui.openControls(player);
+        else if(!noqui.routeJoin(player))player.sendMessage(Ui.text("&e노래퀴즈에 입장할 수 없습니다."));
+    }
     private boolean sendToHub(Player player) {
         return sendToHub(player,true);
     }
     private boolean sendToHub(Player player,boolean allowQuiz) {
         if(allowQuiz && noqui.routeJoin(player))return true;
-        if(lobby!=null){lobby.send(player);return true;}
+        if(lobby!=null){lobby.send(player);refreshNoquiTool(player);return true;}
         return false;
     }
     private final MomaPlugin plugin;
@@ -27,6 +40,7 @@ final class GameService {
     final EntityAdapter entities;
     final SessionTools tools;
     BgmService bgm;
+    DefenseRewards rewards;
     RoundLeaderboard leaderboard;
     AchievementService achievements;
     final SpectatorAppearance appearance = new SpectatorAppearance();
@@ -153,20 +167,27 @@ final class GameService {
         if (playing(player)) throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
         GameSession target = sessions.values().stream().filter(s -> s.sessionId.equals(sessionId) && !s.arena.ended()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("이미 종료된 세션입니다. 관전 목록을 다시 열어주세요."));
-        noqui.leave(player);
-        Watch previous = spectators.get(player.getUniqueId());
-        Watch watch = new Watch(target, previous == null ? player.getLocation().clone() : previous.returnLocation,
-                previous == null ? player.getGameMode() : previous.returnMode,
-                previous == null ? player.getAllowFlight() : previous.returnAllowFlight,
-                previous == null ? player.isFlying() : previous.returnFlying);
-        if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
-        player.closeInventory(); player.setGameMode(GameMode.ADVENTURE);
-        spectators.put(player.getUniqueId(), watch);
-        if (!player.teleport(viewpoint(target))) { stopWatching(player, true); throw new IllegalArgumentException("관전 위치로 이동하지 못했습니다."); }
-        player.setAllowFlight(true); player.setFlying(true);
-        if (previous == null) tools.giveViewer(player);
-        appearance.enter(player, true);
-        player.sendMessage(Ui.text("&b관전 시작 &7· F: 관전 메뉴 / 9번 침대 우클릭: 로비 복귀"));
+        noqui.prepareDefense(player);
+        try {
+            Watch previous = spectators.get(player.getUniqueId());
+            Watch watch = new Watch(target, previous == null ? player.getLocation().clone() : previous.returnLocation,
+                    previous == null ? player.getGameMode() : previous.returnMode,
+                    previous == null ? player.getAllowFlight() : previous.returnAllowFlight,
+                    previous == null ? player.isFlying() : previous.returnFlying);
+            if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
+            player.closeInventory(); player.setGameMode(GameMode.ADVENTURE);
+            spectators.put(player.getUniqueId(), watch);
+            if (!player.teleport(viewpoint(target))) { stopWatching(player, true); throw new IllegalArgumentException("관전 위치로 이동하지 못했습니다."); }
+            player.setAllowFlight(true); player.setFlying(true);
+            if (previous == null) tools.giveViewer(player);
+            refreshNoquiTool(player);
+            appearance.enter(player, true);
+            player.sendMessage(Ui.text("&b관전 시작 &7· F: 관전 메뉴 / 9번 침대 우클릭: 로비 복귀"));
+            noqui.defenseEntered(player);
+        } catch(RuntimeException error) {
+            if(watching(player))stopWatching(player,true);
+            noqui.defenseFailed(player);throw error;
+        }
     }
     void spectate(Player player, String playerName) {
         SessionInfo target = activeSessions().stream().filter(s -> s.playerName.equalsIgnoreCase(playerName) || s.arena.equals(playerName)).findFirst()
@@ -226,26 +247,33 @@ final class GameService {
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
         if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
-        noqui.leave(player);
-        if (watching(player)) stopWatching(player, true, false);
-        GameSession session = new GameSession(player,map,settings,smallForce);
-        for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
-            for (int z = (map.originZ() + map.minZOffset()) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
-                Chunk chunk = map.world().getChunkAt(x, z);
-                chunk.addPluginChunkTicket(plugin); session.tickets.add(chunk);
+        noqui.prepareDefense(player);
+        try {
+            if (watching(player)) stopWatching(player, true, false);
+            GameSession session = new GameSession(player,map,settings,smallForce);
+            sessions.put(player.getUniqueId(), session);
+            for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
+                for (int z = (map.originZ() + map.minZOffset()) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
+                    Chunk chunk = map.world().getChunkAt(x, z);
+                    chunk.addPluginChunkTicket(plugin); session.tickets.add(chunk);
+                }
             }
+            if (!player.teleport(map.entrance())) { leave(player); throw new IllegalArgumentException("전장으로 이동할 수 없습니다."); }
+            player.setGameMode(GameMode.ADVENTURE);
+            player.setAllowFlight(true); player.setFlying(true);
+            tools.give(player);
+            refreshNoquiTool(player);
+            appearance.enter(player, false);
+            if(achievements!=null)achievements.sessionStarted(player);
+            player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 좌클릭: 판매 대상 선택 · 우클릭: 판매", NamedTextColor.GREEN));
+            if(smallForce)player.sendMessage(Ui.text("&e소수 정예 도전 &f· 배치 최대 10마리 · 초과 소환은 대기석으로 이동합니다."));
+            if(!session.arena.traits().allEntries().isEmpty())
+                player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
+            noqui.defenseEntered(player);
+        } catch(RuntimeException error) {
+            if(playing(player))leave(player);
+            noqui.defenseFailed(player);throw error;
         }
-        sessions.put(player.getUniqueId(), session);
-        if (!player.teleport(map.entrance())) { leave(player); throw new IllegalArgumentException("전장으로 이동할 수 없습니다."); }
-        player.setGameMode(GameMode.ADVENTURE);
-        player.setAllowFlight(true); player.setFlying(true);
-        tools.give(player);
-        appearance.enter(player, false);
-        if(achievements!=null)achievements.sessionStarted(player);
-        player.sendMessage(Component.text("무한 라운드 도전! 15초 후 시작. F·1번: 관리 / 2번 좌클릭: 선택·이동 / 3번 좌클릭: 판매 대상 선택 · 우클릭: 판매", NamedTextColor.GREEN));
-        if(smallForce)player.sendMessage(Ui.text("&e소수 정예 도전 &f· 배치 최대 10마리 · 초과 소환은 대기석으로 이동합니다."));
-        if(!session.arena.traits().allEntries().isEmpty())
-            player.sendMessage(Ui.text("&d적용 특성·패시브 &f"+String.join(" · ",session.arena.traits().allEntries().stream().map(TraitCatalog.Entry::name).toList())));
     }
     void requestLeave(Player player) {
         GameSession session=session(player);
@@ -257,7 +285,6 @@ final class GameService {
         leave(player);
     }
     void leave(Player player) {
-        noqui.leave(player);
         if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);
         if (watching(player)) { stopWatching(player, true); return; }
@@ -286,6 +313,7 @@ final class GameService {
         }
     }
     private void release(GameSession session) {
+        if(rewards!=null)rewards.award(session.sessionId,session.arena.owner(),session.campaign.round());
         cancelPlacement(session);
         for (UUID id : List.copyOf(spectators.keySet())) {
             if (spectators.get(id).target != session) continue;
@@ -629,6 +657,7 @@ final class GameService {
     }
     void tick() {
         tick++;
+        if(rewards!=null&&tick%20==0)rewards.flush();
         for (var entry : List.copyOf(spectators.entrySet())) {
             Player viewer = Bukkit.getPlayer(entry.getKey());
             if (viewer == null) { spectators.remove(entry.getKey()); continue; }

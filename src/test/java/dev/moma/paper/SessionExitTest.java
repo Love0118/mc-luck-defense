@@ -50,6 +50,21 @@ class SessionExitTest {
     private void request(Player player) {
         try(var bukkit=mockStatic(Bukkit.class)){games.requestLeave(player);}
     }
+    @Test void noquiIconJoinsInPlaceWithoutExitingLockedDefense()throws Exception {
+        SessionExitPreferences.toggle(owner);round(100);var original=games.session(owner);int[] joined={0};
+        games.noqui=new NoquiHooks(){public boolean started(){return true;}public boolean routeJoin(Player p){joined[0]++;return true;}};
+        games.requestNoquiReturn(owner);assertSame(original,games.session(owner));assertEquals(1,joined[0]);verifyNoInteractions(lobby,games.bgm);
+    }
+    @Test void existingConcurrentMemberOpensControlsAndRetainsArena() {
+        var original=games.session(owner);int[] controls={0};
+        games.noqui=new NoquiHooks(){public boolean started(){return true;}public boolean participant(Player p){return true;}public void openControls(Player p){controls[0]++;}};
+        games.requestNoquiReturn(owner);assertSame(original,games.session(owner));assertEquals(1,controls[0]);verifyNoInteractions(lobby,games.bgm);
+    }
+    @Test void noquiIconPreservesSpectatingAndItsOwnersSession()throws Exception {
+        round(500);Player viewer=player();SessionExitPreferences.toggle(viewer);games.spectate(viewer,games.session(owner).sessionId);
+        int[] joined={0};games.noqui=new NoquiHooks(){public boolean started(){return true;}public boolean routeJoin(Player p){assertSame(viewer,p);joined[0]++;return true;}};
+        games.requestNoquiReturn(viewer);assertTrue(games.watching(viewer));assertTrue(games.playing(owner));assertEquals(1,joined[0]);verifyNoInteractions(lobby,games.bgm);
+    }
     @Test void optInAllowsRound99AndOffAllowsLateRounds()throws Exception {
         assertFalse(SessionExitPreferences.enabled(owner));
         SessionExitPreferences.toggle(owner);round(99);request(owner);

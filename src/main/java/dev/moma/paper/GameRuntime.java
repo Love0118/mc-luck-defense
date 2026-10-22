@@ -40,8 +40,11 @@ public final class GameRuntime implements GameModule {
         events.registerEvents(new UnsignedChat(host),host);
         var shop=new ShopMenu(host,games);var menu=new LobbyMenu(host,games);
         if(Bukkit.getPluginManager().isPluginEnabled("Noqui"))games.noqui=new NoquiAdapter(host,games,lobby,menu);
+        games.rewards=new DefenseRewards(host,()->games.noqui);
+        games.rewards.flush();
         if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
         events.registerEvents(new SettingsMenu(games.tools),host);
+        events.registerEvents(new NoquiReturnListener(games),host);
         events.registerEvents(menu,host);events.registerEvents(new TraitMenu(host,games,lobby),host);events.registerEvents(new SpectatorListener(games),host);
         if(lobby!=null) {
             events.registerEvents(new LobbyListener(lobby,games,menu),host);
@@ -74,14 +77,20 @@ public final class GameRuntime implements GameModule {
         Bukkit.getScheduler().runTaskTimer(host,shop::refreshOpen,5,5);
         Bukkit.getScheduler().runTaskTimer(host,menu::refreshOpen,20,20);
         Bukkit.getScheduler().runTaskTimer(host,TabStatus::update,20,20);
+        Bukkit.getScheduler().runTaskTimer(host,games::refreshNoquiTools,1,5);
+        games.refreshNoquiTools();
         active=true;
     }
-    @Override public void checkReloadReady(){if(games.bgm!=null)games.bgm.checkReloadReady();}
+    @Override public void checkReloadReady(){
+        if(games.rewards!=null)games.rewards.checkReloadReady();
+        if(games.bgm!=null)games.bgm.checkReloadReady();
+    }
     @Override public byte[] snapshot()throws Exception {checkReloadReady();return StateCodec.write(games.saveState());}
     @Override public String fingerprint(){return StateCodec.fingerprint(games.saveState().combatOnly());}
     @Override public boolean hasSessions(){return games.hasSessions();}
     @Override public Object diagnosticState(){return games;}
     @Override public void suspend()throws Exception {
+        checkReloadReady();
         active=false;
         try{if(games.bgm!=null){savedBgm=games.bgm.saveState();games.bgm.suspend();}}
         finally{
@@ -117,6 +126,7 @@ public final class GameRuntime implements GameModule {
         if(games.bgm!=null)games.bgm.close();games.shutdown();
         if(games.leaderboard!=null)games.leaderboard.close();
         for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
-        games.noqui.close();games.noqui=NoquiHooks.NONE;
+        try{if(games.rewards!=null)games.rewards.checkReloadReady();}
+        finally{games.noqui.close();games.noqui=NoquiHooks.NONE;}
     }
 }

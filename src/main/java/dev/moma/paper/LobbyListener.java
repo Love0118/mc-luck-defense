@@ -14,10 +14,11 @@ final class LobbyListener implements Listener {
     @EventHandler public void join(PlayerJoinEvent event) {
         if(games.routeNoquiJoin(event.getPlayer()))return;
         lobby.send(event.getPlayer());
+        games.refreshNoquiTool(event.getPlayer());
         event.getPlayer().sendMessage(Component.text("MC Luck Defense · F 또는 /mud로 시작 메뉴 · /mud start로 바로 시작"));
     }
     @EventHandler public void respawn(PlayerRespawnEvent event) {
-        if(games.quizParticipant(event.getPlayer()))return;
+        if(games.quizCabinOwner(event.getPlayer()))return;
         games.disconnect(event.getPlayer()); event.setRespawnLocation(lobby.spawn());
         lobby.prepare(event.getPlayer());
     }

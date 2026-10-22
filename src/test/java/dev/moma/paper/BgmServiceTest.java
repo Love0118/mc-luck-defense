@@ -21,7 +21,7 @@ class BgmServiceTest {
         var plugin=mock(MomaPlugin.class);when(plugin.getDataFolder()).thenReturn(temp.toFile());when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
         var p=player(mock(World.class));var games=mock(GameService.class);when(games.quizParticipant(p)).thenReturn(true);
         var muted=new NamespacedKey("momadefense","bgm_muted");p.getPersistentDataContainer().set(muted,PersistentDataType.BYTE,(byte)1);
-        when(p.getPersistentDataContainer().has(new NamespacedKey("noqui","original_state"),PersistentDataType.STRING)).thenReturn(true);
+        when(p.getPersistentDataContainer().has(new NamespacedKey("noqui","bgm_original_present"),PersistentDataType.BYTE)).thenReturn(true);
         var recovery=new dev.noqui.paper.PlayerRecovery();
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(p));

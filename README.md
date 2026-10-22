@@ -1,8 +1,8 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
-## 1.0.25 Noqui 연동
+## 1.0.26 Noqui 연동
 
-별도 Noqui 1.0.0 플러그인으로 cabin 노래퀴즈와 브라우저 오디오를 지원합니다. [설정·빌드·운영 안내](noqui/README.md)를 참고하세요. 최초 통합은 두 플러그인 JAR를 설치하고 정상 재시작해야 합니다.
+Noqui 1.0.1로 디펜스·관전 중에도 노래퀴즈에 참여할 수 있습니다. 영구 출제권·미리 변환하는 제출 대기열·무제한/제한 라운드·스킵 투표·일시정지·힌트·별빛 상점과 브라우저 오디오를 지원합니다. [설정·빌드·운영 안내](noqui/README.md)를 참고하세요. 최초 통합은 두 플러그인 JAR를 설치하고 정상 재시작해야 합니다.
 
 ## 1.0.24 100라운드 이후 세션 나가기 잠금
 
@@ -188,7 +188,9 @@ mvn -B -ntp -f noqui/plugin/pom.xml install
 mvn -B -ntp clean verify
 ~~~
 
-생성된 `target/mc-luck-defense-1.0.25.jar`와 `noqui/plugin/target/noqui-plugin-1.0.0.jar`를 Paper 서버의 plugins 폴더에 넣고 정상 재시작합니다.
+생성된 `target/mc-luck-defense-1.0.26.jar`와 `noqui/plugin/target/noqui-plugin-1.0.1.jar`를 Paper 서버의 plugins 폴더에 넣고 정상 재시작합니다.
+
+Noqui 로비 리소스팩은 [별도 빌드·게시 안내](noqui/lobby-assets/README.md)에 따라 검증한 뒤 플러그인 기동 전에 게시합니다.
 
 과거 1.0.6 업데이트에서는 1.0.4 또는 1.0.5의 진행 중인 세션을 유지하며 /mud update로 1.0.6을 적용할 수 있었습니다. 1.0.3 이하에서는 게임 상태 형식과 특성 밸런스가 달라 진행 중인 게임이 모두 끝난 뒤 적용해야 합니다. BGM 복구 작업이 진행 중이라면 업데이터가 안전 리로드를 거절할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
