@@ -121,7 +121,7 @@ def main():
         "## 정책과 검증 범위", "",
         "자동 플레이어는 0.5초마다 소환·판매·선택 후 이동 중 하나를 실행합니다. 전장이 차면 판매 가능한 약한 유닛을 판매하고 빈 칸이 있으면 소환합니다. 2초마다 빈 칸 이동의 경로 커버리지 개선을 평가합니다. 미래 뽑기와 시드를 보고 전략을 바꾸지 않습니다.", "",
         "20 TPS의 실제 코어를 끝까지 실행합니다. 평균 DPS로 승패를 근사하지 않습니다. 사람의 조작 지연·네트워크·서버 렉은 모델에 없으므로 ‘상위 1%’는 이 자동 정책의 시도당 추정치입니다. 실제 Paper 서버·접속 클라이언트의 플레이 검증은 별도로 남아 있습니다.", "",
-        "## 재현", "", "~~~powershell", "mvn -B -ntp compile",
+        "## 재현", "", "~~~powershell", "mvn -B -ntp -f noqui/plugin/pom.xml install", "mvn -B -ntp compile",
         f"java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain {summary['runs']} {summary['seedStart']} 1 target/validation BALANCED",
         f"java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain {stress['runs']} {stress['seedStart']} 1 target/stress BALANCED 1",
         f"java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain {simple['runs']} {simple['seedStart']} 1 target/auto-placement AUTO_PLACE",

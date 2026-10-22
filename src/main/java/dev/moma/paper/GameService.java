@@ -9,6 +9,17 @@ import java.util.*;
 import java.util.concurrent.*;
 
 final class GameService {
+    NoquiHooks noqui=NoquiHooks.NONE;
+    boolean routeNoquiJoin(Player player){return noqui.routeJoin(player);}
+    boolean quizParticipant(Player player){return noqui.owns(player);}
+    private boolean sendToHub(Player player) {
+        return sendToHub(player,true);
+    }
+    private boolean sendToHub(Player player,boolean allowQuiz) {
+        if(allowQuiz && noqui.routeJoin(player))return true;
+        if(lobby!=null){lobby.send(player);return true;}
+        return false;
+    }
     private final MomaPlugin plugin;
     private final ArenaMaps maps;
     private final CampaignRules settings;
@@ -142,6 +153,7 @@ final class GameService {
         if (playing(player)) throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
         GameSession target = sessions.values().stream().filter(s -> s.sessionId.equals(sessionId) && !s.arena.ended()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("이미 종료된 세션입니다. 관전 목록을 다시 열어주세요."));
+        noqui.leave(player);
         Watch previous = spectators.get(player.getUniqueId());
         Watch watch = new Watch(target, previous == null ? player.getLocation().clone() : previous.returnLocation,
                 previous == null ? player.getGameMode() : previous.returnMode,
@@ -168,17 +180,18 @@ final class GameService {
                 && to.getY() <= watch.target.map.floorY() + 40;
     }
     private void stopWatching(Player player, boolean returnToLobby) {
+        stopWatching(player,returnToLobby,true);
+    }
+    private void stopWatching(Player player,boolean returnToLobby,boolean allowQuiz) {
         if(bgm!=null)bgm.stop(player);
         Watch watch = spectators.remove(player.getUniqueId());
         if (watch == null) return;
         tools.restore(player); appearance.leave(player);
         if (player.getGameMode() == GameMode.SPECTATOR) player.setSpectatorTarget(null);
-        if (returnToLobby && lobby != null) lobby.send(player);
-        else {
-            player.setGameMode(watch.returnMode);
-            player.setAllowFlight(watch.returnAllowFlight); player.setFlying(watch.returnFlying);
-            if (returnToLobby) player.teleport(watch.returnLocation);
-        }
+        if (returnToLobby && sendToHub(player,allowQuiz)) return;
+        player.setGameMode(watch.returnMode);
+        player.setAllowFlight(watch.returnAllowFlight); player.setFlying(watch.returnFlying);
+        if (returnToLobby) player.teleport(watch.returnLocation);
     }
     private List<Player> viewers(Player owner, GameSession session) {
         var result = new ArrayList<Player>(); result.add(owner);
@@ -213,7 +226,8 @@ final class GameService {
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
         if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
-        if (watching(player)) stopWatching(player, true);
+        noqui.leave(player);
+        if (watching(player)) stopWatching(player, true, false);
         GameSession session = new GameSession(player,map,settings,smallForce);
         for (int x = (map.originX() - 6) >> 4; x <= (map.originX() + map.maxOffset()) >> 4; x++) {
             for (int z = (map.originZ() + map.minZOffset()) >> 4; z <= (map.originZ() + map.maxOffset()) >> 4; z++) {
@@ -243,21 +257,20 @@ final class GameService {
         leave(player);
     }
     void leave(Player player) {
+        noqui.leave(player);
         if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);
         if (watching(player)) { stopWatching(player, true); return; }
         GameSession session = sessions.remove(player.getUniqueId());
-        if (session == null) { if (lobby != null) lobby.send(player); return; }
+        if (session == null) { sendToHub(player); return; }
         player.closeInventory();
         tools.restore(player);
         appearance.leave(player);
         release(session);
-        if (lobby != null) lobby.send(player);
-        else {
-            player.setGameMode(session.returnMode);
-            player.setAllowFlight(session.returnAllowFlight); player.setFlying(session.returnFlying);
-            player.teleport(session.returnLocation);
-        }
+        if (sendToHub(player)) return;
+        player.setGameMode(session.returnMode);
+        player.setAllowFlight(session.returnAllowFlight); player.setFlying(session.returnFlying);
+        player.teleport(session.returnLocation);
     }
     void disconnect(Player player) {
         if(bgm!=null)bgm.stop(player);

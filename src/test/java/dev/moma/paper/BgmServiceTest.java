@@ -16,6 +16,34 @@ import static org.mockito.Mockito.*;
 
 class BgmServiceTest {
     @TempDir Path temp;
+    @Test void quizManualOnLoadsAndPlaysDefaultWithoutDefenseAndOffOrExitStopsOnlyThatSound()throws Exception {
+        Files.writeString(temp.resolve("bgm.yml"),"refresh-token: ''");
+        var plugin=mock(MomaPlugin.class);when(plugin.getDataFolder()).thenReturn(temp.toFile());when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
+        var p=player(mock(World.class));var games=mock(GameService.class);when(games.quizParticipant(p)).thenReturn(true);
+        var muted=new NamespacedKey("momadefense","bgm_muted");p.getPersistentDataContainer().set(muted,PersistentDataType.BYTE,(byte)1);
+        when(p.getPersistentDataContainer().has(new NamespacedKey("noqui","original_state"),PersistentDataType.STRING)).thenReturn(true);
+        var recovery=new dev.noqui.paper.PlayerRecovery();
+        try(var bukkit=mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(org.bukkit.plugin.PluginManager.class));bukkit.when(Bukkit::getScheduler).thenReturn(mock(org.bukkit.scheduler.BukkitScheduler.class));bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(p));
+            try(var service=new BgmService(plugin,games,()->0)) {
+                var initialized=BgmService.class.getDeclaredField("catalogLoaded");initialized.setAccessible(true);long deadline=System.nanoTime()+5_000_000_000L;
+                while(!(boolean)initialized.get(service) && System.nanoTime()<deadline)Thread.sleep(10);assertTrue((boolean)initialized.get(service));
+                var track=new Track("default",new UUID(0,0),"server","default","","https://www.dropbox.com/default","a".repeat(40),110.82);
+                var catalog=BgmService.class.getDeclaredField("tracks");catalog.setAccessible(true);catalog.set(service,List.of(track));
+                var tick=BgmService.class.getDeclaredMethod("tick");tick.setAccessible(true);tick.invoke(service);
+                verify(p,never()).addResourcePack(any(),anyString(),any(byte[].class),anyString(),anyBoolean());
+                recovery.toggleBgm(p);tick.invoke(service);verify(p).addResourcePack(eq(track.packId()),anyString(),any(byte[].class),anyString(),eq(false));
+                verify(p,never()).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                service.packStatus(new PlayerResourcePackStatusEvent(p,track.packId(),PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED));tick.invoke(service);
+                verify(p).playSound(argThat(s->s.name().asString().equals(track.sound())),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                recovery.toggleBgm(p);tick.invoke(service);verify(p).stopSound(track.sound(),SoundCategory.RECORDS);
+                recovery.toggleBgm(p);tick.invoke(service);verify(p,times(2)).playSound(any(net.kyori.adventure.sound.Sound.class),any(net.kyori.adventure.sound.Sound.Emitter.class));
+                when(games.quizParticipant(p)).thenReturn(false);tick.invoke(service);verify(p,times(2)).stopSound(track.sound(),SoundCategory.RECORDS);
+                verify(p,never()).removeResourcePacks();verify(p,never()).removeResourcePack(any());verify(p,never()).stopAllSounds();
+                verify(games,never()).start(any());
+            }
+        }
+    }
     private Player player(World world) {
         Player p=mock(Player.class);when(p.getUniqueId()).thenReturn(UUID.randomUUID());
         when(p.getLocation()).thenReturn(new Location(world,0,65,0));when(p.getInventory()).thenReturn(mock(PlayerInventory.class));

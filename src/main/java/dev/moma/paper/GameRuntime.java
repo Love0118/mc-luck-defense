@@ -35,18 +35,19 @@ public final class GameRuntime implements GameModule {
         if(lobby!=null)games.leaderboard=new RoundLeaderboard(host,lobby);
         try{games.bgm=new BgmService(host,games,bgmConfiguration);games.bgm.restoreState(savedBgm);}
         catch(Exception error){if(savedBgm!=null)throw error;host.getLogger().log(java.util.logging.Level.SEVERE,"BGM initialization failed",error);}
-        if(initialBoot)for(var player:Bukkit.getOnlinePlayers())games.tools.restore(player);
         games.entities.enablePresentationMetadata(host);
         var events=Bukkit.getPluginManager();
         events.registerEvents(new UnsignedChat(host),host);
         var shop=new ShopMenu(host,games);var menu=new LobbyMenu(host,games);
+        if(Bukkit.getPluginManager().isPluginEnabled("Noqui"))games.noqui=new NoquiAdapter(host,games,lobby,menu);
+        if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
         events.registerEvents(new SettingsMenu(games.tools),host);
         events.registerEvents(menu,host);events.registerEvents(new TraitMenu(host,games,lobby),host);events.registerEvents(new SpectatorListener(games),host);
         if(lobby!=null) {
             events.registerEvents(new LobbyListener(lobby,games,menu),host);
             var portals=new LobbyPortals(host,lobby,games,menu);events.registerEvents(portals,host);
             Bukkit.getScheduler().runTaskTimer(host,portals,1,5);
-            if(initialBoot)for(var player:Bukkit.getOnlinePlayers())lobby.send(player);
+            if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.routeJoin(player))lobby.send(player);
         }
         events.registerEvents(shop,host);events.registerEvents(new GameListener(games,maps,shop),host);
         if(initialBoot) {
@@ -54,6 +55,7 @@ public final class GameRuntime implements GameModule {
         } else {
             toolsRefreshed=true;
             for(var player:Bukkit.getOnlinePlayers()) {
+                if(games.noqui.owns(player))continue;
                 if(games.playing(player))games.tools.refreshActive(player,false);
                 else if(games.watching(player))games.tools.refreshActive(player,true);
                 else if(lobby!=null) {
@@ -83,7 +85,7 @@ public final class GameRuntime implements GameModule {
         active=false;
         try{if(games.bgm!=null){savedBgm=games.bgm.saveState();games.bgm.suspend();}}
         finally{
-            for(var player:Bukkit.getOnlinePlayers())games.tools.downgrade(player,games.playing(player));
+            for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.downgrade(player,games.playing(player));
             detach();
         }
     }
@@ -91,11 +93,12 @@ public final class GameRuntime implements GameModule {
         active=false;
         try{if(games.bgm!=null)games.bgm.close();}
         finally{
-            if(toolsRefreshed)for(var player:Bukkit.getOnlinePlayers())games.tools.downgrade(player,games.playing(player));
+            if(toolsRefreshed)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.downgrade(player,games.playing(player));
             detach();
         }
     }
     private void detach() {
+        games.noqui.close();games.noqui=NoquiHooks.NONE;
         if(reboot!=null){reboot.remove();reboot=null;}
         for(var player:Bukkit.getOnlinePlayers()) {
             var holder=player.getOpenInventory().getTopInventory().getHolder();
@@ -113,6 +116,7 @@ public final class GameRuntime implements GameModule {
         Bukkit.getScheduler().cancelTasks(host);HandlerList.unregisterAll(host);
         if(games.bgm!=null)games.bgm.close();games.shutdown();
         if(games.leaderboard!=null)games.leaderboard.close();
-        for(var player:Bukkit.getOnlinePlayers())games.tools.restore(player);
+        for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
+        games.noqui.close();games.noqui=NoquiHooks.NONE;
     }
 }

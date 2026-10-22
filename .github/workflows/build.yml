@@ -16,17 +16,30 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+      - run: mvn -B -ntp -f noqui/plugin/pom.xml clean install
       - run: mvn -B -ntp -Dbuild.commit=${{ github.sha }} clean verify
       - run: python3 -m unittest discover -s benchmarks/traits -p test_progression_report.py
       - run: python3 -m unittest discover -s scripts/maintenance -p 'test_*.py'
+      - run: python3 -m pip install -r noqui/tools/requirements.txt
+      - run: python3 -m unittest discover -s noqui/tools -p 'test_*.py'
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: mc-luck-defense
           path: target/mc-luck-defense-*.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noqui-plugin
+          path: noqui/plugin/target/noqui-plugin-*.jar
+  noqui-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --locked --manifest-path noqui/web/Cargo.toml
   publish-beta:
     if: github.ref == 'refs/heads/beta' && github.event_name != 'pull_request'
-    needs: verify
+    needs: [verify, noqui-web]
     runs-on: ubuntu-latest
     permissions:
       contents: write

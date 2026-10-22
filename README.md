@@ -1,5 +1,9 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
+## 1.0.25 Noqui 연동
+
+별도 Noqui 1.0.0 플러그인으로 cabin 노래퀴즈와 브라우저 오디오를 지원합니다. [설정·빌드·운영 안내](noqui/README.md)를 참고하세요. 최초 통합은 두 플러그인 JAR를 설치하고 정상 재시작해야 합니다.
+
 ## 1.0.24 100라운드 이후 세션 나가기 잠금
 
 환경설정에서 **100라운드 이후 세션 나가기 비활성화**를 켜면 100라운드부터 침대와 나가기 명령으로 자신의 게임을 종료할 수 없습니다. 기본 OFF이며 설정에서 다시 해제할 수 있습니다. 관전 종료는 그대로 사용할 수 있습니다. [변경 사항](docs/release-1.0.24.md)
@@ -180,10 +184,13 @@ Paper **26.3 build 26 alpha**, Java **25** 기반 개인 전장 디펜스입니�
 ## 설치와 시작
 
 ~~~powershell
+mvn -B -ntp -f noqui/plugin/pom.xml install
 mvn -B -ntp clean verify
 ~~~
 
-생성된 target/mc-luck-defense-1.0.6.jar를 Paper 서버의 plugins 폴더에 넣고 재시작합니다. 1.0.4 또는 1.0.5에서는 진행 중인 세션을 유지하며 /mud update로 1.0.6을 적용할 수 있습니다. 1.0.3 이하에서는 게임 상태 형식과 특성 밸런스가 달라 진행 중인 게임이 모두 끝난 뒤 적용해야 합니다. BGM 복구 작업이 진행 중이라면 업데이터가 안전 리로드를 거절할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
+생성된 `target/mc-luck-defense-1.0.25.jar`와 `noqui/plugin/target/noqui-plugin-1.0.0.jar`를 Paper 서버의 plugins 폴더에 넣고 정상 재시작합니다.
+
+과거 1.0.6 업데이트에서는 1.0.4 또는 1.0.5의 진행 중인 세션을 유지하며 /mud update로 1.0.6을 적용할 수 있었습니다. 1.0.3 이하에서는 게임 상태 형식과 특성 밸런스가 달라 진행 중인 게임이 모두 끝난 뒤 적용해야 합니다. BGM 복구 작업이 진행 중이라면 업데이터가 안전 리로드를 거절할 수 있습니다. Paper 플러그인 식별자는 MCLuckDefense, 콘솔 표시는 MC Luck Defense입니다. API는 26.3.build.26-alpha로 고정했으며 실험 빌드입니다. Bukkit/Spigot/Folia는 지원하지 않습니다.
 
 0.5.0에서 업데이트할 때는 서버를 종료하고 기존 moma-defense JAR를 plugins 밖으로 옮긴 뒤, plugins/MomaDefense 폴더 이름을 plugins/MCLuckDefense로 변경하세요. 기존 arenas.yml과 전장 월드는 그대로 사용합니다. /mud 명령, 권한, 엔티티 데이터 키와 시드별 뽑기 결과는 유지합니다.
 
@@ -305,6 +312,7 @@ F 메뉴에서 일반~신화 등급을 각각 **자동판매 ON/OFF**로 설정�
 확률은 처음 시작한 모든 자동 플레이 판을 분모로 합니다. 자동 플레이어는 1배 게임 시간 기준 2틱마다 최대 한 번 거래·이동하고 미래 뽑기를 보지 않습니다. 빠른 자동 플레이의 결과이므로 실제 플레이어 전체의 상위 백분위를 의미하지 않습니다. 개별 배속에서 사람의 조작 시간은 별도 변수입니다.
 
 ```powershell
+mvn -B -ntp -f noqui/plugin/pom.xml install
 mvn -B -ntp compile
 java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 20000 9300000 1 target/validation BALANCED
 java -Xmx2g -cp target/classes dev.moma.sim.SimulatorMain 10000 9700000 1 target/stress BALANCED 1

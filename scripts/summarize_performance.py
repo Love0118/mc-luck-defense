@@ -93,7 +93,7 @@ def main():
         "프로파일의 주요 비용은 바닐라 틱·월드 조회·추적이었습니다. 먼저 불필요한 작업을 제거하는 Java 변경을 적용하고, 이후 요청에 따라 아래 Rust FFM/JNI 실험을 추가했습니다. 다음 후보는 세션별 가시성/추적 비용과 월드 조회, 연속 이동 빈도·시각 보간이며 행동 및 화면 품질 검증이 필요합니다.", "",
         "## 실행과 결과 파일", "",
         "서버 브랜치: https://github.com/Love0118/paper-pathetic-mobs-fork/tree/26.3-mud. Java 최적화 커밋은 60d633037d, JNI·Java 배치 대조군을 포함한 최종 커밋은 c4813f8c27입니다. 기존 26.2 beta는 변경하지 않았습니다. 서버 설정은 해당 브랜치 MUD_26_3.md를 참고합니다. 세 옵션은 기본 꺼짐입니다.", "",
-        "~~~powershell", "mvn -B -ntp verify",
+        "~~~powershell", "mvn -B -ntp -f noqui/plugin/pom.xml install", "mvn -B -ntp verify",
         ".\\scripts\\build_server_benchmark.ps1 -PluginJar target/mc-luck-defense-0.5.1.jar -PaperLibraries .runtime/server-discovery/libraries",
         "python scripts/run_server_benchmark.py --server <26.3-mud.jar> --plugin target/mc-luck-defense-0.5.1.jar --eula <기존에동의한-eula.txt> --output .runtime/new-run --template .runtime/bench-pilot --warmup 3200 --ticks 61520 --mud-tick --framing --campaign", "~~~", "",
         "템플릿을 생략하면 전장을 새로 생성합니다. 테스트 서버는 127.0.0.1:25585에서만 열고 기존 EULA 동의 파일을 요구합니다. benchmarks/server는 별도 테스트 플러그인이며 제품 JAR에 포함되지 않습니다. .runtime의 각 실행 폴더에 전체 로그·JFR이 남고, docs/performance에는 틱 원본·수신 카운트·JFR 해시와 실행별 서버·플러그인·벤치마크 JAR 해시를 보존합니다.", "",

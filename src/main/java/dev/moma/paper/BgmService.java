@@ -324,25 +324,28 @@ final class BgmService implements Listener, AutoCloseable {
             nextHealthCheck=now+Math.max(5,config.getInt("health-check-minutes",30))*60000L;
             if(!submit(()->{try{repairAll();}finally{checking.set(false);}}))checking.set(false);
         }
-        Set<UUID> liveSessions=new HashSet<>();
+        Set<UUID> liveSources=new HashSet<>();
         for(Player player:Bukkit.getOnlinePlayers()) {
             GameSession session=games.listeningSession(player);
-            if(session==null || session.arena.ended()){stop(player);continue;}
-            liveSessions.add(session.sessionId);
+            boolean quiz=session==null && games.quizParticipant(player) && !muted(player);
+            if(!quiz && (session==null || session.arena.ended())){stop(player);continue;}
+            UUID source=quiz?UUID.nameUUIDFromBytes(("noqui-bgm:"+player.getUniqueId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)):session.sessionId;
+            UUID owner=quiz?player.getUniqueId():session.arena.owner();
+            liveSources.add(source);
             if(!catalogLoaded)continue;
-            BgmPlaylist selected=playlist(session);
-            List<Track> sequence=new ArrayList<>(selectedTracks(session));
+            BgmPlaylist selected=quiz?new BgmPlaylist(List.of(),BgmTimeline.Mode.SINGLE,"default"):playlist(session);
+            List<Track> sequence=new ArrayList<>(quiz?Optional.ofNullable(find("default")).stream().toList():selectedTracks(session));
             if(selected.selected().equals("default") && find("default")!=null) {
                 if(selected.mode()==BgmTimeline.Mode.SINGLE)sequence=List.of(find("default"));
                 else if(sequence.stream().noneMatch(t->t.id().equals("default")))sequence.addFirst(find("default"));
             }
-            BgmTimeline timeline=timelines.computeIfAbsent(session.sessionId,id->new BgmTimeline());
+            BgmTimeline timeline=timelines.computeIfAbsent(source,id->new BgmTimeline());
             timeline.configure(sequence,selected.mode(),selected.selected());
             Playback state=playback.computeIfAbsent(player.getUniqueId(),id->new Playback());
-            if(!session.sessionId.equals(state.session)) {
-                stop(player);state.session=session.sessionId;
+            if(!source.equals(state.session)) {
+                stop(player);state.session=source;
             }
-            List<Track> preload=preloadTracks(session);
+            List<Track> preload=quiz?List.copyOf(sequence):preloadTracks(session);
             boolean migrating=preload.stream().anyMatch(t->t.ready() && !t.synchronizedReady());
             if(migrating && !state.migrationNotified)
                 player.sendMessage(Ui.text("&eBGM 업데이트 준비 중입니다. 변환이 끝나면 새 리소스팩을 내려받습니다."));
@@ -372,7 +375,7 @@ final class BgmService implements Listener, AutoCloseable {
             if(allReady && !state.readyNotified)player.sendMessage(Ui.text("&aBGM 리소스팩 적용 완료. 재생 위치에 동기화합니다."));
             state.readyNotified=allReady;
             Track first=timeline.firstTrack();
-            boolean ownerReady=player.getUniqueId().equals(session.arena.owner()) && first!=null && loaded(player,first.packId());
+            boolean ownerReady=player.getUniqueId().equals(owner) && first!=null && loaded(player,first.packId());
             if(ownerReady)timeline.start(nowNanos);
             BgmTimeline.Cue cue=timeline.at(nowNanos);
             if(muted(player) || cue==null || !loaded(player,cue.track().packId())) {silence(player,state);continue;}
@@ -407,7 +410,7 @@ final class BgmService implements Listener, AutoCloseable {
                 playSegment(player,state,cue.track(),trackId,cue.segment(),nowNanos);
             }
         }
-        timelines.keySet().retainAll(liveSessions);
+        timelines.keySet().retainAll(liveSources);
     }
     private void playSegment(Player player,Playback state,Track track,String trackId,int segment,long nowNanos) {
         String sound=track.segmentSound(segment);
