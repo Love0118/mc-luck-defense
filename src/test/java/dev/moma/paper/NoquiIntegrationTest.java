@@ -135,12 +135,12 @@ class NoquiIntegrationTest {
         var owner=at(world);var viewer=at(world);var calls=new java.util.ArrayList<String>();
         var rewardDir=java.nio.file.Files.createTempDirectory("moma-rewards-test-");
         try(var tools=mockConstruction(SessionTools.class);var appearance=mockConstruction(SpectatorAppearance.class);var bukkit=mockStatic(Bukkit.class)) {
-            var games=new GameService(plugin,maps,dev.moma.core.CampaignRules.standard());games.rewards=new DefenseRewards(rewardDir.resolve("rewards.json"),1,()->new NoquiHooks(){
-                public boolean rewardStarlight(UUID id,String transaction,long amount){assertEquals(owner.getUniqueId(),id);assertEquals(42,amount);calls.add(transaction);return true;}
+            var games=new GameService(plugin,maps,dev.moma.core.CampaignRules.standard());games.rewards=new DefenseRewards(rewardDir.resolve("rewards.json"),()->new NoquiHooks(){
+                public boolean rewardStarlight(UUID id,String transaction,long amount){assertEquals(owner.getUniqueId(),id);assertEquals(10,amount);calls.add(transaction);return true;}
             },s->{});
             games.join(owner,"a");var session=games.session(owner);var elapsed=dev.moma.core.Campaign.class.getDeclaredField("elapsed");elapsed.setAccessible(true);var rules=dev.moma.core.CampaignRules.standard();
-            elapsed.setLong(session.campaign,rules.preparationTicks()+41L*rules.roundTicks()-1);session.campaign.beforeCombat(session.arena,spawn->UUID.randomUUID());
-            games.spectate(viewer,session.sessionId);games.leave(viewer);assertTrue(calls.isEmpty());games.leave(owner);games.leave(owner);assertEquals(List.of("moma:"+session.sessionId+":"+owner.getUniqueId()),calls);
+            elapsed.setLong(session.campaign,rules.preparationTicks()+99L*rules.roundTicks()-1);session.campaign.beforeCombat(session.arena,spawn->UUID.randomUUID());
+            games.spectate(viewer,session.sessionId);games.leave(viewer);assertTrue(calls.isEmpty());games.leave(owner);games.leave(owner);assertEquals(List.of("moma-milestone:"+session.sessionId+":"+owner.getUniqueId()+":1"),calls);
         }
     }
 }

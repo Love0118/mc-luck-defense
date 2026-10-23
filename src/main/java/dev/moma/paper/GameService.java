@@ -313,7 +313,7 @@ final class GameService {
         }
     }
     private void release(GameSession session) {
-        if(rewards!=null)rewards.award(session.sessionId,session.arena.owner(),session.campaign.round());
+        if(rewards!=null)rewards.reached(session.sessionId,session.arena.owner(),session.campaign.round());
         cancelPlacement(session);
         for (UUID id : List.copyOf(spectators.keySet())) {
             if (spectators.get(id).target != session) continue;
@@ -713,6 +713,7 @@ final class GameService {
             player.sendMessage(Component.text("적 생성에 실패하여 전장을 종료합니다.", NamedTextColor.RED));
             leave(player); return false;
         }
+        if(rewards!=null)rewards.reached(session.sessionId,session.arena.owner(),session.campaign.round());
         if (session.arena.ended()) return false;
         if (session.campaign.round() != session.announcedRound) {
             session.announcedRound = session.campaign.round();

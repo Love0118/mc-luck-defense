@@ -38,7 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: cargo test --locked --manifest-path noqui/web/Cargo.toml
+      - run: node --test noqui/web/tests/browser.cjs
   publish-beta:
     if: github.ref == 'refs/heads/beta' && github.event_name != 'pull_request'
     needs: [verify, noqui-web]

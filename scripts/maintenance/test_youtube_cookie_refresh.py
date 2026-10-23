@@ -131,6 +131,39 @@ class CookieRefreshTest(unittest.TestCase):
         self.assertEqual([], list(target.parent.glob('.youtube-candidate-*')))
         context.close.assert_called_once()
 
+    def test_seed_imports_new_jar_once_before_profile_export_and_validation(self):
+        context, module, target = self.browser_fixture(True)
+        supplied = [self.cookie(value='synthetic-new-login')]
+        with patch.dict('sys.modules', playwright=types.ModuleType('playwright'), **{'playwright.sync_api': module}):
+            with patch.object(refresh, 'import_cookies', return_value=supplied) as load:
+                with patch.object(refresh, 'validate') as validate:
+                    report = refresh.refresh(self.root, 'https://www.youtube.com/', True)
+        self.assertEqual(target, load.call_args.args[0])
+        context.clear_cookies.assert_called_once()
+        context.add_cookies.assert_called_once_with(supplied)
+        validate.assert_called_once()
+        self.assertEqual('ok', report['status'])
+        self.assertEqual(b'old private cookies', target.with_name('youtube-cookies.previous.txt').read_bytes())
+        context.close.assert_called_once()
+
+    def test_scheduled_refresh_keeps_profile_and_publishes_cookie_updates_from_validation(self):
+        context, module, target = self.browser_fixture(True)
+        updated, _ = refresh.export_cookies([self.cookie(value='synthetic-rotated-login')], 1900000000)
+        def validate_candidate(downloader, candidate, url):
+            self.assertEqual(b'old private cookies', target.read_bytes())
+            candidate.write_bytes(updated)
+        with patch.dict('sys.modules', playwright=types.ModuleType('playwright'), **{'playwright.sync_api': module}):
+            with patch.object(refresh, 'import_cookies') as load:
+                with patch.object(refresh, 'validate', side_effect=validate_candidate):
+                    refresh.refresh(self.root, 'https://www.youtube.com/', False)
+        load.assert_not_called()
+        context.clear_cookies.assert_not_called()
+        context.add_cookies.assert_not_called()
+        self.assertEqual(updated, target.read_bytes())
+        self.assertEqual([], list(target.parent.glob('.youtube-candidate-*')))
+        if os.name != 'nt':
+            self.assertEqual(0o600, target.stat().st_mode & 0o777)
+
 
 if __name__ == '__main__':
     unittest.main()

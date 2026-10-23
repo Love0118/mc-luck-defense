@@ -63,12 +63,18 @@ class SessionToolsTest {
             assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            var compassName=org.mockito.ArgumentCaptor.forClass(net.kyori.adventure.text.Component.class);
+            verify(inventory.getItem(0).getItemMeta(),atLeastOnce()).displayName(compassName.capture());
+            assertEquals(net.kyori.adventure.text.Component.text("미니게임",net.kyori.adventure.text.format.NamedTextColor.AQUA).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC,false),compassName.getAllValues().getLast());
+            verify(inventory.getItem(0).getItemMeta()).lore(List.of(Ui.text("&7우클릭: 미니게임 메뉴")));
             inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"portal_return"));assertFalse(tools.holding(player,"leave"));
             verify(slots[8].getItemMeta()).displayName(Ui.text("&c포탈섭으로 돌아가기"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"traits"));
             inventory.setHeldItemSlot(0);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
             tools.giveViewer(player);assertTrue(tools.holding(player,"leave"));
+            verify(inventory.getItem(0).getItemMeta()).displayName(Ui.text("&b미니게임"));
+            verify(inventory.getItem(0).getItemMeta()).lore(List.of(Ui.text("&7우클릭: 미니게임 메뉴")));
             inventory.setHeldItemSlot(0);assertTrue(tools.holding(player,"sessions"));assertFalse(tools.holding(player,"move"));
             inventory.setHeldItemSlot(6);assertTrue(tools.holding(player,"bgm"));
             inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));

@@ -1,8 +1,8 @@
 # MC Luck Defense — 마크 운빨 디펜스
 
-## 1.0.26 Noqui 연동
+## 1.0.28 Noqui 연동
 
-Noqui 1.0.1로 디펜스·관전 중에도 노래퀴즈에 참여할 수 있습니다. 영구 출제권·미리 변환하는 제출 대기열·무제한/제한 라운드·스킵 투표·일시정지·힌트·별빛 상점과 브라우저 오디오를 지원합니다. [설정·빌드·운영 안내](noqui/README.md)를 참고하세요. 최초 통합은 두 플러그인 JAR를 설치하고 정상 재시작해야 합니다.
+Noqui 1.0.3로 디펜스·관전 중에도 노래퀴즈에 참여할 수 있습니다. 실물 출제권·미리 변환하는 제출 대기열·무제한/제한 라운드·스킵 투표·일시정지·힌트·별빛 상점을 지원합니다. 미니게임 나침반은 기존 참가·관전 메뉴를 열며, 디펜스 100라운드마다 10·20·30… 별빛을 즉시 지급합니다. 아이템 이름과 설명은 이탤릭 없이 표시합니다. [설정·빌드·운영 안내](noqui/README.md)를 참고하세요. 최초 통합은 두 플러그인 JAR를 설치하고 정상 재시작해야 합니다.
 
 ## 1.0.24 100라운드 이후 세션 나가기 잠금
 
@@ -188,7 +188,7 @@ mvn -B -ntp -f noqui/plugin/pom.xml install
 mvn -B -ntp clean verify
 ~~~
 
-생성된 `target/mc-luck-defense-1.0.26.jar`와 `noqui/plugin/target/noqui-plugin-1.0.1.jar`를 Paper 서버의 plugins 폴더에 넣고 정상 재시작합니다.
+생성된 `target/mc-luck-defense-1.0.28.jar`와 `noqui/plugin/target/noqui-plugin-1.0.3.jar`를 Paper 서버의 plugins 폴더에 넣고 정상 재시작합니다.
 
 Noqui 로비 리소스팩은 [별도 빌드·게시 안내](noqui/lobby-assets/README.md)에 따라 검증한 뒤 플러그인 기동 전에 게시합니다.
 

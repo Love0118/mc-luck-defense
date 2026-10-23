@@ -82,7 +82,7 @@ final class SessionTools {
         inventory.setItem(1,tool(Material.BLAZE_ROD,"move","&b포탑 선택·이동","&7좌클릭: 선택 → 빈 칸 이동 / 다른 기물과 교환","&7같은 기물 다시 클릭·다른 아이템: 선택 해제"));
         inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7좌클릭: 포탑 선택 · 우클릭: 판매","&7다른 아이템을 들면 선택 해제","&7진 태초·미라클: 수동판매"));
         }
-        if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b게임 세션 보기","&7우클릭: 게임 참가·관전 메뉴"));
+        if (lobby || viewer) inventory.setItem(0,tool(Material.COMPASS,"sessions","&b미니게임","&7우클릭: 미니게임 메뉴"));
         if (lobby) inventory.setItem(1,tool(Material.ENCHANTED_BOOK,"traits","&d특성 선택","&7우클릭: 특성 장착·해제","&7최고 100·250·500라운드에 슬롯 해금"));
         if (lobby) inventory.setItem(8,tool(Material.RED_BED,"portal_return","&c포탈섭으로 돌아가기","&7우클릭: 포탈섭으로 이동"));
         else inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));

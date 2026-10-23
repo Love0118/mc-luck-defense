@@ -327,14 +327,13 @@ final class BgmService implements Listener, AutoCloseable {
         Set<UUID> liveSources=new HashSet<>();
         for(Player player:Bukkit.getOnlinePlayers()) {
             GameSession session=games.listeningSession(player);
-            boolean quiz=session==null && games.quizParticipant(player) && !muted(player);
-            if(!quiz && (session==null || session.arena.ended())){stop(player);continue;}
-            UUID source=quiz?UUID.nameUUIDFromBytes(("noqui-bgm:"+player.getUniqueId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)):session.sessionId;
-            UUID owner=quiz?player.getUniqueId():session.arena.owner();
+            if(session==null || session.arena.ended() || games.quizCabinOwner(player)){stop(player);continue;}
+            UUID source=session.sessionId;
+            UUID owner=session.arena.owner();
             liveSources.add(source);
             if(!catalogLoaded)continue;
-            BgmPlaylist selected=quiz?new BgmPlaylist(List.of(),BgmTimeline.Mode.SINGLE,"default"):playlist(session);
-            List<Track> sequence=new ArrayList<>(quiz?Optional.ofNullable(find("default")).stream().toList():selectedTracks(session));
+            BgmPlaylist selected=playlist(session);
+            List<Track> sequence=new ArrayList<>(selectedTracks(session));
             if(selected.selected().equals("default") && find("default")!=null) {
                 if(selected.mode()==BgmTimeline.Mode.SINGLE)sequence=List.of(find("default"));
                 else if(sequence.stream().noneMatch(t->t.id().equals("default")))sequence.addFirst(find("default"));
@@ -345,7 +344,7 @@ final class BgmService implements Listener, AutoCloseable {
             if(!source.equals(state.session)) {
                 stop(player);state.session=source;
             }
-            List<Track> preload=quiz?List.copyOf(sequence):preloadTracks(session);
+            List<Track> preload=preloadTracks(session);
             boolean migrating=preload.stream().anyMatch(t->t.ready() && !t.synchronizedReady());
             if(migrating && !state.migrationNotified)
                 player.sendMessage(Ui.text("&eBGM 업데이트 준비 중입니다. 변환이 끝나면 새 리소스팩을 내려받습니다."));
