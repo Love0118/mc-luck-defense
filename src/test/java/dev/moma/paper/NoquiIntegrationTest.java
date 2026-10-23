@@ -21,9 +21,9 @@ class NoquiIntegrationTest {
         boolean[] started={true};int[] routes={0};
         try(var tools=mockConstruction(SessionTools.class)) {
             var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard(),lobby);
-            games.noqui=new NoquiHooks(){public boolean started(){return started[0];}public boolean routeJoin(Player player){routes[0]++;return true;}};
+            games.noqui=new NoquiHooks(){public boolean started(){return started[0];}public void openProxy(Player player){routes[0]++;}};
             games.requestNoquiReturn(p);assertEquals(1,routes[0]);assertFalse(games.active(p));verify(lobby,never()).send(p);
-            started[0]=false;games.requestNoquiReturn(p);assertEquals(1,routes[0]);verify(games.tools).updateNoqui(p,false,false);
+            started[0]=false;games.requestNoquiReturn(p);assertEquals(1,routes[0]);verify(games.tools).updateNoqui(p,false,false,0);
         }
     }
     @Test void iconTracksQuizStateInLobbyDefenseAndSpectatorsButDoesNotTouchQuizOrOtherGames() {
@@ -35,13 +35,13 @@ class NoquiIntegrationTest {
         try(var tools=mockConstruction(SessionTools.class);var appearance=mockConstruction(SpectatorAppearance.class);var bukkit=mockStatic(Bukkit.class)) {
             var games=new GameService(plugin,maps,dev.moma.core.CampaignRules.standard(),lobby);
             games.noqui=new NoquiHooks(){public boolean started(){return started[0];}public boolean owns(Player p){return p==quiz;}};
-            games.join(owner,"a");verify(games.tools).updateNoqui(owner,true,true);
-            games.spectate(viewer,games.session(owner).sessionId);verify(games.tools).updateNoqui(viewer,true,false);
+            games.join(owner,"a");verify(games.tools).updateNoqui(owner,true,true,0);
+            games.spectate(viewer,games.session(owner).sessionId);verify(games.tools).updateNoqui(viewer,true,true,0);
             clearInvocations(games.tools);bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(idle,owner,viewer,other,quiz));games.refreshNoquiTools();
-            verify(games.tools).updateNoqui(idle,true,false);verify(games.tools).updateNoqui(owner,true,true);verify(games.tools).updateNoqui(viewer,true,false);
-            verify(games.tools).updateNoqui(other,false,false);verify(games.tools,never()).updateNoqui(eq(quiz),anyBoolean(),anyBoolean());
+            verify(games.tools).updateNoqui(idle,true,false,0);verify(games.tools).updateNoqui(owner,true,true,0);verify(games.tools).updateNoqui(viewer,true,true,0);
+            verify(games.tools).updateNoqui(other,false,false,0);verify(games.tools,never()).updateNoqui(eq(quiz),anyBoolean(),anyBoolean(),anyLong());
             clearInvocations(games.tools);started[0]=false;games.refreshNoquiTools();
-            verify(games.tools).updateNoqui(idle,false,false);verify(games.tools).updateNoqui(owner,false,true);verify(games.tools).updateNoqui(viewer,false,false);
+            verify(games.tools).updateNoqui(idle,false,false,0);verify(games.tools).updateNoqui(owner,false,true,0);verify(games.tools).updateNoqui(viewer,false,true,0);
             assertFalse(games.canReturnToNoqui(idle));games.noqui=NoquiHooks.NONE;assertFalse(games.canReturnToNoqui(owner));
         }
     }
@@ -52,8 +52,8 @@ class NoquiIntegrationTest {
         when(lobby.contains(p.getLocation())).thenReturn(true);
         try(var tools=mockConstruction(SessionTools.class);var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getServicesManager).thenReturn(services);var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard(),lobby);
-            games.noqui=new NoquiAdapter(plugin,games,lobby,mock(LobbyMenu.class));current.set(active);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,true,false);
-            current.set(stopped);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,false,false);assertFalse(games.noqui.started());
+            games.noqui=new NoquiAdapter(plugin,games,lobby,mock(LobbyMenu.class));current.set(active);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,true,false,0);
+            current.set(stopped);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,false,false,0);assertFalse(games.noqui.started());
             current.set(null);assertFalse(games.noqui.started());assertFalse(games.canReturnToNoqui(p));
         }
     }

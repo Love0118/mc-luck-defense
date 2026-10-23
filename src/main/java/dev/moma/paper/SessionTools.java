@@ -9,7 +9,8 @@ import java.util.Arrays;
 
 /** Session hotbar tools with a player-persistent backup of replaced slots. */
 final class SessionTools {
-    static final int NOQUI_SLOT=4;
+    static final int NOQUI_SLOT=3,NOQUI_LOBBY_SLOT=2;
+    private static final NamespacedKey NOQUI_COUNT=new NamespacedKey("momadefense","noqui_ticket_count");
     private static final NamespacedKey SOUND_LEVEL = new NamespacedKey("momadefense", "attack_volume");
     private static final int[] VOLUMES = {100, 50, 25, 0};
     private void giveSettings(Player player) {
@@ -33,12 +34,13 @@ final class SessionTools {
         player.getInventory().setItem(7,tool(Material.NOTE_BLOCK,"sound","&b몹 소리 &7· &e"+(percent==0 ? "음소거" : percent+"%"),
                 "&7우클릭: 100% → 50% → 25% → 음소거"));
     }
-    private final NamespacedKey toolKey, backupKey, heldKey, noquiBackupKey;
+    private final NamespacedKey toolKey, backupKey, heldKey, noquiBackupKey,noquiSlotKey;
     SessionTools(MomaPlugin plugin) {
         toolKey=new NamespacedKey(plugin,"session_tool");
         backupKey=new NamespacedKey(plugin,"session_hotbar_backup");
         heldKey=new NamespacedKey(plugin,"session_held_slot");
         noquiBackupKey=new NamespacedKey(plugin,"session_noqui_backup");
+        noquiSlotKey=new NamespacedKey(plugin,"session_noqui_slot");
     }
     void give(Player player) {
         give(player, false, false);
@@ -59,7 +61,7 @@ final class SessionTools {
         giveSettings(player);
     }
     void downgrade(Player player,boolean playing) {
-        updateNoqui(player,false,false);
+        updateNoqui(player,false,false,0);
         var data=player.getPersistentDataContainer();byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
         if(bytes==null)return;
         ItemStack[] previous=ItemStack.deserializeItemsFromBytes(bytes);
@@ -102,26 +104,34 @@ final class SessionTools {
         player.getInventory().setItem(6,tool(Material.JUKEBOX,"bgm", viewer ? "&bBGM · "+(enabled?"&aON":"&7OFF") : "&bBGM 관리",
                 viewer ? "&7우클릭: BGM 켜기·끄기" : "&7우클릭: 노래 선택·업로드"));
     }
-    void updateNoqui(Player player,boolean show,boolean playing) {
+    void updateNoqui(Player player,boolean show,boolean playing,long tickets) {
         var data=player.getPersistentDataContainer();var inventory=player.getInventory();
         byte[] bytes=data.get(noquiBackupKey,PersistentDataType.BYTE_ARRAY);
+        int previousSlot=data.getOrDefault(noquiSlotKey,PersistentDataType.INTEGER,4),slot=playing?NOQUI_SLOT:NOQUI_LOBBY_SLOT;
+        if(bytes!=null&&(previousSlot<0||previousSlot>=inventory.getSize()))throw new IllegalStateException("Invalid Noqui proxy slot");
         if(show) {
+            if(bytes!=null&&previousSlot!=slot){updateNoqui(player,false,false,0);bytes=null;}
             if(bytes==null) {
-                var previous=inventory.getItem(NOQUI_SLOT);
+                var previous=inventory.getItem(slot);
                 data.set(noquiBackupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(new ItemStack[]{"noqui_return".equals(id(previous))?null:previous}));
+                data.set(noquiSlotKey,PersistentDataType.INTEGER,slot);
             }
-            if(!"noqui_return".equals(id(inventory.getItem(NOQUI_SLOT))))
-                inventory.setItem(NOQUI_SLOT,tool(Material.MUSIC_DISC_CAT,"noqui_return","&b노래퀴즈","&7우클릭: 노래퀴즈 참여·메뉴"));
+            tickets=Math.max(0,tickets);var current=inventory.getItem(slot);int amount=(int)Math.max(1,Math.min(64,tickets));
+            if(!"noqui_return".equals(id(current))||current.getAmount()!=amount||current.getItemMeta().getPersistentDataContainer().getOrDefault(NOQUI_COUNT,PersistentDataType.LONG,-1L)!=tickets) {
+                var proxy=tool(Material.PAPER,"noqui_return","&b노래퀴즈","&7출제권 "+tickets+"장","&7우클릭: 로비 · 출제");proxy.setAmount(amount);
+                var meta=proxy.getItemMeta();meta.getPersistentDataContainer().set(NOQUI_COUNT,PersistentDataType.LONG,tickets);proxy.setItemMeta(meta);inventory.setItem(slot,proxy);
+            }
             return;
         }
         ItemStack[] previous=bytes==null?null:ItemStack.deserializeItemsFromBytes(bytes);
         if(previous!=null && previous.length!=1)throw new IllegalStateException("Invalid Noqui hotbar backup for "+player.getUniqueId());
-        for(int slot=0;slot<inventory.getSize();slot++)if("noqui_return".equals(id(inventory.getItem(slot))))inventory.setItem(slot,null);
-        if(previous!=null)inventory.setItem(NOQUI_SLOT,previous[0]);
-        data.remove(noquiBackupKey);
+        for(int index=0;index<inventory.getSize();index++)if("noqui_return".equals(id(inventory.getItem(index))))inventory.setItem(index,null);
+        if("noqui_return".equals(id(player.getItemOnCursor())))player.setItemOnCursor(null);
+        if(previous!=null)inventory.setItem(previousSlot,previous[0]);
+        data.remove(noquiBackupKey);data.remove(noquiSlotKey);
     }
     boolean holding(Player player,String id) {
-        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "noqui_return" -> NOQUI_SLOT; case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave", "portal_return" -> 8; default -> -1; };
+        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "noqui_return" -> player.getPersistentDataContainer().getOrDefault(noquiSlotKey,PersistentDataType.INTEGER,4); case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave", "portal_return" -> 8; default -> -1; };
         var inventory=player.getInventory();
         return inventory!=null && inventory.getHeldItemSlot()==slot && id.equals(id(inventory.getItemInMainHand()));
     }
@@ -130,7 +140,7 @@ final class SessionTools {
         return item==null || !item.hasItemMeta()?null:item.getItemMeta().getPersistentDataContainer().get(toolKey,PersistentDataType.STRING);
     }
     void restore(Player player) {
-        updateNoqui(player,false,false);
+        updateNoqui(player,false,false,0);
         var data=player.getPersistentDataContainer(); var inventory=player.getInventory();
         byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
         ItemStack[] previous=bytes==null?null:ItemStack.deserializeItemsFromBytes(bytes);

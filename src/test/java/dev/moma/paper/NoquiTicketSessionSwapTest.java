@@ -22,7 +22,7 @@ class NoquiTicketSessionSwapTest {
         doAnswer(c->{values.put(c.getArgument(0),c.getArgument(2));return null;}).when(p).set(any(),any(),any());doAnswer(c->{values.remove(c.getArgument(0));return null;}).when(p).remove(any());return p;}
     private void refresh(QuestionTickets tickets,Player player)throws Exception{var method=QuestionTickets.class.getDeclaredMethod("refresh",Player.class);method.setAccessible(true);method.invoke(tickets,player);}
     private int count(ItemStack[] slots){return Arrays.stream(slots).filter(Objects::nonNull).filter(item->item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey("noqui","question_ticket_owner"),PersistentDataType.STRING)).mapToInt(ItemStack::getAmount).sum();}
-    @Test void realMomaHotbarRestoreCannotResurrectConsumedPhysicalTickets()throws Exception {
+    @Test void realMomaRestoreHidesLegacyTicketsAndCabinReentryReconcilesConsumedBalance()throws Exception {
         UUID owner=UUID.randomUUID();var ledger=new CreditLedger(directory.resolve("credits.json"));ledger.grant(owner,3);
         var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");var player=mock(Player.class);when(player.getUniqueId()).thenReturn(owner);var playerData=data();when(player.getPersistentDataContainer()).thenReturn(playerData);
         var inventory=mock(PlayerInventory.class);ItemStack[] slots=new ItemStack[41];when(player.getInventory()).thenReturn(inventory);when(inventory.getSize()).thenReturn(41);when(inventory.getStorageContents()).thenAnswer(c->Arrays.copyOf(slots,36));when(inventory.getHeldItemSlot()).thenReturn(0);
@@ -34,12 +34,12 @@ class NoquiTicketSessionSwapTest {
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(c->{byte[] key={(byte)snapshots.size()};snapshots.put(key,((ItemStack[])c.getArgument(0)).clone());return key;});
             stacks.when(()->ItemStack.deserializeItemsFromBytes(any(byte[].class))).thenAnswer(c->snapshots.get(c.getArgument(0)).clone());
-            var constructor=QuestionTickets.class.getDeclaredConstructor(ToLongFunction.class,Consumer.class);constructor.setAccessible(true);var tickets=constructor.newInstance((ToLongFunction<UUID>)ledger::balance,(Consumer<Player>)p->{});
+            boolean[] cabin={true};var constructor=QuestionTickets.class.getDeclaredConstructor(CreditLedger.class,BooleanSupplier.class,Predicate.class,Consumer.class);constructor.setAccessible(true);var tickets=constructor.newInstance(ledger,(BooleanSupplier)()->true,(Predicate<Player>)p->cabin[0],(Consumer<Player>)p->{});
             refresh(tickets,player);assertEquals(3,count(slots));
-            var tools=new SessionTools(plugin);tools.give(player);refresh(tickets,player);assertEquals(3,count(slots));
-            UUID reserved=UUID.randomUUID();var submit=QuestionTickets.class.getDeclaredMethod("submit",Player.class,Runnable.class);submit.setAccessible(true);submit.invoke(tickets,player,(Runnable)()->ledger.reserve(reserved,owner));ledger.spend(reserved);assertEquals(2,count(slots));
-            tools.restore(player);assertTrue(count(slots)>2);refresh(tickets,player);assertEquals(2,count(slots));assertEquals(2,ledger.balance(owner));
-            tools.giveLobby(player);refresh(tickets,player);assertEquals(2,count(slots));tools.restore(player);refresh(tickets,player);assertEquals(2,count(slots));
+            var oldTicket=slots[0];cabin[0]=false;var tools=new SessionTools(plugin);tools.give(player);refresh(tickets,player);assertEquals(0,count(slots));tools.updateNoqui(player,true,true,ledger.balance(owner));assertEquals(3,slots[3].getAmount());
+            UUID reserved=UUID.randomUUID();ledger.reserve(reserved,owner);ledger.spend(reserved);tools.updateNoqui(player,true,true,ledger.balance(owner));assertEquals(2,slots[3].getAmount());assertEquals(0,count(slots));
+            tools.restore(player);assertTrue(count(slots)>2);refresh(tickets,player);assertEquals(0,count(slots));assertEquals(2,ledger.balance(owner));
+            cabin[0]=true;slots[0]=oldTicket;refresh(tickets,player);assertEquals(2,count(slots));cabin[0]=false;refresh(tickets,player);tools.giveLobby(player);tools.updateNoqui(player,true,false,ledger.balance(owner));assertEquals(2,slots[2].getAmount());assertEquals(0,count(slots));
         }
     }
 }

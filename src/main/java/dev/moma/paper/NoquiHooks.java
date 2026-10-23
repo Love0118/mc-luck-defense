@@ -10,6 +10,8 @@ interface NoquiHooks extends AutoCloseable {
     default boolean owns(Player player){return false;}
     default boolean participant(Player player){return false;}
     default void openControls(Player player){}
+    default void openProxy(Player player){}
+    default long ticketCount(UUID player){return 0;}
     default void prepareDefense(Player player){}
     default void defenseEntered(Player player){}
     default void defenseFailed(Player player){}

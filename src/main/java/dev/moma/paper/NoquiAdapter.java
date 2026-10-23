@@ -16,6 +16,7 @@ final class NoquiAdapter implements NoquiHooks {
             @Override public void silenceBgm(Player p){if(games.bgm!=null)games.bgm.stop(p);}
             @Override public void sendLobby(Player p){if(!games.active(p) && lobby!=null){lobby.send(p);games.refreshNoquiTool(p);}}
             @Override public void openMenu(Player p){if(!games.active(p))menu.open(p);}
+            @Override public void leaveGame(Player p){games.requestLeave(p);}
         };
         Bukkit.getServicesManager().register(DefenseService.class,defense,plugin,ServicePriority.Normal);
     }
@@ -24,6 +25,8 @@ final class NoquiAdapter implements NoquiHooks {
     @Override public boolean owns(Player p){var service=quiz();return service!=null && service.ownsCabin(p.getUniqueId());}
     @Override public boolean participant(Player p){var service=quiz();return service!=null && service.participant(p.getUniqueId());}
     @Override public void openControls(Player p){var service=quiz();if(service!=null)service.openControls(p);}
+    @Override public void openProxy(Player p){var service=quiz();if(service!=null)service.openProxy(p);}
+    @Override public long ticketCount(java.util.UUID player){var service=quiz();return service==null?0:service.ticketCount(player);}
     @Override public void prepareDefense(Player p){var service=quiz();if(service!=null)service.prepareDefense(p);}
     @Override public void defenseEntered(Player p){var service=quiz();if(service!=null)service.defenseEntered(p);}
     @Override public void defenseFailed(Player p){var service=quiz();if(service!=null)service.defenseFailed(p);}

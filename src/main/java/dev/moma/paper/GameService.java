@@ -17,13 +17,12 @@ final class GameService {
         return noqui.started() && !noqui.owns(player) && (active(player) || lobby!=null && lobby.contains(player.getLocation()));
     }
     void refreshNoquiTool(Player player) {
-        if(!noqui.owns(player))tools.updateNoqui(player,canReturnToNoqui(player),playing(player));
+        if(!noqui.owns(player))tools.updateNoqui(player,canReturnToNoqui(player),active(player),noqui.ticketCount(player.getUniqueId()));
     }
     void refreshNoquiTools() {for(Player player:Bukkit.getOnlinePlayers())refreshNoquiTool(player);}
     void requestNoquiReturn(Player player) {
         if(!canReturnToNoqui(player)){refreshNoquiTool(player);return;}
-        if(noqui.participant(player))noqui.openControls(player);
-        else if(!noqui.routeJoin(player))player.sendMessage(Ui.text("&e노래퀴즈에 입장할 수 없습니다."));
+        noqui.openProxy(player);
     }
     private boolean sendToHub(Player player) {
         return sendToHub(player,true);
