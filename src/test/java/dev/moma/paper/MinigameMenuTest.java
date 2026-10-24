@@ -101,4 +101,21 @@ class MinigameMenuTest {
         menu.open(player);menu.click(click(MinigameMenu.MINE,ClickType.LEFT));tasks.removeFirst().run();
         verify(mining).join(player);verify(games,never()).visitLobby(any());verify(sessions,never()).open(any());
     }
+    @Test void moundiLobbyOffersOnlyMoundiAndRejectsHiddenMineSlot(){
+        when(lobby.contains(any())).thenReturn(true);
+        menu.open(player);
+        verify(current,never()).setItem(eq(MinigameMenu.MINE),any());
+        verify(current,times(2)).setItem(anyInt(),any(ItemStack.class));
+        var item=ArgumentCaptor.forClass(ItemStack.class);
+        verify(current).setItem(eq(MinigameMenu.MOMA),item.capture());
+        verify(item.getValue().getItemMeta()).displayName(Ui.text("&a마운디 게임 참가"));
+        menu.click(click(MinigameMenu.MINE,ClickType.LEFT));assertTrue(tasks.isEmpty());
+        menu.click(click(MinigameMenu.MOMA,ClickType.LEFT));tasks.removeFirst().run();
+        verify(sessions).open(player);verify(mining,never()).join(any());
+    }
+    @Test void enteringMoundiLobbyInvalidatesAnAlreadyQueuedMineEntry(){
+        menu.open(player);menu.click(click(MinigameMenu.MINE,ClickType.LEFT));
+        when(lobby.contains(any())).thenReturn(true);tasks.removeFirst().run();
+        verify(mining,never()).join(any());verify(player,never()).closeInventory();
+    }
 }
