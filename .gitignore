@@ -5,6 +5,7 @@ native/mud-combat/target/
 *.iml
 .vscode/
 .runtime/
+noqui/lobby-assets/node_modules/
 __pycache__/
 *cookies*.txt
 docs/simulation/**/trace-*.jsonl

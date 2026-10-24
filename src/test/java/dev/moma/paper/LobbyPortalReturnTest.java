@@ -73,7 +73,7 @@ class LobbyPortalReturnTest {
         var location = mock(Location.class);
         when(player.getLocation()).thenReturn(location);
         when(lobby.contains(location)).thenReturn(true);
-        var listener = new LobbyListener(lobby,games,mock(LobbyMenu.class));
+        var listener = new LobbyListener(lobby,games,mock(LobbyMenu.class),mock(MinigameMenu.class));
         var event = mock(PlayerInteractEvent.class);
         when(event.getPlayer()).thenReturn(player);
         when(games.active(player)).thenReturn(true);

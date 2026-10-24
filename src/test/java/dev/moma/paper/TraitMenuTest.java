@@ -12,6 +12,28 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class TraitMenuTest {
+    @Test void cabinOwnerEditsExistingTraitDataWhilePermissionAndActiveGuardsStillApply() {
+        var player=mock(Player.class);when(player.hasPermission("moma.play")).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);AchievementStats.reached(data,100);
+        var games=mock(GameService.class);when(games.quizCabinOwner(player)).thenReturn(true);
+        var menu=new TraitMenu(mock(MomaPlugin.class),games,null);var view=mock(InventoryView.class);
+        when(player.getOpenInventory()).thenReturn(view);Inventory[] current={null};when(view.getTopInventory()).thenAnswer(c->current[0]);
+        try(var bukkit=mockStatic(Bukkit.class);var items=mockConstruction(ItemStack.class,(item,c)->when(item.getItemMeta()).thenReturn(mock(ItemMeta.class)))) {
+            bukkit.when(()->Bukkit.createInventory(any(InventoryHolder.class),anyInt(),any(net.kyori.adventure.text.Component.class)))
+                    .thenAnswer(c->{var inv=mock(Inventory.class);when(inv.getHolder()).thenReturn(c.getArgument(0));return inv;});
+            doAnswer(c->{current[0]=c.getArgument(0);return null;}).when(player).openInventory(any(Inventory.class));
+            menu.open(player);assertNotNull(current[0]);
+            var click=mock(InventoryClickEvent.class);when(click.getWhoClicked()).thenReturn(player);when(click.getClick()).thenReturn(ClickType.LEFT);
+            when(click.getView()).thenReturn(view);when(click.getRawSlot()).thenReturn(TraitCatalog.ALL.indexOf(TraitCatalog.find("round_100")));
+            menu.click(click);assertEquals(List.of("round_100"),TraitSelections.load(data).ids());
+            clearInvocations(player);when(games.active(player)).thenReturn(true);menu.open(player);menu.click(click);
+            verify(player,never()).openInventory(any(Inventory.class));assertEquals(List.of("round_100"),TraitSelections.load(data).ids());
+            when(games.active(player)).thenReturn(false);when(player.hasPermission("moma.play")).thenReturn(false);menu.open(player);
+            when(player.hasPermission("moma.play")).thenReturn(true);when(games.quizCabinOwner(player)).thenReturn(false);menu.open(player);
+            verify(player,never()).openInventory(any(Inventory.class));
+        }
+    }
     @Test void menuRejectsLockedSlotsAndStaleClicksReplacesFamilyAndFreezesSession() {
         var player=mock(Player.class);var world=mock(World.class);
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());when(player.hasPermission("moma.play")).thenReturn(true);

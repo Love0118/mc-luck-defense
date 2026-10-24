@@ -24,6 +24,21 @@ final class GameService {
         if(!canReturnToNoqui(player)){refreshNoquiTool(player);return;}
         noqui.openProxy(player);
     }
+    /** Explicit lobby travel keeps quiz membership while the quiz provider saves/releases its cabin inventory. */
+    void visitLobby(Player player) {
+        if(!player.hasPermission("moma.play"))throw new IllegalArgumentException("참가 권한이 없습니다.");
+        // The picker never bypasses owner leave locks or ends an active defense session.
+        if(playing(player))throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
+        if(lobby==null)throw new IllegalStateException("마운디 로비를 사용할 수 없습니다.");
+        noqui.prepareDefense(player);
+        try {
+            if(watching(player))stopWatching(player,false);
+            lobby.send(player);refreshNoquiTool(player);
+            noqui.defenseEntered(player);
+        } catch(RuntimeException error) {
+            noqui.defenseFailed(player);throw error;
+        }
+    }
     private boolean sendToHub(Player player) {
         return sendToHub(player,true);
     }
@@ -662,6 +677,7 @@ final class GameService {
             if (viewer == null) { spectators.remove(entry.getKey()); continue; }
             GameSession target = entry.getValue().target;
             if (sessions.get(target.arena.owner()) != target || target.arena.ended()) { stopWatching(viewer, true); continue; }
+            appearance.refreshObserver(viewer);
             recoverPosition(viewer, target.map, true);
             if (tick % 20 == 0) viewer.sendActionBar(Ui.text("&b관전 &7· &eR" + target.campaign.round() + " &7· &b" + target.speed() + "배 &7· &c적 " + target.arena.enemyCount() + "/" + target.arena.enemyLimit() + " &7· /mud: 메뉴"));
         }

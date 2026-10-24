@@ -56,17 +56,18 @@ final class GameListener implements Listener {
     }
     @EventHandler public void interact(PlayerInteractEvent event) {
         if (!games.active(event.getPlayer())) return;
+        if(GsitInteractions.seatClick(event))return;
         event.setCancelled(true);
         if (event.getHand() == EquipmentSlot.HAND && (event.getAction() == Action.LEFT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_AIR)) leftClick(event.getPlayer());
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) sellTool(event.getPlayer(),event.getHand());
     }
     @EventHandler public void entityInteract(PlayerInteractEntityEvent event) {
-        if (games.entities.managed(event.getRightClicked()) || games.active(event.getPlayer())) event.setCancelled(true);
+        if (games.entities.managed(event.getRightClicked())
+                || games.active(event.getPlayer()) && !GsitInteractions.playerClick(event)) event.setCancelled(true);
         sellTool(event.getPlayer(),event.getHand());
     }
     @EventHandler public void entityInteractAt(PlayerInteractAtEntityEvent event) {
-        if (games.entities.managed(event.getRightClicked()) || games.active(event.getPlayer())) event.setCancelled(true);
-        sellTool(event.getPlayer(),event.getHand());
+        entityInteract(event);
     }
     private void sellTool(Player player,EquipmentSlot hand) {
         if (hand==EquipmentSlot.HAND && games.usingManageTool(player) && beginClick(player)) {

@@ -112,7 +112,7 @@ class LobbySessionTest {
     @Test void lobbyJoinRespawnAndFallRecoveryNeverCreateACombatSession() {
         World world=mock(World.class); Lobby lobby=new Lobby(new Location(world,-5.5,54,4.5),256);
         GameService games=mock(GameService.class); LobbyMenu menu=mock(LobbyMenu.class);
-        LobbyListener listener=new LobbyListener(lobby,games,menu); Player player=player(world);
+        LobbyListener listener=new LobbyListener(lobby,games,menu,mock(MinigameMenu.class)); Player player=player(world);
         PlayerJoinEvent join=mock(PlayerJoinEvent.class); when(join.getPlayer()).thenReturn(player); listener.join(join);
         assertTrue(player.getAllowFlight()); assertTrue(player.isFlying());
         verify(player).teleport(lobby.spawn()); verify(games,never()).start(any());

@@ -39,15 +39,16 @@ public final class GameRuntime implements GameModule {
         var events=Bukkit.getPluginManager();
         events.registerEvents(new UnsignedChat(host),host);
         var shop=new ShopMenu(host,games);var menu=new LobbyMenu(host,games);
-        if(Bukkit.getPluginManager().isPluginEnabled("Noqui"))games.noqui=new NoquiAdapter(host,games,lobby,menu);
+        var preferences=new SettingsMenu(games.tools);var traits=new TraitMenu(host,games,lobby);var destinations=new MinigameMenu(host,games,lobby);
+        if(Bukkit.getPluginManager().isPluginEnabled("Noqui"))games.noqui=new NoquiAdapter(host,games,lobby,destinations,preferences,traits);
         games.rewards=new DefenseRewards(host,()->games.noqui);
         games.rewards.flush();
         if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
-        events.registerEvents(new SettingsMenu(games.tools),host);
+        events.registerEvents(preferences,host);
         events.registerEvents(new NoquiReturnListener(games),host);
-        events.registerEvents(menu,host);events.registerEvents(new TraitMenu(host,games,lobby),host);events.registerEvents(new SpectatorListener(games),host);
+        events.registerEvents(menu,host);events.registerEvents(destinations,host);events.registerEvents(traits,host);events.registerEvents(new SpectatorListener(games),host);
         if(lobby!=null) {
-            events.registerEvents(new LobbyListener(lobby,games,menu),host);
+            events.registerEvents(new LobbyListener(lobby,games,menu,destinations),host);
             var portals=new LobbyPortals(host,lobby,games,menu);events.registerEvents(portals,host);
             Bukkit.getScheduler().runTaskTimer(host,portals,1,5);
             if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.routeJoin(player))lobby.send(player);

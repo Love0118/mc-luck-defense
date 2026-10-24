@@ -12,6 +12,67 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class NoquiIntegrationTest {
+    @Test void olderDefenseProvidersReportUnavailableForNewMenus() {
+        var provider=new DefenseService() {
+            public boolean active(Player p){return false;}
+            public void startGame(Player p){}
+            public void releaseLobbyTools(Player p){}
+            public void silenceBgm(Player p){}
+            public void sendLobby(Player p){}
+            public void openMenu(Player p){}
+        };
+        assertThrows(IllegalStateException.class,()->provider.openSettings(mock(Player.class)));
+        assertThrows(IllegalStateException.class,()->provider.openTraits(mock(Player.class)));
+    }
+    @Test void destinationVisitKeepsQuizMembershipAndCompletesOrRecoversCabinHandoff() {
+        var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");
+        var lobby=mock(Lobby.class);var p=at(mock(org.bukkit.World.class));when(p.hasPermission("moma.play")).thenReturn(true);
+        try(var tools=mockConstruction(SessionTools.class)) {
+            var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard(),lobby);
+            var hooks=mock(NoquiHooks.class);games.noqui=hooks;
+            games.visitLobby(p);
+            var order=inOrder(hooks,lobby,games.tools);
+            order.verify(hooks).prepareDefense(p);order.verify(lobby).send(p);
+            order.verify(games.tools).updateNoqui(p,false,false,0);order.verify(hooks).defenseEntered(p);
+            verify(hooks,never()).leave(any());verify(hooks,never()).routeJoin(any());verify(hooks,never()).defenseFailed(any());
+            clearInvocations(hooks,lobby);doThrow(new IllegalStateException("rejected teleport")).when(lobby).send(p);
+            assertThrows(IllegalStateException.class,()->games.visitLobby(p));
+            order=inOrder(hooks,lobby);order.verify(hooks).prepareDefense(p);order.verify(lobby).send(p);order.verify(hooks).defenseFailed(p);
+            verify(hooks,never()).defenseEntered(any());verify(hooks,never()).leave(any());verify(hooks,never()).routeJoin(any());
+        }
+    }
+    @Test void destinationVisitRestoresViewerWithoutLeavingOwnerOrRoutingBackToQuiz() {
+        var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");
+        var world=mock(org.bukkit.World.class);var maps=mock(ArenaMaps.class);var lobby=mock(Lobby.class);
+        when(maps.get("a")).thenReturn(new ArenaMap("a",world,0,64,0,new dev.moma.core.Grid(6)));
+        when(world.getChunkAt(anyInt(),anyInt())).thenReturn(mock(org.bukkit.Chunk.class));
+        var owner=at(world);var viewer=at(world);when(viewer.hasPermission("moma.play")).thenReturn(true);
+        when(owner.hasPermission("moma.play")).thenReturn(true);
+        try(var tools=mockConstruction(SessionTools.class);var appearance=mockConstruction(SpectatorAppearance.class);var bukkit=mockStatic(Bukkit.class)) {
+            var games=new GameService(plugin,maps,dev.moma.core.CampaignRules.standard(),lobby);
+            var hooks=mock(NoquiHooks.class);games.noqui=hooks;games.bgm=mock(BgmService.class);
+            games.join(owner,"a");games.spectate(viewer,games.session(owner).sessionId);
+            clearInvocations(hooks,games.tools,games.bgm,viewer,owner,lobby);
+            games.visitLobby(viewer);
+            assertFalse(games.active(viewer));assertTrue(games.playing(owner));
+            verify(games.bgm).stop(viewer);verify(games.tools).restore(viewer);verify(appearance.constructed().getFirst()).leave(viewer);
+            verify(lobby).send(viewer);verify(viewer,never()).teleport(any(org.bukkit.Location.class));
+            verify(hooks).prepareDefense(viewer);verify(hooks).defenseEntered(viewer);
+            verify(hooks,never()).leave(any());verify(hooks,never()).routeJoin(any());verify(lobby,never()).send(owner);
+            assertThrows(IllegalArgumentException.class,()->games.visitLobby(owner));
+            assertTrue(games.playing(owner));verify(hooks,never()).prepareDefense(owner);
+        }
+    }
+    @Test void destinationVisitChecksPermissionAndAvailabilityBeforePreparingCabin() {
+        var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");var p=at(mock(org.bukkit.World.class));
+        try(var tools=mockConstruction(SessionTools.class)) {
+            var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard());
+            var hooks=mock(NoquiHooks.class);games.noqui=hooks;
+            assertThrows(IllegalArgumentException.class,()->games.visitLobby(p));
+            when(p.hasPermission("moma.play")).thenReturn(true);
+            assertThrows(IllegalStateException.class,()->games.visitLobby(p));verifyNoInteractions(hooks);
+        }
+    }
     private Player at(org.bukkit.World world) {
         var p=mock(Player.class);when(p.getUniqueId()).thenReturn(UUID.randomUUID());when(p.getLocation()).thenReturn(new org.bukkit.Location(world,0,65,0));
         when(p.getGameMode()).thenReturn(org.bukkit.GameMode.ADVENTURE);when(p.teleport(any(org.bukkit.Location.class))).thenReturn(true);return p;
@@ -52,7 +113,7 @@ class NoquiIntegrationTest {
         when(lobby.contains(p.getLocation())).thenReturn(true);
         try(var tools=mockConstruction(SessionTools.class);var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getServicesManager).thenReturn(services);var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard(),lobby);
-            games.noqui=new NoquiAdapter(plugin,games,lobby,mock(LobbyMenu.class));current.set(active);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,true,false,0);
+            games.noqui=new NoquiAdapter(plugin,games,lobby,mock(MinigameMenu.class),mock(SettingsMenu.class),mock(TraitMenu.class));current.set(active);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,true,false,0);
             current.set(stopped);games.refreshNoquiTool(p);verify(games.tools).updateNoqui(p,false,false,0);assertFalse(games.noqui.started());
             current.set(null);assertFalse(games.noqui.started());assertFalse(games.canReturnToNoqui(p));
         }
@@ -93,25 +154,26 @@ class NoquiIntegrationTest {
     }
     @Test void quizJoinAndRespawnDoNotTouchDefenseLobbyOrInventory() {
         var games=mock(GameService.class);var lobby=mock(Lobby.class);var menu=mock(LobbyMenu.class);var player=mock(Player.class);
-        var listener=new LobbyListener(lobby,games,menu);var join=mock(PlayerJoinEvent.class);when(join.getPlayer()).thenReturn(player);
+        var listener=new LobbyListener(lobby,games,menu,mock(MinigameMenu.class));var join=mock(PlayerJoinEvent.class);when(join.getPlayer()).thenReturn(player);
         when(games.routeNoquiJoin(player)).thenReturn(true);listener.join(join);verifyNoInteractions(lobby,menu);verify(player,never()).sendMessage(any(net.kyori.adventure.text.Component.class));
         var respawn=mock(PlayerRespawnEvent.class);when(respawn.getPlayer()).thenReturn(player);when(games.quizCabinOwner(player)).thenReturn(true);listener.respawn(respawn);
         verify(games,never()).disconnect(player);verifyNoInteractions(lobby);
     }
     @Test void optionalAdapterLooksUpCurrentQuizAndReleasesItsRuntimeProvider() {
-        var services=mock(ServicesManager.class);var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");var menu=mock(LobbyMenu.class);var lobby=mock(Lobby.class);
+        var services=mock(ServicesManager.class);var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");var menu=mock(MinigameMenu.class);var settings=mock(SettingsMenu.class);var traits=mock(TraitMenu.class);var lobby=mock(Lobby.class);
         var p=mock(Player.class);UUID id=UUID.randomUUID();when(p.getUniqueId()).thenReturn(id);
         var first=mock(QuizService.class);var replacement=mock(QuizService.class);when(first.participant(id)).thenReturn(true);when(first.ownsCabin(id)).thenReturn(true);when(replacement.ownsCabin(id)).thenReturn(false);
         when(services.load(QuizService.class)).thenReturn(first,replacement,first,first);
         try(var tools=mockConstruction(SessionTools.class);var bukkit=mockStatic(Bukkit.class)) {
             var games=spy(new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard()));games.bgm=mock(BgmService.class);
-            bukkit.when(Bukkit::getServicesManager).thenReturn(services);var adapter=new NoquiAdapter(plugin,games,lobby,menu);
+            bukkit.when(Bukkit::getServicesManager).thenReturn(services);var adapter=new NoquiAdapter(plugin,games,lobby,menu,settings,traits);
             assertTrue(adapter.owns(p));assertFalse(adapter.owns(p));adapter.leave(p);verify(first).leave(p);
             var provider=org.mockito.ArgumentCaptor.forClass(DefenseService.class);
             verify(services).register(eq(DefenseService.class),provider.capture(),eq(plugin),eq(ServicePriority.Normal));
             provider.getValue().releaseLobbyTools(p);provider.getValue().silenceBgm(p);provider.getValue().sendLobby(p);provider.getValue().openMenu(p);
             verify(games.tools).restore(p);verify(games.bgm).stop(p);verify(lobby).send(p);verify(menu).open(p);
-            when(games.active(p)).thenReturn(true);provider.getValue().openMenu(p);verify(menu,times(1)).open(p);
+            provider.getValue().openSettings(p);provider.getValue().openTraits(p);verify(settings).open(p);verify(traits).open(p);
+            when(games.playing(p)).thenReturn(true);provider.getValue().openMenu(p);verify(menu,times(1)).open(p);
             adapter.close();verify(services).unregister(DefenseService.class,provider.getValue());
         }
     }

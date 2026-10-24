@@ -27,5 +27,10 @@ final class SpectatorAppearance {
         player.setInvisible(previous.invisible); player.setCollidable(previous.collidable);
         player.setScoreboard(previous.board);
     }
+    void refreshObserver(Player player) {
+        Saved previous=saved.get(player.getUniqueId());
+        // Pose plugins can clear the raw flag. Keep the original return state and never revive a released generation.
+        if(previous!=null && previous.player==player && !player.isInvisible())player.setInvisible(true);
+    }
     void close() { for (Saved previous : List.copyOf(saved.values())) leave(previous.player); }
 }

@@ -10,7 +10,8 @@ final class LobbyListener implements Listener {
     private final Lobby lobby;
     private final GameService games;
     private final LobbyMenu menu;
-    LobbyListener(Lobby lobby, GameService games, LobbyMenu menu) { this.lobby = lobby; this.games = games; this.menu = menu; }
+    private final MinigameMenu destinations;
+    LobbyListener(Lobby lobby, GameService games, LobbyMenu menu,MinigameMenu destinations) { this.lobby = lobby; this.games = games; this.menu = menu;this.destinations=destinations; }
     @EventHandler public void join(PlayerJoinEvent event) {
         if(games.routeNoquiJoin(event.getPlayer()))return;
         lobby.send(event.getPlayer());
@@ -41,13 +42,14 @@ final class LobbyListener implements Listener {
     @EventHandler public void interact(PlayerInteractEvent event) {
         boolean viewer=games.watching(event.getPlayer());
         if (!viewer && !lobby.contains(event.getPlayer().getLocation())) return;
+        if(GsitInteractions.seatClick(event))return;
         event.setCancelled(true);
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
             games.returnToPortal(event.getPlayer());
         if ((viewer || !games.active(event.getPlayer())) && event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
-                && games.tools.holding(event.getPlayer(), "sessions")) menu.open(event.getPlayer());
+                && games.tools.holding(event.getPlayer(), "sessions")) destinations.open(event.getPlayer());
     }
     @EventHandler public void inventory(org.bukkit.event.inventory.InventoryClickEvent event) {
         if (lobby.contains(event.getWhoClicked().getLocation())) event.setCancelled(true);
@@ -57,6 +59,7 @@ final class LobbyListener implements Listener {
     }
     @EventHandler public void interactEntity(PlayerInteractEntityEvent event) {
         if (!lobby.contains(event.getPlayer().getLocation())) return;
+        if(GsitInteractions.playerClick(event))return;
         event.setCancelled(true);
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND) games.returnToPortal(event.getPlayer());
     }
