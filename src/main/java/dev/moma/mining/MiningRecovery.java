@@ -12,7 +12,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 final class MiningRecovery {
     private final MiningStore store;
     private final NamespacedKey receipt;
-    MiningRecovery(JavaPlugin plugin,MiningStore store){this.store=store;receipt=new NamespacedKey(plugin,"mining_restored");}
+    private final NamespacedKey sharedActive,sharedSaved;
+    private final java.util.function.Consumer<Player> saveShared;
+    MiningRecovery(JavaPlugin plugin,MiningStore store){this(plugin,store,p->{});}
+    MiningRecovery(JavaPlugin plugin,MiningStore store,java.util.function.Consumer<Player> saveShared){
+        this.store=store;this.saveShared=saveShared;receipt=new NamespacedKey(plugin,"mining_restored");
+        sharedActive=new NamespacedKey(plugin,"mining_shared_active");sharedSaved=new NamespacedKey(plugin,"mining_shared_saved");
+    }
+    void sharedLoaded(Player player)throws IOException{
+        var recovery=store.profile(player.getUniqueId()).recovery();if(recovery==null)throw new IOException("Shared inventory has no recovery vault");
+        player.getPersistentDataContainer().set(sharedActive,PersistentDataType.STRING,recovery.token().toString());player.saveData();
+    }
     void capture(Player player)throws IOException {
         var p=store.profile(player.getUniqueId());if(p.recovery()!=null)throw new IOException("Previous mining inventory is still in recovery");
         var bytes=new ByteArrayOutputStream();
@@ -41,6 +51,10 @@ final class MiningRecovery {
                 if(in.available()!=0 || inventory.length!=player.getInventory().getSize() || cursor.length!=1 || held<0 || held>8)throw new IOException("Invalid recovery inventory");
                 Location location=world==null?null:new Location(world,x,y,z,yaw,pitch);if(location!=null)location.checkFinite();
                 if(teleport && location==null)throw new IOException("Original mining entry world is unavailable");
+                if(token.equals(data.get(sharedActive,PersistentDataType.STRING))&&!token.equals(data.get(sharedSaved,PersistentDataType.STRING))){
+                    saveShared.accept(player);
+                    data.set(sharedSaved,PersistentDataType.STRING,token);player.saveData();
+                }
                 player.closeInventory();player.getInventory().setContents(inventory);player.setItemOnCursor(cursor[0]);
                 player.getInventory().setHeldItemSlot(held);player.setGameMode(mode);player.setAllowFlight(flight);player.setFlying(flight&&flying);
                 if(teleport && !player.teleport(location))throw new IOException("Mining recovery teleport was refused");
@@ -50,7 +64,7 @@ final class MiningRecovery {
             } catch(IllegalArgumentException e){throw new IOException("Invalid mining recovery snapshot",e);}
         }
         // A crash after saveData and before this write replays only cleanup, never inventory replacement.
-        store.save(id,p.recovery(null));data.remove(receipt);player.saveData();return true;
+        store.save(id,p.recovery(null));data.remove(receipt);data.remove(sharedActive);data.remove(sharedSaved);player.saveData();return true;
     }
     private static void write(DataOutput out,byte[] data)throws IOException{out.writeInt(data.length);out.write(data);}
     private static byte[] read(DataInputStream in)throws IOException{

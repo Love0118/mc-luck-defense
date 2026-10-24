@@ -5,15 +5,15 @@ import java.util.random.RandomGenerator;
 
 /** Server-independent limits and reward arithmetic. Cargo never comes from player inventories. */
 final class MiningRules {
-    static final int SPEED_CAP = 200, FORTUNE_CAP = 3;
+    static final int SPEED_CAP = 300, FORTUNE_CAP = 3;
     enum Upgrade { SPEED, FORTUNE }
     enum Outcome { SUCCESS, FAILURE, DESTROYED }
     record Offer(long cost,int success,int destruction) {}
     record Attempt(Outcome outcome,int gain) {}
     enum Ore {
-        COAL("석탄", 1, 28), COPPER("구리", 1, 23), IRON("철", 2, 20),
-        GOLD("금", 3, 10), REDSTONE("레드스톤", 1, 8), LAPIS("청금석", 2, 6),
-        DIAMOND("다이아몬드", 4, 4), EMERALD("에메랄드", 5, 1);
+        COAL("석탄", 1, 28), COPPER("구리", 2, 23), IRON("철", 3, 20),
+        GOLD("금", 5, 10), REDSTONE("레드스톤", 4, 8), LAPIS("청금석", 6, 6),
+        DIAMOND("다이아몬드", 9, 4), EMERALD("에메랄드", 10, 1);
         final String label;
         final int price, weight;
         Ore(String label, int price, int weight) { this.label = label; this.price = price; this.weight = weight; }
@@ -29,19 +29,21 @@ final class MiningRules {
         return 6f * level / 100f;
     }
     static int cap(Upgrade upgrade) { return upgrade == Upgrade.SPEED ? SPEED_CAP : FORTUNE_CAP; }
-    static long price(long configured) { return Math.clamp(configured, 0, 5); }
+    static long price(long configured) { return Math.clamp(configured, 1, 10); }
     static Offer offer(Upgrade upgrade,int current) {
         if(upgrade==Upgrade.FORTUNE){
             if(current<0||current>=FORTUNE_CAP)throw new IllegalArgumentException("최대 강화입니다.");
             return switch(current){case 0->new Offer(600,80,0);case 1->new Offer(1500,60,5);default->new Offer(3500,40,12);};
         }
         if(current<50||current>=SPEED_CAP)throw new IllegalArgumentException("최대 강화입니다.");
-        int band=(current-50)/25;
-        return new Offer(new long[]{150,250,500,800,1300,2000}[band],90-band*10,new int[]{0,0,3,6,10,15}[band]);
+        int band=(current-50)/20;
+        return new Offer(new long[]{150,250,400,650,1000,1500,2200,3100,4200,5500,7000,9000,11500}[band],
+                new int[]{90,80,65,40,37,34,31,28,25,22,19,16,13}[band],
+                new int[]{0,0,0,3,5,7,9,11,13,15,17,19,21}[band]);
     }
     static Attempt roll(Upgrade upgrade,int current,RandomGenerator random){
         var offer=offer(upgrade,current);int draw=random.nextInt(100);
-        if(draw<offer.success())return new Attempt(Outcome.SUCCESS,upgrade==Upgrade.SPEED?Math.min(200-current,random.nextInt(1,11)):1);
+        if(draw<offer.success())return new Attempt(Outcome.SUCCESS,upgrade==Upgrade.SPEED?Math.min(SPEED_CAP-current,random.nextInt(1,11)):1);
         return new Attempt(draw<offer.success()+offer.destruction()?Outcome.DESTROYED:Outcome.FAILURE,0);
     }
     static boolean depleted(int remaining, int initial, double threshold) {

@@ -30,7 +30,7 @@ final class MiningStore implements AutoCloseable {
         Profile upgrade(Pending attempt) {
             if(attempt.outcome()==MiningRules.Outcome.DESTROYED)return new Profile(UUID.randomUUID(),50,0,cargo,recovery,null);
             int gain=attempt.outcome()==MiningRules.Outcome.SUCCESS?attempt.gain():0;
-            return new Profile(tool, Math.min(200,speed+(attempt.operation()==Operation.SPEED?gain:0)),
+            return new Profile(tool, Math.min(MiningRules.SPEED_CAP,speed+(attempt.operation()==Operation.SPEED?gain:0)),
                     Math.min(3,fortune+(attempt.operation()==Operation.FORTUNE?gain:0)),cargo,recovery,null);
         }
         Profile emptyCargo(Pending payout) { return new Profile(tool, speed, fortune, Map.of(), recovery, payout); }

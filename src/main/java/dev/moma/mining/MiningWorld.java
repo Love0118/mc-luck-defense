@@ -62,7 +62,7 @@ final class MiningWorld implements AutoCloseable {
         } else edits.addAll(cells.keySet());
     }
     boolean ready(){return ready;}
-    Location spawn(){return new Location(world,.5,CaveLayout.HUB_FLOOR+1,-31.5,0,0);}
+    Location spawn(){return new Location(world,.5,CaveLayout.HUB_FLOOR+1,-19.5,0,0);}
     boolean belongs(Location l){return l!=null && world.equals(l.getWorld());}
     boolean contains(Location l){return belongs(l) && Math.abs(l.getX())<CaveLayout.RADIUS && Math.abs(l.getZ())<CaveLayout.RADIUS && l.getY()>=CaveLayout.FLOOR+1 && l.getY()<CaveLayout.ROOF;}
     String material(CaveLayout.Cell c){return cells.get(c);}

@@ -24,6 +24,9 @@ public final class MiningGame implements Listener,AutoCloseable {
         /** Durable idempotent credit, including transaction IDs ending in :refund. */
         void reward(UUID player,String transaction,long amount);
         void prepareEntry(Player player);
+        default void restoreSharedInventory(Player player){}
+        default void saveSharedInventory(Player player){}
+        default boolean inSharedLobby(Player player){return false;}
         void giveTools(Player player);
         void openSharedShop(Player player);
         default void openMineShop(Player player,Runnable openSales,Runnable openUpgrade){openSharedShop(player);}
@@ -48,7 +51,7 @@ public final class MiningGame implements Listener,AutoCloseable {
         mainThread();if(started)return;if(closed)throw new IllegalStateException("Mining is closed");
         try {
             store=new MiningStore(plugin.getDataFolder().toPath().resolve("mining/mining.db"));
-            recovery=new MiningRecovery(plugin,store);economy=new MiningEconomy(store);items=new MiningItems(plugin);
+            recovery=new MiningRecovery(plugin,store,host::saveSharedInventory);economy=new MiningEconomy(store);items=new MiningItems(plugin);
             if(!"2".equals(store.meta("pickaxe-reset"))){
                 for(UUID id:store.players())try{economy.settle(id,wallet(id));}
                 catch(IllegalArgumentException unpaid){if(store.profile(id).pending()!=null)throw unpaid;}
@@ -57,6 +60,7 @@ public final class MiningGame implements Listener,AutoCloseable {
             // Recover online reload/crash survivors before generating terrain or allowing new entry.
             for(Player player:Bukkit.getOnlinePlayers())recover(player);
             cave=new MiningWorld(plugin,store);npc=new MiningNpc(cave);
+            for(Player player:Bukkit.getOnlinePlayers())if(host.inSharedLobby(player))items.cargo(player,store.profile(player.getUniqueId()));
             plugin.getServer().getPluginManager().registerEvents(this,plugin);started=true;
             task=Bukkit.getScheduler().runTaskTimer(plugin,this::tick,1,1);
         } catch(IOException | RuntimeException failure) {
@@ -64,6 +68,7 @@ public final class MiningGame implements Listener,AutoCloseable {
         }
     }
     public boolean owns(Player player){return player!=null && (active.contains(player.getUniqueId()) || blocked.contains(player.getUniqueId()));}
+    public boolean sharesInventory(Player player){return player!=null&&eligible(player);}
     public boolean contains(Location location){return cave!=null && cave.contains(location);}
     /** Call before normal hub-join routing if that routing runs at LOWEST priority. Never routes via Host. */
     public boolean recover(Player player) {
@@ -85,6 +90,7 @@ public final class MiningGame implements Listener,AutoCloseable {
             host.prepareEntry(player);prepared=true; // Must release Noqui cabin and wardrobe before capturing.
             recovery.capture(player);snapshot=true;
             player.setItemOnCursor(null);player.closeInventory();player.getInventory().clear();
+            host.restoreSharedInventory(player);recovery.sharedLoaded(player);items.workspace(player);
             active.add(id);player.setGameMode(GameMode.SURVIVAL);player.setFlying(false);player.setAllowFlight(false);player.setFallDistance(0);
             host.giveTools(player);var profile=store.profile(id);items.give(player,profile);items.cargo(player,profile);
             if(!player.teleport(cave.spawn()))throw new IOException("Mining entry teleport was refused");
@@ -138,30 +144,34 @@ public final class MiningGame implements Listener,AutoCloseable {
     };}
     private Map<MiningRules.Ore,Long> prices(){var prices=new EnumMap<MiningRules.Ore,Long>(MiningRules.Ore.class);for(var ore:MiningRules.Ore.values())prices.put(ore,MiningRules.price(plugin.getConfig().getLong("mining.prices."+ore.name().toLowerCase(Locale.ROOT),ore.price)));return prices;}
     private boolean eligible(Player player){return !closed && active.contains(player.getUniqueId()) && !blocked.contains(player.getUniqueId());}
+    private boolean marketEligible(Player player){return started&&!closed&&!blocked.contains(player.getUniqueId())&&player.isOnline()&&(eligible(player)||host.inSharedLobby(player));}
+    public void refreshCargo(Player player){if(marketEligible(player))try{items.cargo(player,store.profile(player.getUniqueId()));}catch(IOException failure){fail(player,failure);}}
     private static final class Menu implements InventoryHolder {
         final UUID owner;final Map<Integer,Runnable> actions=new HashMap<>();Inventory inventory;
-        boolean consumed;
+        boolean consumed,sharedSales;
         Menu(Player player){owner=player.getUniqueId();}
         @Override public Inventory getInventory(){return inventory;}
     }
     private Menu menu(Player player,String title){var menu=new Menu(player);menu.inventory=Bukkit.createInventory(menu,27,MiningItems.text(title));return menu;}
+    private boolean menuEligible(Menu menu,Player player){return eligible(player)||menu.sharedSales&&marketEligible(player);}
     private void button(Menu menu,int slot,Material type,String label,Runnable action,String... lore){menu.inventory.setItem(slot,MiningItems.icon(type,label,lore));menu.actions.put(slot,action);}
     private void openShop(Player player) {
         if(eligible(player))host.openMineShop(player,()->openCargo(player),()->openUpgrade(player));
     }
-    private void openCargo(Player player) {
-        if(!eligible(player))return;
+    public void openCargo(Player player) {
+        if(!marketEligible(player))return;
         try {
-            var p=store.profile(player.getUniqueId());var menu=menu(player,"광산 상점");
-            button(menu,10,Material.CHEST,"상점",()->openShop(player));
+            var p=store.profile(player.getUniqueId());var menu=menu(player,"광물 판매");menu.sharedSales=true;
+            button(menu,10,Material.CHEST,"상점",()->{if(eligible(player))openShop(player);else host.openSharedShop(player);});
             var cargoLore=new ArrayList<String>();
             for(var ore:MiningRules.Ore.values())cargoLore.add("&7"+ore.label+" &f"+p.cargo().getOrDefault(ore,0L)+" &8/ &e✦ "+prices().get(ore));
             button(menu,12,Material.EMERALD,"&a광석 판매 &e✦ "+MiningRules.sale(p.cargo(),prices()),()->{
-                try{long amount=economy.sell(player.getUniqueId(),prices(),wallet(player));items.cargo(player,store.profile(player.getUniqueId()));if(amount>0){message(player,"&e✦ "+amount);MiningItems.sound(player,"entity.experience_orb.pickup",1.3f);}openShop(player);}
+                try{long amount=economy.sell(player.getUniqueId(),prices(),wallet(player));items.cargo(player,store.profile(player.getUniqueId()));if(amount>0){message(player,"&e✦ "+amount);MiningItems.sound(player,"entity.experience_orb.pickup",1.3f);}if(eligible(player))openShop(player);else host.openSharedShop(player);}
                 catch(IOException | RuntimeException failure){fail(player,failure);}
             },cargoLore.toArray(String[]::new));
-            button(menu,14,Material.IRON_PICKAXE,"곡괭이 강화",()->openUpgrade(player));
-            button(menu,16,Material.OAK_DOOR,"돌아가기",()->returnToHub(player));player.openInventory(menu.inventory);
+            if(eligible(player))button(menu,14,Material.IRON_PICKAXE,"곡괭이 강화",()->openUpgrade(player));
+            for(var ore:MiningRules.Ore.values())menu.inventory.setItem(ore.ordinal(),MiningItems.icon(MiningItems.material(ore),"&f"+ore.label,"&e✦ "+prices().get(ore),"&7보유 &f"+p.cargo().getOrDefault(ore,0L)));
+            button(menu,16,Material.BARRIER,"닫기",player::closeInventory);player.openInventory(menu.inventory);
         } catch(IOException | RuntimeException failure){fail(player,failure);}
     }
     public void openUpgrade(Player player) {
@@ -202,7 +212,7 @@ public final class MiningGame implements Listener,AutoCloseable {
         try {
             var p=store.profile(player.getUniqueId());if(p.pending()!=null || !items.owned(player.getInventory().getItemInMainHand(),player.getUniqueId(),p.tool()))return;
             var ore=MiningRules.Ore.fromBlock(material);int amount=ore==null?0:MiningRules.drops(ore,p.fortune(),java.util.concurrent.ThreadLocalRandom.current());
-            if(ore!=null&&!items.canCarry(p,ore,amount)){message(player,"&c인벤토리 공간 부족");return;}
+            if(ore!=null&&!items.canCarry(player,p,ore,amount)){message(player,"&c인벤토리 공간 부족");return;}
             if(store.mine(player.getUniqueId(),cell,material,ore,amount)){cave.mined(cell);if(ore!=null)items.cargo(player,store.profile(player.getUniqueId()));}
         } catch(IOException | RuntimeException failure){blocked.add(player.getUniqueId());fail(player,failure);}
     }
@@ -210,17 +220,23 @@ public final class MiningGame implements Listener,AutoCloseable {
         if(!(e.getWhoClicked() instanceof Player player))return;
         if(e.getView().getTopInventory().getHolder() instanceof Menu menu) {
             e.setCancelled(true);
-            if(menu.inventory!=e.getView().getTopInventory() || !menu.owner.equals(player.getUniqueId()) || !eligible(player) || e.getClickedInventory()!=menu.inventory || !e.isLeftClick() || e.isShiftClick())return;
+            if(menu.inventory!=e.getView().getTopInventory() || !menu.owner.equals(player.getUniqueId()) || !menuEligible(menu,player) || e.getClickedInventory()!=menu.inventory || !e.isLeftClick() || e.isShiftClick())return;
             var action=menu.actions.get(e.getRawSlot());if(action!=null && !menu.consumed){menu.consumed=true;menuActions.addLast(()->{
-                if(eligible(player) && player.getOpenInventory().getTopInventory()==menu.inventory)try{MiningItems.sound(player,"ui.button.click",1.1f);action.run();}catch(RuntimeException failure){fail(player,failure);}
+                if(menuEligible(menu,player) && player.getOpenInventory().getTopInventory()==menu.inventory)try{MiningItems.sound(player,"ui.button.click",1.1f);action.run();}catch(RuntimeException failure){fail(player,failure);}
             });}return;
         }
         if(owns(player) || inWorld(player.getLocation())) {
-            // Parent-owned chest GUIs may run their own top-slot actions; no inventory transfer is allowed.
-            e.setCancelled(true);
+            // Shared bearer items may move locally; generated tools/cargo and crafting stay protected.
+            if(!personalInventory(e.getView())||e.getClickedInventory()!=player.getInventory()
+                    ||MiningItems.reservedSlot(e.getSlot())||items.managed(e.getCurrentItem())||items.managed(e.getCursor())||e.isShiftClick()&&e.getSlotType()!=InventoryType.SlotType.ARMOR
+                    ||e.getHotbarButton()>=0&&items.managed(player.getInventory().getItem(e.getHotbarButton()))
+                    ||e.getClick()==ClickType.SWAP_OFFHAND&&items.managed(player.getInventory().getItemInOffHand()))e.setCancelled(true);
         } else if(items!=null && (items.managed(e.getCurrentItem()) || items.managed(e.getCursor())))e.setCancelled(true);
     }
-    @EventHandler(priority=EventPriority.HIGHEST) public void drag(InventoryDragEvent e){if(e.getWhoClicked() instanceof Player p && (owns(p) || items.managed(e.getOldCursor())))e.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST) public void drag(InventoryDragEvent e){if(e.getWhoClicked() instanceof Player p&&items!=null){
+        if(items.managed(e.getOldCursor())||owns(p)&&(!personalInventory(e.getView())||e.getRawSlots().stream().anyMatch(s->s<e.getView().getTopInventory().getSize()||MiningItems.reservedSlot(e.getView().convertSlot(s))||items.managed(e.getView().getItem(s)))))e.setCancelled(true);
+    }}
+    private static boolean personalInventory(InventoryView view){var type=view.getTopInventory().getType();return type!=null&&type.name().equals("CRAFTING");}
     @EventHandler(priority=EventPriority.HIGHEST) public void open(InventoryOpenEvent e) {
         if(!(e.getPlayer() instanceof Player p) || !owns(p))return;
         Inventory inv=e.getInventory();

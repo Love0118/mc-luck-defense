@@ -8,6 +8,7 @@ import org.bukkit.plugin.ServicePriority;
 /** Only loaded when Noqui is enabled; each invocation resolves the current provider. */
 final class NoquiAdapter implements NoquiHooks {
     private final DefenseService defense;
+    private final MiningService mining;
     NoquiAdapter(MomaPlugin plugin,GameService games,Lobby lobby,MinigameMenu menu,SettingsMenu settings,TraitMenu traits) {
         defense=new DefenseService() {
             @Override public boolean active(Player p){return games.active(p)||games.mining!=null&&games.mining.owns(p);}
@@ -21,6 +22,12 @@ final class NoquiAdapter implements NoquiHooks {
             @Override public void leaveGame(Player p){if(games.mining!=null&&games.mining.owns(p))games.mining.leave(p,true);else games.requestLeave(p);}
         };
         Bukkit.getServicesManager().register(DefenseService.class,defense,plugin,ServicePriority.Normal);
+        mining=new MiningService(){
+            public boolean ownsInventory(Player p){return games.mining!=null&&games.mining.sharesInventory(p);}
+            public void openOreSales(Player p){if(games.mining!=null)games.mining.openCargo(p);}
+            public void refreshCargo(Player p){if(games.mining!=null)games.mining.refreshCargo(p);}
+        };
+        Bukkit.getServicesManager().register(MiningService.class,mining,plugin,ServicePriority.Normal);
     }
     private QuizService quiz(){return Bukkit.getServicesManager().load(QuizService.class);}
     @Override public boolean started(){var service=quiz();return service!=null && service.started();}
@@ -34,6 +41,8 @@ final class NoquiAdapter implements NoquiHooks {
     @Override public void openSharedShop(Player p){lobbyService().openShop(p);}
     @Override public void openMiningShop(Player p,Runnable sales,Runnable upgrade){lobbyService().openMiningShop(p,sales,upgrade);}
     @Override public void prepareItems(Player p){lobbyService().prepareInventoryChange(p);}
+    @Override public void restoreSharedInventory(Player p){var service=quiz();if(service!=null)service.restoreSharedInventory(p);}
+    @Override public void saveSharedInventory(Player p){var service=quiz();if(service!=null)service.saveSharedInventory(p);}
     @Override public void openProxy(Player p){var service=quiz();if(service!=null)service.openProxy(p);}
     @Override public long ticketCount(java.util.UUID player){var service=quiz();return service==null?0:service.ticketCount(player);}
     @Override public void prepareDefense(Player p){var service=quiz();if(service!=null)service.prepareDefense(p);}
@@ -45,5 +54,5 @@ final class NoquiAdapter implements NoquiHooks {
     }
     @Override public boolean routeJoin(Player p){var service=quiz();return service!=null && service.routeJoin(p);}
     @Override public void leave(Player p){var service=quiz();if(service!=null && service.participant(p.getUniqueId()))service.leave(p);}
-    @Override public void close(){Bukkit.getServicesManager().unregister(DefenseService.class,defense);}
+    @Override public void close(){Bukkit.getServicesManager().unregister(MiningService.class,mining);Bukkit.getServicesManager().unregister(DefenseService.class,defense);}
 }

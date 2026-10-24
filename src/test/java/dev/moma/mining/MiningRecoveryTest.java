@@ -83,4 +83,17 @@ class MiningRecoveryTest {
         verify(inventory,never()).setContents(any(ItemStack[].class));assertNotNull(store.profile(player.getUniqueId()).recovery());
         assertTrue(recovery.restore(player,false));assertNull(store.profile(player.getUniqueId()).recovery());
     }
+    @Test void sharedItemsSaveOnceBeforeRestorationEvenIfOriginalPlayerSaveFails()throws Exception {
+        var saves=new java.util.concurrent.atomic.AtomicInteger();
+        recovery=new MiningRecovery(plugin,store,p->saves.incrementAndGet());recovery.capture(player);recovery.sharedLoaded(player);
+        var failOnce=new java.util.concurrent.atomic.AtomicBoolean(true);
+        doAnswer(i->{if(receipts.containsKey(new NamespacedKey("momadefense","mining_restored"))&&failOnce.getAndSet(false))throw new IllegalStateException("disk full");return null;}).when(player).saveData();
+        assertThrows(IllegalStateException.class,()->recovery.restore(player,false));assertEquals(1,saves.get());
+        assertNotNull(store.profile(player.getUniqueId()).recovery());assertTrue(recovery.restore(player,false));
+        assertEquals(1,saves.get());assertTrue(receipts.isEmpty());
+    }
+    @Test void failedEntryBeforeSharedLoadDoesNotSaveOutsideItemsIntoSharedVault()throws Exception {
+        var saves=new java.util.concurrent.atomic.AtomicInteger();recovery=new MiningRecovery(plugin,store,p->saves.incrementAndGet());
+        recovery.capture(player);assertTrue(recovery.restore(player,false));assertEquals(0,saves.get());
+    }
 }

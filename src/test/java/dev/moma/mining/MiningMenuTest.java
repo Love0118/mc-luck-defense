@@ -44,4 +44,15 @@ class MiningMenuTest {
         game.click(click);game.click(click);var queue=MiningMenuTest.<ArrayDeque<Runnable>>field(game,"menuActions");assertEquals(1,queue.size());
         queue.remove().run();game.click(click);assertEquals(1,calls.get());assertTrue(queue.isEmpty());
     }
+    @Test void noquiOwnerCanUseSalesButCannotExecuteAMineOnlyUpgradeMenu()throws Exception {
+        var host=mock(MiningGame.Host.class);var game=new MiningGame(mock(JavaPlugin.class),host);var player=mock(Player.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());when(player.isOnline()).thenReturn(true);when(host.inSharedLobby(player)).thenReturn(true);field(game,"started",true);
+        Class<?> type=Class.forName("dev.moma.mining.MiningGame$Menu");var ctor=type.getDeclaredConstructor(Player.class);ctor.setAccessible(true);Object menu=ctor.newInstance(player);
+        var top=mock(Inventory.class);when(top.getHolder()).thenReturn((InventoryHolder)menu);field(menu,"inventory",top);field(menu,"sharedSales",true);
+        var calls=new AtomicInteger();MiningMenuTest.<Map<Integer,Runnable>>field(menu,"actions").put(12,calls::incrementAndGet);
+        var view=mock(InventoryView.class);when(view.getTopInventory()).thenReturn(top);when(player.getOpenInventory()).thenReturn(view);
+        var click=mock(InventoryClickEvent.class);when(click.getWhoClicked()).thenReturn(player);when(click.getView()).thenReturn(view);when(click.getClickedInventory()).thenReturn(top);when(click.getRawSlot()).thenReturn(12);when(click.isLeftClick()).thenReturn(true);
+        game.click(click);MiningMenuTest.<ArrayDeque<Runnable>>field(game,"menuActions").remove().run();assertEquals(1,calls.get());
+        field(menu,"consumed",false);field(menu,"sharedSales",false);game.click(click);assertTrue(MiningMenuTest.<ArrayDeque<Runnable>>field(game,"menuActions").isEmpty());
+    }
 }

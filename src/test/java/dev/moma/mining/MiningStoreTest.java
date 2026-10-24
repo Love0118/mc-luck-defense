@@ -85,7 +85,7 @@ class MiningStoreTest {
     @Test void recoveryBuffersAreImmutableAndCodecRejectsBadLevelsOrTrailingData()throws Exception {
         byte[] bytes={1,2};var recovery=new MiningStore.Recovery(UUID.randomUUID(),bytes);bytes[0]=9;
         assertEquals(1,recovery.data()[0]);byte[] copy=recovery.data();copy[0]=9;assertEquals(1,recovery.data()[0]);
-        var encoded=MiningStore.encode(session());encoded[23]=(byte)201;
+        var encoded=MiningStore.encode(session());java.nio.ByteBuffer.wrap(encoded).putInt(20,301);
         assertThrows(IOException.class,()->MiningStore.decode(encoded));
         var valid=MiningStore.encode(session());assertThrows(IOException.class,()->MiningStore.decode(Arrays.copyOf(valid,valid.length+1)));
     }

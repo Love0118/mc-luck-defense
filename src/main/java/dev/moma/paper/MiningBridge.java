@@ -44,6 +44,9 @@ final class MiningBridge implements MiningGame.Host, Listener {
         set(player,8,Material.RED_BED,"leave","&c돌아가기");
         refresh(player);games.noqui.defenseEntered(player);
     }
+    @Override public void restoreSharedInventory(Player player){games.noqui.restoreSharedInventory(player);}
+    @Override public void saveSharedInventory(Player player){games.noqui.saveSharedInventory(player);}
+    @Override public boolean inSharedLobby(Player player){return games.noqui.owns(player);}
     private static void set(Player player,int slot,Material material,String id,String name){
         var item=Ui.item(material,name);var meta=item.getItemMeta();
         meta.getPersistentDataContainer().set(KEY,PersistentDataType.STRING,id);item.setItemMeta(meta);

@@ -11,6 +11,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 final class MiningItems {
+    private static final Set<Integer> RESERVED=Set.of(0,1,2,3,4,7,8);
+    static boolean reservedSlot(int slot){return RESERVED.contains(slot);}
     private static final NamespacedKey NAVIGATION=new NamespacedKey("momadefense","mine_navigation");
     private static final NamespacedKey CARGO=new NamespacedKey("momadefense","mining_cargo");
     private final NamespacedKey owner,serial;
@@ -50,18 +52,40 @@ final class MiningItems {
         var inv=player.getInventory();for(int i=0;i<inv.getSize();i++)if(marked(inv.getItem(i)))inv.setItem(i,null);
         if(marked(player.getItemOnCursor()))player.setItemOnCursor(null);
     }
-    boolean canCarry(MiningStore.Profile p,MiningRules.Ore ore,int amount){return cargoSlots(p.credit(ore,amount).cargo())<=27;}
+    /** Plan the tool overlay without overwriting carried items if storage is full. */
+    void workspace(Player player){
+        var inventory=player.getInventory();var next=inventory.getStorageContents().clone();var displaced=new ArrayList<ItemStack>();
+        for(int slot:RESERVED)if(next[slot]!=null&&!next[slot].isEmpty()){displaced.add(next[slot]);next[slot]=null;}
+        for(var item:displaced){
+            int free=-1;for(int slot=0;slot<next.length;slot++)if(!RESERVED.contains(slot)&&(next[slot]==null||next[slot].isEmpty())){free=slot;break;}
+            if(free<0)throw new IllegalArgumentException("공용 인벤토리 공간이 부족합니다. 아이템을 정리한 뒤 입장하세요.");next[free]=item;
+        }
+        inventory.setStorageContents(next);
+    }
+    private static boolean cargoItem(ItemStack item){return item!=null&&!item.isEmpty()&&item.getPersistentDataContainer().has(CARGO,PersistentDataType.STRING);}
+    private int cargoSpace(Player player){
+        int space=0;boolean mining=marked(player.getInventory().getItem(4));var contents=player.getInventory().getStorageContents();
+        for(int slot=0;slot<contents.length;slot++)if((!mining||!RESERVED.contains(slot))&&(contents[slot]==null||contents[slot].isEmpty()||cargoItem(contents[slot])))space++;
+        return space;
+    }
+    boolean canCarry(Player player,MiningStore.Profile p,MiningRules.Ore ore,int amount){return cargoSlots(p.credit(ore,amount).cargo())<=cargoSpace(player);}
     private static long cargoSlots(Map<MiningRules.Ore,Long> cargo){long slots=0;for(long count:cargo.values())slots=Math.addExact(slots,(count+63)/64);return slots;}
+    static Material material(MiningRules.Ore ore){return Material.valueOf(switch(ore){case COPPER->"RAW_COPPER";case IRON->"RAW_IRON";case GOLD->"RAW_GOLD";case LAPIS->"LAPIS_LAZULI";default->ore.name();});}
     void cargo(Player player,MiningStore.Profile p){
-        var inv=player.getInventory();for(int slot=9;slot<36;slot++)inv.setItem(slot,null);
-        int slot=9;
+        var inv=player.getInventory();var contents=inv.getStorageContents();boolean mining=marked(inv.getItem(4));
+        for(int slot=0;slot<contents.length;slot++)if(cargoItem(contents[slot]))contents[slot]=null;
+        for(int slot=contents.length;slot<inv.getSize();slot++)if(cargoItem(inv.getItem(slot)))inv.setItem(slot,null);
+        if(cargoItem(player.getItemOnCursor()))player.setItemOnCursor(null);
+        int slot=0;
         for(var ore:MiningRules.Ore.values()){
             long remaining=p.cargo().getOrDefault(ore,0L);
-            while(remaining>0&&slot<36){
-                Material material=Material.valueOf(switch(ore){case COPPER->"RAW_COPPER";case IRON->"RAW_IRON";case GOLD->"RAW_GOLD";case LAPIS->"LAPIS_LAZULI";default->ore.name();});
-                var item=icon(material,"&f"+ore.label,"&7광산 채굴 광물");item.setAmount((int)Math.min(64,remaining));
-                var meta=item.getItemMeta();meta.getPersistentDataContainer().set(CARGO,PersistentDataType.STRING,ore.name());item.setItemMeta(meta);inv.setItem(slot++,item);remaining-=item.getAmount();
+            while(remaining>0){
+                while(slot<contents.length&&(contents[slot]!=null&&!contents[slot].isEmpty()||mining&&RESERVED.contains(slot)))slot++;
+                if(slot==contents.length)break;
+                var item=icon(material(ore),"&f"+ore.label,"&7광산 채굴 광물");item.setAmount((int)Math.min(64,remaining));
+                var meta=item.getItemMeta();meta.getPersistentDataContainer().set(CARGO,PersistentDataType.STRING,ore.name());item.setItemMeta(meta);contents[slot++]=item;remaining-=item.getAmount();
             }
         }
+        inv.setStorageContents(contents);
     }
 }

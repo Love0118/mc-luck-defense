@@ -27,9 +27,9 @@ class MiningEconomyTest {
     private static Random success(){return new Random(){@Override public int nextInt(int bound){return 0;}@Override public int nextInt(int origin,int bound){return origin;}};}
     @Test void upgradesPersistIndependentlyAndCapsNeverDebitAgain()throws Exception {
         var wallet=new Wallet();try(var store=new MiningStore(directory.resolve("mining.db"))){
-            var p=MiningStoreTest.session();store.save(player,new MiningStore.Profile(p.tool(),199,2,p.cargo(),p.recovery(),null));var economy=new MiningEconomy(store,success());
+            var p=MiningStoreTest.session();store.save(player,new MiningStore.Profile(p.tool(),299,2,p.cargo(),p.recovery(),null));var economy=new MiningEconomy(store,success());
             assertEquals(1,economy.buy(player,MiningRules.Upgrade.SPEED,wallet).gain());economy.buy(player,MiningRules.Upgrade.FORTUNE,wallet);
-            assertEquals(200,store.profile(player).speed());assertEquals(3,store.profile(player).fortune());assertEquals(2,wallet.debits);
+            assertEquals(300,store.profile(player).speed());assertEquals(3,store.profile(player).fortune());assertEquals(2,wallet.debits);
             assertThrows(IllegalArgumentException.class,()->economy.buy(player,MiningRules.Upgrade.SPEED,wallet));assertThrows(IllegalArgumentException.class,()->economy.buy(player,MiningRules.Upgrade.FORTUNE,wallet));assertEquals(2,wallet.debits);
         }
     }
@@ -62,7 +62,7 @@ class MiningEconomyTest {
         }
         try(var store=new MiningStore(file)) {
             var economy=new MiningEconomy(store,success());economy.settle(player,wallet);assertEquals(0,economy.sell(player,Map.of(),wallet));
-            assertEquals(1,wallet.credits);assertEquals(100012,wallet.balance);assertNull(store.profile(player).pending());
+            assertEquals(1,wallet.credits);assertEquals(100027,wallet.balance);assertNull(store.profile(player).pending());
         }
     }
     @Test void rejectedUpgradeCommitProducesDurableIdempotentRefund()throws Exception {
@@ -92,9 +92,9 @@ class MiningEconomyTest {
             assertEquals(MiningRules.Outcome.FAILURE,fail.buy(player,MiningRules.Upgrade.SPEED,wallet).outcome());
             assertEquals(50,store.profile(player).speed());assertEquals(99850,wallet.balance);
             p=store.profile(player);store.save(player,new MiningStore.Profile(p.tool(),150,2,p.cargo(),p.recovery(),null));
-            var destroy=new MiningEconomy(store,new Random(){@Override public int nextInt(int bound){return 55;}});
+            var destroy=new MiningEconomy(store,new Random(){@Override public int nextInt(int bound){return 36;}});
             assertEquals(MiningRules.Outcome.DESTROYED,destroy.buy(player,MiningRules.Upgrade.SPEED,wallet).outcome());
-            var after=store.profile(player);assertEquals(50,after.speed());assertEquals(0,after.fortune());assertNotEquals(p.tool(),after.tool());assertEquals(98550,wallet.balance);
+            var after=store.profile(player);assertEquals(50,after.speed());assertEquals(0,after.fortune());assertNotEquals(p.tool(),after.tool());assertEquals(98350,wallet.balance);
         }
     }
 }

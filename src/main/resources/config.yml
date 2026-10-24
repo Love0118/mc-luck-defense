@@ -5,10 +5,10 @@ mining:
   refill-threshold: 0.25
   prices:
     coal: 1
-    copper: 1
-    iron: 2
-    gold: 3
-    redstone: 1
-    lapis: 2
-    diamond: 4
-    emerald: 5
+    copper: 2
+    iron: 3
+    gold: 5
+    redstone: 4
+    lapis: 6
+    diamond: 9
+    emerald: 10

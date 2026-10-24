@@ -14,6 +14,8 @@ interface NoquiHooks extends AutoCloseable {
     default void openSharedShop(Player player){}
     default void openMiningShop(Player player,Runnable sales,Runnable upgrade){}
     default void prepareItems(Player player){}
+    default void restoreSharedInventory(Player player){}
+    default void saveSharedInventory(Player player){}
     default long starlight(UUID player){throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");}
     default boolean spendStarlight(UUID player,String transaction,long amount){throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");}
     default void openProxy(Player player){}
