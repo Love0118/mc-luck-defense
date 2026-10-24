@@ -29,7 +29,7 @@ final class TraitMenu implements Listener {
     TraitMenu(MomaPlugin plugin,GameService games,Lobby lobby){this.plugin=plugin;this.games=games;this.lobby=lobby;}
     private boolean eligible(Player player) {
         return !games.active(player) && player.hasPermission("moma.play")
-                && (games.quizCabinOwner(player)||lobby!=null&&lobby.contains(player.getLocation()));
+                && (games.quizCabinOwner(player)||games.mining!=null&&games.mining.owns(player)||lobby!=null&&lobby.contains(player.getLocation()));
     }
     void open(Player player){open(player,0);}
     private void open(Player player,int requested) {

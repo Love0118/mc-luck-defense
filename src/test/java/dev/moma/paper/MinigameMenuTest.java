@@ -16,7 +16,9 @@ class MinigameMenuTest {
     private final GameService games=mock(GameService.class);
     private final Lobby lobby=mock(Lobby.class);
     private final MomaPlugin plugin=mock(MomaPlugin.class);
-    private final MinigameMenu menu=new MinigameMenu(plugin,games,lobby);
+    private final LobbyMenu sessions=mock(LobbyMenu.class);
+    private final dev.moma.mining.MiningGame mining=mock(dev.moma.mining.MiningGame.class);
+    private final MinigameMenu menu=new MinigameMenu(plugin,games,lobby,sessions,mining);
     private final InventoryView view=mock(InventoryView.class);
     private final List<Runnable> tasks=new ArrayList<>();
     private MockedStatic<Bukkit> bukkit;
@@ -45,16 +47,16 @@ class MinigameMenuTest {
         when(event.getView()).thenReturn(eventView);when(eventView.getTopInventory()).thenReturn(current);
         when(event.getWhoClicked()).thenReturn(player);when(event.getRawSlot()).thenReturn(slot);when(event.getClick()).thenReturn(type);return event;
     }
-    @Test void oneDestinationQueuesOneVisitAndDoesNotStartAGame() {
+    @Test void destinationQueuesOneSessionScreenAndDoesNotTravelOrStartAGame() {
         menu.open(player);var item=ArgumentCaptor.forClass(ItemStack.class);
         verify(current).setItem(eq(MinigameMenu.MOMA),item.capture());assertEquals(Material.GRASS_BLOCK,item.getValue().getType());
         var name=ArgumentCaptor.forClass(net.kyori.adventure.text.Component.class);
-        verify(item.getValue().getItemMeta()).displayName(name.capture());assertEquals(Ui.text("&a마운디 로비"),name.getValue());
+        verify(item.getValue().getItemMeta()).displayName(name.capture());assertEquals(Ui.text("&a마운디"),name.getValue());
         verify(current).setItem(eq(MinigameMenu.CLOSE),item.capture());assertEquals(Material.BARRIER,item.getValue().getType());
-        verify(current,times(2)).setItem(anyInt(),any(ItemStack.class));
+        verify(current,times(3)).setItem(anyInt(),any(ItemStack.class));
         var event=click(MinigameMenu.MOMA,ClickType.LEFT);menu.click(event);menu.click(event);
         verify(event,times(2)).setCancelled(true);assertEquals(1,tasks.size());verify(games,never()).visitLobby(any());
-        tasks.removeFirst().run();verify(games).visitLobby(player);verify(player).closeInventory();
+        tasks.removeFirst().run();verify(sessions).open(player);verify(games,never()).visitLobby(player);verify(player).closeInventory();
         verify(games,never()).start(any());verify(games,never()).start(any(),anyBoolean());
     }
     @Test void bottomModifiedForeignAndDragEventsCannotChooseADestination() {
@@ -65,7 +67,7 @@ class MinigameMenuTest {
         for(int slot:new int[]{-999,0,27,40,49}) {var event=click(slot,ClickType.LEFT);menu.click(event);verify(event).setCancelled(true);}
         var foreign=click(MinigameMenu.MOMA,ClickType.LEFT);when(foreign.getWhoClicked()).thenReturn(mock(Player.class));menu.click(foreign);
         var drag=mock(InventoryDragEvent.class);when(drag.getView()).thenReturn(view);menu.drag(drag);verify(drag).setCancelled(true);
-        assertTrue(tasks.isEmpty());verify(games,never()).visitLobby(any());
+        assertTrue(tasks.isEmpty());verify(games,never()).visitLobby(any());verify(sessions,never()).open(any());verify(mining,never()).join(any());
     }
     @Test void staleClosedOrNewlyActivePlayerCannotExecuteQueuedVisit() {
         menu.open(player);var stale=click(MinigameMenu.MOMA,ClickType.LEFT);menu.open(player);menu.click(stale);assertTrue(tasks.isEmpty());
@@ -73,12 +75,14 @@ class MinigameMenuTest {
         menu.open(player);menu.click(click(MinigameMenu.MOMA,ClickType.LEFT));when(games.playing(player)).thenReturn(true);
         tasks.removeFirst().run();verify(games,never()).visitLobby(any());
         clearInvocations(player);menu.open(player);verify(player,never()).openInventory(any(Inventory.class));
+        verify(sessions,never()).open(any());
     }
     @Test void closeButtonAndPermissionLossNeverTravel() {
         menu.open(player);menu.click(click(MinigameMenu.CLOSE,ClickType.LEFT));tasks.removeFirst().run();verify(player).closeInventory();
         menu.open(player);menu.click(click(MinigameMenu.MOMA,ClickType.LEFT));when(player.hasPermission("moma.play")).thenReturn(false);
         tasks.removeFirst().run();verify(games,never()).visitLobby(any());
         clearInvocations(player);menu.open(player);verify(player,never()).openInventory(any(Inventory.class));
+        verify(sessions,never()).open(any());
     }
     @Test void lobbyAndSpectatorAreEligibleButUnrelatedWorldIsNot() {
         when(games.quizCabinOwner(player)).thenReturn(false);menu.open(player);verify(player,never()).openInventory(any(Inventory.class));
@@ -88,8 +92,13 @@ class MinigameMenuTest {
         when(player.isOnline()).thenReturn(false);menu.open(player);verify(player,times(2)).openInventory(any(Inventory.class));
     }
     @Test void rejectedVisitReportsErrorAfterClosingInventory() {
-        doThrow(new IllegalStateException("teleport rejected")).when(games).visitLobby(player);
+        doThrow(new IllegalStateException("screen rejected")).when(sessions).open(player);
         menu.open(player);menu.click(click(MinigameMenu.MOMA,ClickType.LEFT));tasks.removeFirst().run();
-        verify(player).closeInventory();verify(player).sendMessage(Ui.text("&cteleport rejected"));
+        verify(player).closeInventory();verify(player).sendMessage(Ui.text("&cscreen rejected"));
+    }
+    @Test void mineDestinationEntersOnceAndRemainsAccessibleInsideMine(){
+        when(games.quizCabinOwner(player)).thenReturn(false);when(mining.owns(player)).thenReturn(true);
+        menu.open(player);menu.click(click(MinigameMenu.MINE,ClickType.LEFT));tasks.removeFirst().run();
+        verify(mining).join(player);verify(games,never()).visitLobby(any());verify(sessions,never()).open(any());
     }
 }

@@ -10,6 +10,12 @@ interface NoquiHooks extends AutoCloseable {
     default boolean owns(Player player){return false;}
     default boolean participant(Player player){return false;}
     default void openControls(Player player){}
+    default void openWardrobe(Player player){}
+    default void openSharedShop(Player player){}
+    default void openMiningShop(Player player,Runnable sales,Runnable upgrade){}
+    default void prepareItems(Player player){}
+    default long starlight(UUID player){throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");}
+    default boolean spendStarlight(UUID player,String transaction,long amount){throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");}
     default void openProxy(Player player){}
     default long ticketCount(UUID player){return 0;}
     default void prepareDefense(Player player){}

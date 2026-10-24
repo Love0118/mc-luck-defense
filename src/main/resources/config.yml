@@ -1,0 +1,17 @@
+# Cave generation is bounded per tick; player progression is stored in mining/mining.db.
+mining:
+  world: moma_mining
+  edits-per-tick: 512
+  refill-threshold: 0.25
+  prices:
+    coal: 1
+    copper: 1
+    iron: 2
+    gold: 3
+    redstone: 1
+    lapis: 2
+    diamond: 4
+    emerald: 5
+  upgrades:
+    speed-base-cost: 30
+    fortune-base-cost: 60

@@ -25,6 +25,7 @@ class TraitSelectionsTest {
         when(data.get(any(),any())).thenAnswer(c->values.get(c.getArgument(0)));
         when(data.getOrDefault(any(),any(),any())).thenAnswer(c->values.getOrDefault(c.getArgument(0),c.getArgument(2)));
         doAnswer(c->{values.put(c.getArgument(0),c.getArgument(2));return null;}).when(data).set(any(),any(),any());
+        doAnswer(c->{values.remove(c.getArgument(0));return null;}).when(data).remove(any());
         return data;
     }
     @Test void oldCountersUnlockRewardsAndSavedLoadoutIsRevalidated() {

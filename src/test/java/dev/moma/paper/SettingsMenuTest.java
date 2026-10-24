@@ -27,6 +27,12 @@ class SettingsMenuTest {
         assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));assertFalse(NotificationPreferences.OWN_SUMMON.enabled(player));
         SessionExitPreferences.toggle(player);assertTrue(SessionExitPreferences.enabled(reconnected));
         SessionExitPreferences.toggle(reconnected);assertFalse(SessionExitPreferences.enabled(player));
+        var mirrorKey=new NamespacedKey("serverchatmirror","hidden");
+        assertTrue(ChatMirrorPreferences.enabled(player));ChatMirrorPreferences.toggle(player);
+        assertEquals((byte)1,data.get(mirrorKey,org.bukkit.persistence.PersistentDataType.BYTE));
+        assertFalse(ChatMirrorPreferences.enabled(reconnected));
+        data.remove(mirrorKey);assertTrue(ChatMirrorPreferences.enabled(player));
+        assertFalse(data.has(new NamespacedKey("serverchatmirror","portalchat")));
     }
     @Test void guiOpensFromTheExistingToolAndRejectsDuplicateForeignStaleAndInventoryTransferActions() {
         Player player=mock(Player.class),stranger=mock(Player.class);SessionTools tools=mock(SessionTools.class);
@@ -56,6 +62,8 @@ class SettingsMenuTest {
             for(var option:NotificationPreferences.values())assertFalse(option.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);menu.click(click);menu.click(click);
             assertTrue(SessionExitPreferences.enabled(player));
+            tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.CHAT_MIRROR);menu.click(click);menu.click(click);
+            assertFalse(ChatMirrorPreferences.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(38);menu.click(click);
             when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);when(click.getClick()).thenReturn(ClickType.SHIFT_LEFT);menu.click(click);
             when(click.getClick()).thenReturn(ClickType.NUMBER_KEY);menu.click(click);

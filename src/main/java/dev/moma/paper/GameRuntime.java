@@ -24,6 +24,7 @@ public final class GameRuntime implements GameModule {
     private boolean toolsRefreshed;
     public GameRuntime() {}
     @Override public void prepare(MomaPlugin host,byte[] snapshot)throws Exception {
+        host.saveDefaultConfig();
         this.host=host;settings=CampaignRules.standard();maps=new ArenaMaps(host);maps.load();lobby=Lobby.load(host);
         games=new GameService(host,maps,settings,lobby);
         bgmConfiguration=BgmService.prepareConfiguration(host);
@@ -39,12 +40,17 @@ public final class GameRuntime implements GameModule {
         var events=Bukkit.getPluginManager();
         events.registerEvents(new UnsignedChat(host),host);
         var shop=new ShopMenu(host,games);var menu=new LobbyMenu(host,games);
-        var preferences=new SettingsMenu(games.tools);var traits=new TraitMenu(host,games,lobby);var destinations=new MinigameMenu(host,games,lobby);
+        var preferences=new SettingsMenu(games.tools);var traits=new TraitMenu(host,games,lobby);
+        var mineBridge=new MiningBridge(games,lobby,preferences,traits);
+        games.mining=new dev.moma.mining.MiningGame(host,mineBridge);
+        var destinations=new MinigameMenu(host,games,lobby,menu,games.mining);mineBridge.menu(destinations);
         if(Bukkit.getPluginManager().isPluginEnabled("Noqui"))games.noqui=new NoquiAdapter(host,games,lobby,destinations,preferences,traits);
         games.rewards=new DefenseRewards(host,()->games.noqui);
         games.rewards.flush();
+        games.mining.start();
         if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
         events.registerEvents(preferences,host);
+        events.registerEvents(new WardrobeListener(games),host);events.registerEvents(mineBridge,host);
         events.registerEvents(new NoquiReturnListener(games),host);
         events.registerEvents(menu,host);events.registerEvents(destinations,host);events.registerEvents(traits,host);events.registerEvents(new SpectatorListener(games),host);
         if(lobby!=null) {
@@ -79,10 +85,12 @@ public final class GameRuntime implements GameModule {
         Bukkit.getScheduler().runTaskTimer(host,menu::refreshOpen,20,20);
         Bukkit.getScheduler().runTaskTimer(host,TabStatus::update,20,20);
         Bukkit.getScheduler().runTaskTimer(host,games::refreshNoquiTools,1,5);
+        Bukkit.getScheduler().runTaskTimer(host,()->{for(var p:Bukkit.getOnlinePlayers())if(games.mining.owns(p))mineBridge.refresh(p);},1,5);
         games.refreshNoquiTools();
         active=true;
     }
     @Override public void checkReloadReady(){
+        if(games.mining!=null&&Bukkit.getOnlinePlayers().stream().anyMatch(games.mining::owns))throw new IllegalStateException("광산 이용자가 나간 후 업데이트하세요.");
         if(games.rewards!=null)games.rewards.checkReloadReady();
         if(games.bgm!=null)games.bgm.checkReloadReady();
     }
@@ -108,6 +116,7 @@ public final class GameRuntime implements GameModule {
         }
     }
     private void detach() {
+        if(games.mining!=null){games.mining.close();games.mining=null;}
         games.noqui.close();games.noqui=NoquiHooks.NONE;
         if(reboot!=null){reboot.remove();reboot=null;}
         for(var player:Bukkit.getOnlinePlayers()) {
@@ -122,6 +131,7 @@ public final class GameRuntime implements GameModule {
     @Override public List<String> onTabComplete(CommandSender sender,Command command,String alias,String[] args){return this.command.onTabComplete(sender,command,alias,args);}
     @Override public void shutdown() {
         if(games==null)return;active=false;
+        if(games.mining!=null){games.mining.close();games.mining=null;}
         if(reboot!=null){reboot.remove();reboot=null;}
         Bukkit.getScheduler().cancelTasks(host);HandlerList.unregisterAll(host);
         if(games.bgm!=null)games.bgm.close();games.shutdown();

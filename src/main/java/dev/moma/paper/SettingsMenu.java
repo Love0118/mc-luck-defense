@@ -10,7 +10,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.*;
 
 final class SettingsMenu implements Listener {
-    static final int EXIT_LOCK=17;
+    static final int CHAT_MIRROR=9, EXIT_LOCK=17;
     private final SessionTools tools;
     private final Map<UUID,Integer> openedAt=new HashMap<>();
     private static final class Holder implements InventoryHolder {
@@ -28,6 +28,9 @@ final class SettingsMenu implements Listener {
         render(player,holder);player.openInventory(holder.inventory);Ui.sound(player,Ui.Cue.OPEN);
     }
     private void render(Player player,Holder holder) {
+        boolean mirror=ChatMirrorPreferences.enabled(player);
+        holder.inventory.setItem(CHAT_MIRROR,Ui.item(mirror?Material.LIME_DYE:Material.GRAY_DYE,
+                "&e챗미러 &7/ "+(mirror?"&aON":"&7OFF"),"&7외부 채팅 표시"));
         var options=NotificationPreferences.values();
         for(int i=0;i<options.length;i++) {
             boolean enabled=options[i].enabled(player);
@@ -65,9 +68,10 @@ final class SettingsMenu implements Listener {
                 || event.getClick()!=ClickType.LEFT || holder.lastClick==Bukkit.getCurrentTick())return;
         int slot=event.getRawSlot();
         if(slot==22){holder.closed=true;player.closeInventory();Ui.sound(player,Ui.Cue.CLICK);return;}
-        if(slot!=11 && slot!=13 && slot!=15 && slot!=EXIT_LOCK)return;
+        if(slot!=CHAT_MIRROR && slot!=11 && slot!=13 && slot!=15 && slot!=EXIT_LOCK)return;
         holder.lastClick=Bukkit.getCurrentTick();
-        if(slot==EXIT_LOCK)SessionExitPreferences.toggle(player);
+        if(slot==CHAT_MIRROR)ChatMirrorPreferences.toggle(player);
+        else if(slot==EXIT_LOCK)SessionExitPreferences.toggle(player);
         else NotificationPreferences.values()[(slot-11)/2].toggle(player);
         render(player,holder);Ui.sound(player,Ui.Cue.CLICK);
     }

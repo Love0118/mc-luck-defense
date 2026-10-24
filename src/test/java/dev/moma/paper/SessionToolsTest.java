@@ -15,6 +15,7 @@ class SessionToolsTest {
         var data=mock(PersistentDataContainer.class);var values=new HashMap<NamespacedKey,Object>();
         when(data.get(any(),any())).thenAnswer(call->values.get(call.getArgument(0)));
         when(data.getOrDefault(any(),any(),any())).thenAnswer(call->values.getOrDefault(call.getArgument(0),call.getArgument(2)));
+        when(data.has(any(),any())).thenAnswer(call->values.containsKey(call.getArgument(0)));
         doAnswer(call->{values.put(call.getArgument(0),call.getArgument(2));return null;}).when(data).set(any(),any(),any());
         doAnswer(call->{values.remove(call.getArgument(0));return null;}).when(data).remove(any());
         return data;
@@ -24,20 +25,21 @@ class SessionToolsTest {
         Player player=mock(Player.class);var inventory=mock(PlayerInventory.class);
         var playerData=data();when(player.getInventory()).thenReturn(inventory);when(player.getPersistentDataContainer()).thenReturn(playerData);
         ItemStack original0=mock(ItemStack.class),original1=mock(ItemStack.class),other=mock(ItemStack.class);
-        ItemStack[] slots=new ItemStack[41];slots[0]=original0;slots[1]=original1;slots[2]=other;slots[5]=other;slots[8]=other;int[] held={5};
+        ItemStack[] slots=new ItemStack[41];slots[0]=original0;slots[1]=original1;slots[2]=other;slots[4]=other;slots[5]=other;slots[8]=other;int[] held={5};
         when(inventory.getSize()).thenReturn(slots.length);
         when(inventory.getItem(anyInt())).thenAnswer(call->slots[call.getArgument(0,Integer.class)]);
         doAnswer(call->{slots[call.getArgument(0,Integer.class)]=call.getArgument(1);return null;}).when(inventory).setItem(anyInt(),nullable(ItemStack.class));
         when(inventory.getHeldItemSlot()).thenAnswer(call->held[0]);
         doAnswer(call->{held[0]=call.getArgument(0);return null;}).when(inventory).setHeldItemSlot(anyInt());
         when(inventory.getItemInMainHand()).thenAnswer(call->slots[held[0]]);
-        byte[] saved={1,2,3},oldSaved={4,5,6};
+        byte[] saved={1,2,3},oldSaved={4,5,6},wardrobeSaved={7,8,9};
         try(var stacks=mockStatic(ItemStack.class);var items=mockConstruction(ItemStack.class,(item,context)->{
             var meta=mock(ItemMeta.class);var itemData=data();when(meta.getPersistentDataContainer()).thenReturn(itemData);
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
                 ItemStack[] itemsToSave=call.getArgument(0);
+                if(itemsToSave.length==1)return wardrobeSaved;
                 if(itemsToSave.length==6) {
                     assertArrayEquals(new ItemStack[]{original0,original1,other,null,null,other},itemsToSave);
                     return oldSaved;
@@ -46,6 +48,7 @@ class SessionToolsTest {
             });
             stacks.when(()->ItemStack.deserializeItemsFromBytes(saved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other,other});
             stacks.when(()->ItemStack.deserializeItemsFromBytes(oldSaved)).thenReturn(new ItemStack[]{original0,original1,other,null,null,other});
+            stacks.when(()->ItemStack.deserializeItemsFromBytes(wardrobeSaved)).thenReturn(new ItemStack[]{other});
             SessionTools tools=new SessionTools(plugin);tools.give(player);
             assertTrue(tools.holding(player,"manage"));assertFalse(tools.holding(player,"move"));
             inventory.setHeldItemSlot(1);assertTrue(tools.holding(player,"move"));
@@ -53,6 +56,7 @@ class SessionToolsTest {
             inventory.setHeldItemSlot(8);assertTrue(tools.holding(player,"leave"));
             inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));
             inventory.setHeldItemSlot(5);assertTrue(tools.holding(player,"summon_alerts"));
+            inventory.setHeldItemSlot(4);assertTrue(tools.holding(player,"wardrobe"));
             assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
             assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
             assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));
@@ -60,7 +64,7 @@ class SessionToolsTest {
             for(float level:new float[]{.5f,.25f,0f,1f}) { tools.cycleSound(player); assertEquals(level,SessionTools.soundVolume(player)); }
             slots[10]=slots[2]; // A stale copied session item must not survive cleanup.
             new SessionTools(plugin).restore(player);
-            assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
+            assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[4]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
             tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
             var compassName=org.mockito.ArgumentCaptor.forClass(net.kyori.adventure.text.Component.class);

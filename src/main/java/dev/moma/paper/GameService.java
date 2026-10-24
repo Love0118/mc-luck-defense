@@ -10,6 +10,7 @@ import java.util.concurrent.*;
 
 final class GameService {
     NoquiHooks noqui=NoquiHooks.NONE;
+    dev.moma.mining.MiningGame mining;
     boolean routeNoquiJoin(Player player){return noqui.routeJoin(player);}
     boolean quizParticipant(Player player){return noqui.participant(player);}
     boolean quizCabinOwner(Player player){return noqui.owns(player);}
@@ -17,6 +18,7 @@ final class GameService {
         return noqui.started() && !noqui.owns(player) && (active(player) || lobby!=null && lobby.contains(player.getLocation()));
     }
     void refreshNoquiTool(Player player) {
+        if(mining!=null&&mining.owns(player))return;
         if(!noqui.owns(player))tools.updateNoqui(player,canReturnToNoqui(player),active(player),noqui.ticketCount(player.getUniqueId()));
     }
     void refreshNoquiTools() {for(Player player:Bukkit.getOnlinePlayers())refreshNoquiTool(player);}
@@ -30,6 +32,7 @@ final class GameService {
         // The picker never bypasses owner leave locks or ends an active defense session.
         if(playing(player))throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
         if(lobby==null)throw new IllegalStateException("마운디 로비를 사용할 수 없습니다.");
+        leaveMine(player);
         noqui.prepareDefense(player);
         try {
             if(watching(player))stopWatching(player,false);
@@ -181,6 +184,7 @@ final class GameService {
         if (playing(player)) throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요. /mud lobby");
         GameSession target = sessions.values().stream().filter(s -> s.sessionId.equals(sessionId) && !s.arena.ended()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("이미 종료된 세션입니다. 관전 목록을 다시 열어주세요."));
+        leaveMine(player);
         noqui.prepareDefense(player);
         try {
             Watch previous = spectators.get(player.getUniqueId());
@@ -208,6 +212,7 @@ final class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("관전할 활성 세션이 없습니다."));
         spectate(player, target.sessionId);
     }
+    private void leaveMine(Player player){if(mining!=null&&mining.owns(player))mining.leave(player,true);}
     private Location viewpoint(GameSession target) { return target.map.entrance().add(0, 8, 0); }
     boolean spectatorDestination(Player player, Location to) {
         Watch watch = spectators.get(player.getUniqueId());
@@ -261,6 +266,7 @@ final class GameService {
         if (map == null) throw new IllegalArgumentException("없는 전장입니다. /mud list로 확인하세요.");
         if (map.grid().size() != settings.gridSize()) throw new IllegalArgumentException("100라운드는 " + settings.gridSize() + "×" + settings.gridSize() + " 전장을 사용합니다. /mud create로 새 전장을 생성하세요.");
         if (sessions.values().stream().anyMatch(s -> s.map.id().equals(id))) throw new IllegalArgumentException("사용 중인 개인 전장입니다.");
+        leaveMine(player);
         noqui.prepareDefense(player);
         try {
             if (watching(player)) stopWatching(player, true, false);
@@ -290,6 +296,7 @@ final class GameService {
         }
     }
     void requestLeave(Player player) {
+        if(mining!=null&&mining.owns(player)){leaveMine(player);sendToHub(player);return;}
         GameSession session=session(player);
         if(session!=null && !session.arena.ended() && session.campaign.round()>=100 && SessionExitPreferences.enabled(player)) {
             player.sendMessage(Ui.text("&e세션 나가기가 잠겨 있습니다. &f환경설정에서 해제하세요."));
@@ -314,6 +321,7 @@ final class GameService {
         player.teleport(session.returnLocation);
     }
     void disconnect(Player player) {
+        if(mining!=null&&mining.owns(player))return;
         if(bgm!=null)bgm.stop(player);
         entities.selectGlow(player, null);
         tools.restore(player);

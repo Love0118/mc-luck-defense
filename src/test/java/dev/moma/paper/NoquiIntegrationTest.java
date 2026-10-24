@@ -77,6 +77,18 @@ class NoquiIntegrationTest {
         var p=mock(Player.class);when(p.getUniqueId()).thenReturn(UUID.randomUUID());when(p.getLocation()).thenReturn(new org.bukkit.Location(world,0,65,0));
         when(p.getGameMode()).thenReturn(org.bukkit.GameMode.ADVENTURE);when(p.teleport(any(org.bukkit.Location.class))).thenReturn(true);return p;
     }
+    @Test void mineExitRestoresInventoryBeforeRoutingToQuizAndDoesNotCreateDefenseSession(){
+        var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");
+        var p=at(mock(org.bukkit.World.class));var lobby=mock(Lobby.class);
+        try(var tools=mockConstruction(SessionTools.class)){
+            var games=new GameService(plugin,mock(ArenaMaps.class),dev.moma.core.CampaignRules.standard(),lobby);
+            games.mining=mock(dev.moma.mining.MiningGame.class);when(games.mining.owns(p)).thenReturn(true);
+            games.noqui=mock(NoquiHooks.class);when(games.noqui.routeJoin(p)).thenReturn(true);
+            games.requestLeave(p);var order=inOrder(games.mining,games.noqui);
+            order.verify(games.mining).leave(p,true);order.verify(games.noqui).routeJoin(p);
+            verifyNoInteractions(games.tools,lobby);assertFalse(games.active(p));
+        }
+    }
     @Test void lobbyIconRoutesWithoutCombatAndStoppedQuizCannotTravel() {
         var plugin=mock(MomaPlugin.class);when(plugin.namespace()).thenReturn("momadefense");var lobby=mock(Lobby.class);var p=at(mock(org.bukkit.World.class));when(lobby.contains(p.getLocation())).thenReturn(true);
         boolean[] started={true};int[] routes={0};

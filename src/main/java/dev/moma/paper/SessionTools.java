@@ -34,13 +34,14 @@ final class SessionTools {
         player.getInventory().setItem(7,tool(Material.NOTE_BLOCK,"sound","&b몹 소리 &7· &e"+(percent==0 ? "음소거" : percent+"%"),
                 "&7우클릭: 100% → 50% → 25% → 음소거"));
     }
-    private final NamespacedKey toolKey, backupKey, heldKey, noquiBackupKey,noquiSlotKey;
+    private final NamespacedKey toolKey, backupKey, heldKey, noquiBackupKey,noquiSlotKey,wardrobeBackupKey;
     SessionTools(MomaPlugin plugin) {
         toolKey=new NamespacedKey(plugin,"session_tool");
         backupKey=new NamespacedKey(plugin,"session_hotbar_backup");
         heldKey=new NamespacedKey(plugin,"session_held_slot");
         noquiBackupKey=new NamespacedKey(plugin,"session_noqui_backup");
         noquiSlotKey=new NamespacedKey(plugin,"session_noqui_slot");
+        wardrobeBackupKey=new NamespacedKey(plugin,"session_wardrobe_backup");
     }
     void give(Player player) {
         give(player, false, false);
@@ -59,8 +60,10 @@ final class SessionTools {
             inventory.setItem(2,tool(Material.EMERALD,"sell","&6선택 포탑 판매","&7좌클릭: 포탑 선택 · 우클릭: 판매","&7다른 아이템을 들면 선택 해제","&7진 태초·미라클: 수동판매"));
         }
         giveSettings(player);
+        giveWardrobe(player);
     }
     void downgrade(Player player,boolean playing) {
+        restoreWardrobe(player);
         updateNoqui(player,false,false,0);
         var data=player.getPersistentDataContainer();byte[] bytes=data.get(backupKey,PersistentDataType.BYTE_ARRAY);
         if(bytes==null)return;
@@ -90,6 +93,7 @@ final class SessionTools {
         else inventory.setItem(8,tool(Material.RED_BED,"leave","&c세션 나가기","&7우클릭: 로비로 돌아가기"));
         if (!lobby) giveSound(player);
         giveSettings(player);
+        giveWardrobe(player);
         if (!lobby) {
             boolean enabled=data.getOrDefault(new NamespacedKey("momadefense","bgm_muted"),PersistentDataType.BYTE,(byte)0)==0;
             updateBgm(player,viewer,enabled);
@@ -99,6 +103,19 @@ final class SessionTools {
     private ItemStack tool(Material material,String id,String name,String... lore) {
         ItemStack item=Ui.item(material,name,lore);var meta=item.getItemMeta();
         meta.getPersistentDataContainer().set(toolKey,PersistentDataType.STRING,id);item.setItemMeta(meta);return item;
+    }
+    private void giveWardrobe(Player player) {
+        var data=player.getPersistentDataContainer();
+        if(!data.has(wardrobeBackupKey,PersistentDataType.BYTE_ARRAY))
+            data.set(wardrobeBackupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(new ItemStack[]{player.getInventory().getItem(4)}));
+        player.getInventory().setItem(4,tool(Material.LEATHER_CHESTPLATE,"wardrobe","&d치장","&7우클릭: 장착 및 해제"));
+    }
+    private void restoreWardrobe(Player player) {
+        var data=player.getPersistentDataContainer();byte[] bytes=data.get(wardrobeBackupKey,PersistentDataType.BYTE_ARRAY);
+        if(bytes==null)return;
+        var saved=ItemStack.deserializeItemsFromBytes(bytes);
+        if(saved.length!=1)throw new IllegalStateException("Invalid wardrobe hotbar backup");
+        player.getInventory().setItem(4,saved[0]);data.remove(wardrobeBackupKey);
     }
     void updateBgm(Player player,boolean viewer,boolean enabled) {
         player.getInventory().setItem(6,tool(Material.JUKEBOX,"bgm", viewer ? "&bBGM · "+(enabled?"&aON":"&7OFF") : "&bBGM 관리",
@@ -131,7 +148,7 @@ final class SessionTools {
         data.remove(noquiBackupKey);data.remove(noquiSlotKey);
     }
     boolean holding(Player player,String id) {
-        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "noqui_return" -> player.getPersistentDataContainer().getOrDefault(noquiSlotKey,PersistentDataType.INTEGER,4); case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave", "portal_return" -> 8; default -> -1; };
+        int slot=switch(id) { case "manage", "sessions" -> 0; case "move", "traits" -> 1; case "sell" -> 2; case "wardrobe" -> 4; case "noqui_return" -> player.getPersistentDataContainer().getOrDefault(noquiSlotKey,PersistentDataType.INTEGER,4); case "summon_alerts" -> 5; case "bgm" -> 6; case "sound" -> 7; case "leave", "portal_return" -> 8; default -> -1; };
         var inventory=player.getInventory();
         return inventory!=null && inventory.getHeldItemSlot()==slot && id.equals(id(inventory.getItemInMainHand()));
     }
@@ -146,6 +163,7 @@ final class SessionTools {
         ItemStack[] previous=bytes==null?null:ItemStack.deserializeItemsFromBytes(bytes);
         if(previous!=null && (previous.length<2 || previous.length>7))throw new IllegalStateException("Invalid session hotbar backup for "+player.getUniqueId());
         for(int slot=0;slot<inventory.getSize();slot++)if(isTool(inventory.getItem(slot)))inventory.setItem(slot,null);
+        restoreWardrobe(player);
         if(previous!=null) {
             inventory.setItem(0,previous[0]);inventory.setItem(1,previous[1]);
             if(previous.length>=3)inventory.setItem(8,previous[2]);
