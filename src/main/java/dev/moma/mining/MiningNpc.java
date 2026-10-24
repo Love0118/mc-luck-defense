@@ -15,7 +15,7 @@ final class MiningNpc implements AutoCloseable {
     void tick() {
         if(!cave.ready())return;
         if(npc==null || !npc.isValid()) {
-            var at=new Location(cave.world,3.5,CaveLayout.FLOOR+1,-19.5,90,0);
+            var at=new Location(cave.world,4.5,CaveLayout.HUB_FLOOR+1,-29.5,90,0);
             var existing=cave.world.getEntitiesByClass(Mannequin.class).stream().filter(e->e.getScoreboardTags().contains(TAG)).toList();
             npc=existing.isEmpty()?cave.world.spawn(at,Mannequin.class,e->{e.addScoreboardTag(TAG);e.setPersistent(true);}):existing.getFirst();
             for(int i=1;i<existing.size();i++)existing.get(i).remove();

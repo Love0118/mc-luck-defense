@@ -9,11 +9,11 @@ final class ChatMirrorPreferences {
     private static final NamespacedKey HIDDEN = new NamespacedKey("serverchatmirror", "hidden");
     private ChatMirrorPreferences() {}
     static boolean enabled(Player player) {
-        return player.getPersistentDataContainer().getOrDefault(HIDDEN, PersistentDataType.BYTE, (byte) 0) != 1;
+        return player.getPersistentDataContainer().getOrDefault(HIDDEN, PersistentDataType.BYTE, (byte) 1) != 1;
     }
     static void toggle(Player player) {
         var data = player.getPersistentDataContainer();
         if (enabled(player)) data.set(HIDDEN, PersistentDataType.BYTE, (byte) 1);
-        else data.remove(HIDDEN);
+        else data.set(HIDDEN, PersistentDataType.BYTE, (byte) 0);
     }
 }

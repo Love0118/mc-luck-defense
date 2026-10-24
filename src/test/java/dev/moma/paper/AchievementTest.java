@@ -132,7 +132,7 @@ class AchievementTest {
         assertFalse(AchievementService.vanillaDisplay(advancement));
     }
     @Test void mythicAndHigherBroadcastWithSoundForEarlyDrawTiers() {
-        Player owner=mock(Player.class),viewer=mock(Player.class);World world=mock(World.class);
+        Player owner=mock(Player.class),viewer=mock(Player.class);World world=mock(World.class);doReturn(TraitSelectionsTest.data()).when(viewer).getPersistentDataContainer();NotificationPreferences.OTHER_SUMMON.toggle(viewer);
         when(owner.getUniqueId()).thenReturn(UUID.randomUUID());when(viewer.getUniqueId()).thenReturn(UUID.randomUUID());
         when(owner.getName()).thenReturn("Tester");when(owner.getLocation()).thenReturn(new Location(world,0,70,0));when(viewer.getLocation()).thenReturn(new Location(world,100,70,0));
         try(var bukkit=mockStatic(Bukkit.class)) {

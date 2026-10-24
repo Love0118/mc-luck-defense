@@ -30,7 +30,7 @@ final class SettingsMenu implements Listener {
     private void render(Player player,Holder holder) {
         boolean mirror=ChatMirrorPreferences.enabled(player);
         holder.inventory.setItem(CHAT_MIRROR,Ui.item(mirror?Material.LIME_DYE:Material.GRAY_DYE,
-                "&e챗미러 &7/ "+(mirror?"&aON":"&7OFF"),"&7외부 채팅 표시"));
+                "&e포탈챗 &7/ "+(mirror?"&aON":"&7OFF"),"&7외부 채팅 표시"));
         var options=NotificationPreferences.values();
         for(int i=0;i<options.length;i++) {
             boolean enabled=options[i].enabled(player);

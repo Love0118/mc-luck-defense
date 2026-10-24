@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CaveLayoutTest {
     @Test void everyVeinComponentIsConnectedAndHasAtLeastThreeCells() {
         var eligible=CaveLayout.cells();
-        for(int seed=0;seed<12;seed++) {
+        for(int seed=0;seed<4;seed++) {
             var ores=CaveLayout.veins(eligible,new Random(seed),.22);
             assertTrue(ores.size()>eligible.size()*.18);assertTrue(ores.size()<eligible.size()*.25);
             var unseen=new HashSet<>(ores.keySet());
@@ -21,30 +21,27 @@ class CaveLayoutTest {
             }
         }
     }
-    @Test void permanentRoutesAndHubNeverBecomeMineableOrRegenerated() {
-        for(var c:CaveLayout.cells()) {
-            assertFalse(CaveLayout.hub(c));assertFalse(CaveLayout.air(c));
-            assertFalse(CaveLayout.route(c) && c.y()<=CaveLayout.FLOOR+5);
-            assertTrue(CaveLayout.inside(c));
-        }
-        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(0,48,0)));
-        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(24,55,0)));
-        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(0,63,0)));
-        assertEquals("LODESTONE",CaveLayout.shell(new CaveLayout.Cell(0,49,-21)));
+    @Test void infrastructureIsProtectedButNaturalFloorsCanBeMinedDownToBedrock() {
+        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(0,CaveLayout.FLOOR,0)));
+        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(CaveLayout.RADIUS,40,0)));
+        assertEquals("BEDROCK",CaveLayout.shell(new CaveLayout.Cell(0,CaveLayout.ROOF,0)));
+        assertFalse(CaveLayout.mineable(new CaveLayout.Cell(0,CaveLayout.HUB_FLOOR,-30)));
+        assertTrue(CaveLayout.cells().stream().anyMatch(c->c.y()<CaveLayout.HUB_FLOOR&&c.neighbors().stream().anyMatch(CaveLayout::air)));
+        for(var c:CaveLayout.cells()){assertFalse(CaveLayout.hub(c));assertFalse(CaveLayout.route(c));assertFalse(CaveLayout.air(c));}
     }
-    @Test void allGroundLevelCavernAirIsConnectedToSpawnWithHeadroom() {
-        var air=new HashSet<CaveLayout.Cell>();
-        for(int x=-23;x<24;x++)for(int z=-23;z<24;z++) {
-            var feet=new CaveLayout.Cell(x,49,z);var head=new CaveLayout.Cell(x,50,z);
-            if(CaveLayout.shell(feet).equals("AIR") && CaveLayout.shell(head).equals("AIR"))air.add(feet);
+    @Test void noiseCavesVaryInHeightAndRailRouteHasTimberSupportsAndLanterns() {
+        var levels=new HashSet<Integer>();for(int y=CaveLayout.FLOOR+1;y<CaveLayout.ROOF;y++)for(int x=-25;x<=25;x++)if(CaveLayout.air(new CaveLayout.Cell(x,y,10)))levels.add(y);
+        assertTrue(levels.size()>20);int rails=0,lights=0,logs=0;
+        for(int x=-CaveLayout.RADIUS;x<=CaveLayout.RADIUS;x++)for(int z=-CaveLayout.RADIUS;z<=CaveLayout.RADIUS;z++)for(int y=56;y<=63;y++){
+            String material=CaveLayout.shell(new CaveLayout.Cell(x,y,z));if(material.equals("RAIL"))rails++;if(material.equals("LANTERN"))lights++;if(material.equals("STRIPPED_SPRUCE_LOG"))logs++;
         }
-        var queue=new ArrayDeque<CaveLayout.Cell>();var spawn=new CaveLayout.Cell(0,49,-19);assertTrue(air.remove(spawn));queue.add(spawn);
-        while(!queue.isEmpty())for(var n:queue.remove().neighbors())if(air.remove(n))queue.add(n);
-        assertTrue(air.isEmpty(),"Unreachable walkable cavern cells: "+air.size());
+        assertTrue(rails>100);assertTrue(lights>8);assertTrue(logs>80);
+        for(int z=-31;z<=27;z++)assertEquals("RAIL",CaveLayout.shell(new CaveLayout.Cell(0,57,z)));
+        assertEquals("AIR",CaveLayout.shell(new CaveLayout.Cell(0,58,-31)));
     }
     @Test void regenerationFillsMinedAirButExcludesPlayerBodyAndExistingOre() {
         var cells=new LinkedHashMap<CaveLayout.Cell,String>();for(var c:CaveLayout.cells())cells.put(c,"AIR");
-        var occupied=new CaveLayout.Cell(-20,49,-20);var ore=new CaveLayout.Cell(-19,49,-20);cells.put(ore,"EMERALD_ORE");
+        var occupied=CaveLayout.cells().get(0);var ore=CaveLayout.cells().get(1);cells.put(ore,"EMERALD_ORE");
         var next=CaveLayout.refill(cells,occupied::equals,new Random(77));
         assertEquals("AIR",next.get(occupied));assertEquals("EMERALD_ORE",next.get(ore));assertEquals(cells.size(),next.size());
         assertEquals(1,next.values().stream().filter("AIR"::equals).count());

@@ -39,9 +39,9 @@ final class SpeedMenu {
                 || games.session(player)!=holder.session || holder.session.arena.ended() || holder.consumed
                 || player.getOpenInventory().getTopInventory()!=holder.inventory || event.getClick()!=ClickType.LEFT)return true;
         int slot=event.getRawSlot();
-        if(slot==22){holder.consumed=true;shop.open(player);}
+        if(slot==22){holder.consumed=true;Ui.sound(player,Ui.Cue.CLICK);shop.open(player);}
         else if(slot>=10 && slot<10+SPEEDS.length) {
-            holder.consumed=true;games.speed(player,SPEEDS[slot-10]);shop.open(player);
+            holder.consumed=true;Ui.sound(player,Ui.Cue.CLICK);games.speed(player,SPEEDS[slot-10]);shop.open(player);
         }
         return true;
     }

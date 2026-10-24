@@ -7,15 +7,18 @@ import java.util.*;
 final class MiningEconomy {
     interface Wallet { boolean spend(String transaction,long amount); void reward(String transaction,long amount); }
     private final MiningStore store;
-    MiningEconomy(MiningStore store) { this.store=store; }
-    void buy(UUID player,MiningRules.Upgrade upgrade,long base,Wallet wallet)throws IOException {
+    private final java.util.random.RandomGenerator random;
+    MiningEconomy(MiningStore store) { this(store,java.util.concurrent.ThreadLocalRandom.current()); }
+    MiningEconomy(MiningStore store,java.util.random.RandomGenerator random) { this.store=store;this.random=random; }
+    MiningRules.Attempt buy(UUID player,MiningRules.Upgrade upgrade,Wallet wallet)throws IOException {
         settle(player,wallet);
         var p=store.profile(player);
         int level=upgrade==MiningRules.Upgrade.SPEED?p.speed():p.fortune();
-        long amount=MiningRules.upgradeCost(upgrade,level,base);
+        long amount=MiningRules.offer(upgrade,level).cost();var result=MiningRules.roll(upgrade,level,random);
         var operation=upgrade==MiningRules.Upgrade.SPEED?MiningStore.Operation.SPEED:MiningStore.Operation.FORTUNE;
-        store.save(player,p.pending(new MiningStore.Pending("mining:"+UUID.randomUUID(),operation,amount)));
+        store.save(player,p.pending(new MiningStore.Pending("mining:"+UUID.randomUUID(),operation,amount,result.outcome(),result.gain())));
         settle(player,wallet);
+        return result;
     }
     long sell(UUID player,Map<MiningRules.Ore,Long> prices,Wallet wallet)throws IOException {
         settle(player,wallet);
@@ -33,7 +36,7 @@ final class MiningEconomy {
                 if(!wallet.spend(pending.id(),pending.amount())) {
                     store.save(player,p.pending(null));throw new IllegalArgumentException("별빛이 부족합니다.");
                 }
-                try { store.save(player,p.upgrade(pending.operation())); }
+                try { store.save(player,p.upgrade(pending)); }
                 catch(IOException commitFailure) {
                     // Never issue an unjournaled refund. If storage is still down, retain PURCHASE for replay.
                     var refund=p.pending(new MiningStore.Pending(pending.id(),MiningStore.Operation.REFUND,pending.amount()));

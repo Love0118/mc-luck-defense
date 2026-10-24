@@ -18,7 +18,7 @@ class SummonAnnouncementTest {
             when(player.getLocation()).thenReturn(new Location(mock(World.class),0,65,0));
         }
         when(owner.getName()).thenReturn("Tester");
-        NotificationPreferences.OWN_SUMMON.toggle(owner);NotificationPreferences.OTHER_SUMMON.toggle(watcher);
+        NotificationPreferences.OWN_SUMMON.toggle(owner);NotificationPreferences.OTHER_SUMMON.toggle(remote);
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,watcher,remote));
             var local=(java.util.function.Predicate<Player>)player->player==owner || player==watcher;
@@ -56,10 +56,11 @@ class SummonAnnouncementTest {
         when(owner.getName()).thenReturn("Tester");
         for(Player player:List.of(owner,watcher,remote,muted)) {
             when(player.getLocation()).thenReturn(at);when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+            doReturn(TraitSelectionsTest.data()).when(player).getPersistentDataContainer();if(player!=owner)NotificationPreferences.OTHER_SUMMON.toggle(player);
         }
         var data=mock(PersistentDataContainer.class);
         when(muted.getPersistentDataContainer()).thenReturn(data);
-        when(data.getOrDefault(any(),eq(PersistentDataType.BYTE),eq((byte)1))).thenReturn((byte)0);
+        when(data.getOrDefault(any(),eq(PersistentDataType.BYTE),anyByte())).thenReturn((byte)0);
         try(var bukkit=mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(owner,watcher,remote,muted));
             var local=(java.util.function.Predicate<Player>)player->player==owner || player==watcher;

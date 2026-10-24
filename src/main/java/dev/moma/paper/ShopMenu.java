@@ -145,6 +145,7 @@ final class ShopMenu implements Listener {
         if (slot != SUMMON && slot != SELL && slot != SPEED && slot != BULK_BUY && slot != AUTO_LAYOUT && slot != AUTO_MERGE && slot != RESERVE
                 && (slot < AUTO_SELL_FIRST || slot >= AUTO_SELL_FIRST+SELLABLE.length)) return;
         holder.consumed = true;
+        if(slot==RESERVE||slot==SPEED)Ui.sound(player,Ui.Cue.CLICK);
         nextClick.put(holder.owner, Bukkit.getCurrentTick() + 1);
         if(slot==RESERVE){reserveMenu.open(player,0);return;}
         if(slot==SPEED){speedMenu.open(player);return;}

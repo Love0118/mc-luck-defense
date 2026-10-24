@@ -12,6 +12,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class MiningMenuTest {
+    @Test void leftClickDoesNotDenyVanillaDiggingBeforeBlockBreakCanFire()throws Exception{
+        var game=new MiningGame(mock(JavaPlugin.class),mock(MiningGame.Host.class));var player=participant(game);
+        var event=mock(org.bukkit.event.player.PlayerInteractEvent.class);when(event.getPlayer()).thenReturn(player);
+        when(event.getAction()).thenReturn(org.bukkit.event.block.Action.LEFT_CLICK_BLOCK);when(event.getClickedBlock()).thenReturn(mock(org.bukkit.block.Block.class));
+        game.interact(event);verify(event,never()).setUseInteractedBlock(any());verify(event,never()).setUseItemInHand(any());verify(event,never()).setCancelled(true);
+    }
     @SuppressWarnings("unchecked") private static <T>T field(Object owner,String name)throws Exception {
         Field f=owner.getClass().getDeclaredField(name);f.setAccessible(true);return (T)f.get(owner);
     }

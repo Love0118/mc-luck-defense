@@ -24,7 +24,7 @@ final class MiningWorld implements AutoCloseable {
     private final Set<Long> tickets=new HashSet<>();
     MiningWorld(JavaPlugin plugin,MiningStore store)throws IOException {
         this.plugin=plugin;this.store=store;
-        budget=Math.clamp(plugin.getConfig().getInt("mining.edits-per-tick",512),64,4096);
+        budget=Math.clamp(plugin.getConfig().getInt("mining.edits-per-tick",2048),256,4096);
         double configured=plugin.getConfig().getDouble("mining.refill-threshold",.25);
         threshold=Double.isFinite(configured)?Math.clamp(configured,.05,.75):.25;
         String name=plugin.getConfig().getString("mining.world","moma_mining");
@@ -43,13 +43,14 @@ final class MiningWorld implements AutoCloseable {
         world.setGameRule(GameRules.ADVANCE_WEATHER,false);world.setGameRule(GameRules.RANDOM_TICK_SPEED,0);
         world.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER,0);
         world.setTime(6000);world.setStorm(false);world.setThundering(false);world.setAutoSave(true);
-        cells=store.cells();
-        if(cells.isEmpty()) {
-            if(store.meta("initial-ores")!=null)throw new IOException("Mining cell ledger is missing");
+        if(!CaveLayout.VERSION.equals(store.meta("layout-version"))){
+            cells=new LinkedHashMap<>();
             for(var c:CaveLayout.cells())cells.put(c,"STONE");
             cells.putAll(CaveLayout.veins(cells.keySet(),random,.22));
-            store.replaceCells(cells,countOres());
-        } else if(cells.size()!=CaveLayout.cells().size())throw new IOException("Incomplete mining cell ledger");
+            store.replaceTerrain(cells,countOres(),CaveLayout.VERSION);
+        }else{
+            cells=store.cells();if(cells.size()!=CaveLayout.cells().size())throw new IOException("Incomplete mining cell ledger");
+        }
         remaining=countOres();
         try { initial=Integer.parseInt(Objects.requireNonNull(store.meta("initial-ores"))); }
         catch(RuntimeException e) { throw new IOException("Invalid mining generation counter",e); }
@@ -61,9 +62,9 @@ final class MiningWorld implements AutoCloseable {
         } else edits.addAll(cells.keySet());
     }
     boolean ready(){return ready;}
-    Location spawn(){return new Location(world,.5,CaveLayout.FLOOR+1,-18.5,0,0);}
+    Location spawn(){return new Location(world,.5,CaveLayout.HUB_FLOOR+1,-31.5,0,0);}
     boolean belongs(Location l){return l!=null && world.equals(l.getWorld());}
-    boolean contains(Location l){return belongs(l) && l.getX()>-24 && l.getX()<24 && l.getZ()>-24 && l.getZ()<24 && l.getY()>=49 && l.getY()<62;}
+    boolean contains(Location l){return belongs(l) && Math.abs(l.getX())<CaveLayout.RADIUS && Math.abs(l.getZ())<CaveLayout.RADIUS && l.getY()>=CaveLayout.FLOOR+1 && l.getY()<CaveLayout.ROOF;}
     String material(CaveLayout.Cell c){return cells.get(c);}
     private boolean occupied(CaveLayout.Cell c) {
         var box=new BoundingBox(c.x()-.15,c.y()-.15,c.z()-.15,c.x()+1.15,c.y()+1.15,c.z()+1.15);
@@ -77,7 +78,11 @@ final class MiningWorld implements AutoCloseable {
             if(tickets.add(packed))world.addPluginChunkTicket(chunkX,chunkZ,plugin);
             String desired=cells.getOrDefault(c,CaveLayout.shell(c));
             var block=world.getBlockAt(c.x(),c.y(),c.z());
-            if(block.getType().name().equals(desired))continue;
+            String structure=CaveLayout.blockData(c);
+            if(block.getType().name().equals(desired)){
+                if(structure!=null&&!block.getBlockData().getAsString().equals(Bukkit.createBlockData(structure).getAsString()))block.setBlockData(Bukkit.createBlockData(structure),false);
+                continue;
+            }
             if(!desired.equals("AIR") && occupied(c)) {
                 if(cells.containsKey(c)) {
                     store.replaceCells(Map.of(c,"AIR"),initial);
@@ -86,6 +91,7 @@ final class MiningWorld implements AutoCloseable {
                 continue;
             }
             block.setType(Material.valueOf(desired),false);
+            if(structure!=null)block.setBlockData(Bukkit.createBlockData(structure),false);
         }
         if(!ready && edits.isEmpty()) {
             if(initialBuild){world.save();store.meta("shell-built",world.getUID().toString());initialBuild=false;}

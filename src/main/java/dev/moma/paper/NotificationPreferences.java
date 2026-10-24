@@ -16,7 +16,8 @@ enum NotificationPreferences {
     }
     boolean enabled(Player player) {
         var data=player.getPersistentDataContainer();
-        return data==null || data.getOrDefault(key,PersistentDataType.BYTE,(byte)1)!=0;
+        byte fallback=this==OTHER_SUMMON?(byte)0:(byte)1;
+        return data==null ? fallback!=0 : data.getOrDefault(key,PersistentDataType.BYTE,fallback)!=0;
     }
     void toggle(Player player) {
         player.getPersistentDataContainer().set(key,PersistentDataType.BYTE,enabled(player)?(byte)0:(byte)1);

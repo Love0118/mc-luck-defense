@@ -46,14 +46,14 @@ final class ReserveMenu {
         if(slot>=0 && slot<h.units.size()) {
             UUID id=h.units.get(slot);
             if(h.session.arena.reserveUnits().stream().noneMatch(d->d.entityId().equals(id)))return true;
-            h.consumed=true;
+            h.consumed=true;Ui.sound(p,Ui.Cue.CLICK);
             if(event.getClick()==ClickType.RIGHT){games.sell(p,id);open(p,h.page);}
             else {games.select(p,id);p.getInventory().setHeldItemSlot(1);p.closeInventory();}
         } else if(event.getClick()==ClickType.LEFT) {
-            if(slot==49){h.consumed=true;shop.open(p);}
-            else if(slot==46){h.consumed=true;games.benchSelected(p);open(p,h.page);}
-            else if(slot==45 && h.page>0){h.consumed=true;open(p,h.page-1);}
-            else if(slot==53 && h.page==0 && h.session.arena.reserveCount()>45){h.consumed=true;open(p,1);}
+            if(slot==49){h.consumed=true;Ui.sound(p,Ui.Cue.CLICK);shop.open(p);}
+            else if(slot==46){h.consumed=true;Ui.sound(p,Ui.Cue.CLICK);games.benchSelected(p);open(p,h.page);}
+            else if(slot==45 && h.page>0){h.consumed=true;Ui.sound(p,Ui.Cue.CLICK);open(p,h.page-1);}
+            else if(slot==53 && h.page==0 && h.session.arena.reserveCount()>45){h.consumed=true;Ui.sound(p,Ui.Cue.CLICK);open(p,1);}
         }
         return true;
     }

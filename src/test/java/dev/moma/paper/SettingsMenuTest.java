@@ -16,7 +16,7 @@ class SettingsMenuTest {
     @Test void defaultsLegacySettingAndIndependentPreferencesPersistOnThePlayer() {
         Player player=mock(Player.class);var data=TraitSelectionsTest.data();when(player.getPersistentDataContainer()).thenReturn(data);
         assertFalse(SessionExitPreferences.enabled(player));
-        for(var option:NotificationPreferences.values())assertTrue(option.enabled(player));
+        for(var option:NotificationPreferences.values())assertEquals(option!=NotificationPreferences.OTHER_SUMMON,option.enabled(player));
         data.set(new NamespacedKey("momadefense","other_summon_alerts"),org.bukkit.persistence.PersistentDataType.BYTE,(byte)0);
         assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));
         NotificationPreferences.OWN_SUMMON.toggle(player);NotificationPreferences.ROUND.toggle(player);
@@ -28,10 +28,11 @@ class SettingsMenuTest {
         SessionExitPreferences.toggle(player);assertTrue(SessionExitPreferences.enabled(reconnected));
         SessionExitPreferences.toggle(reconnected);assertFalse(SessionExitPreferences.enabled(player));
         var mirrorKey=new NamespacedKey("serverchatmirror","hidden");
+        assertFalse(ChatMirrorPreferences.enabled(player));ChatMirrorPreferences.toggle(player);
         assertTrue(ChatMirrorPreferences.enabled(player));ChatMirrorPreferences.toggle(player);
         assertEquals((byte)1,data.get(mirrorKey,org.bukkit.persistence.PersistentDataType.BYTE));
         assertFalse(ChatMirrorPreferences.enabled(reconnected));
-        data.remove(mirrorKey);assertTrue(ChatMirrorPreferences.enabled(player));
+        data.remove(mirrorKey);assertFalse(ChatMirrorPreferences.enabled(player));
         assertFalse(data.has(new NamespacedKey("serverchatmirror","portalchat")));
     }
     @Test void guiOpensFromTheExistingToolAndRejectsDuplicateForeignStaleAndInventoryTransferActions() {
@@ -59,11 +60,11 @@ class SettingsMenuTest {
             for(int slot:new int[]{11,13,15}) {
                 tick[0]++;when(click.getRawSlot()).thenReturn(slot);menu.click(click);menu.click(click);
             }
-            for(var option:NotificationPreferences.values())assertFalse(option.enabled(player));
+            for(var option:NotificationPreferences.values())assertEquals(option==NotificationPreferences.OTHER_SUMMON,option.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);menu.click(click);menu.click(click);
             assertTrue(SessionExitPreferences.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(SettingsMenu.CHAT_MIRROR);menu.click(click);menu.click(click);
-            assertFalse(ChatMirrorPreferences.enabled(player));
+            assertTrue(ChatMirrorPreferences.enabled(player));
             tick[0]++;when(click.getRawSlot()).thenReturn(38);menu.click(click);
             when(click.getRawSlot()).thenReturn(SettingsMenu.EXIT_LOCK);when(click.getClick()).thenReturn(ClickType.SHIFT_LEFT);menu.click(click);
             when(click.getClick()).thenReturn(ClickType.NUMBER_KEY);menu.click(click);

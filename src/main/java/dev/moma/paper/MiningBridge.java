@@ -24,9 +24,9 @@ final class MiningBridge implements MiningGame.Host, Listener {
     }
     void menu(MinigameMenu menu){this.menu=menu;}
     @Override public long balance(Player player){return games.noqui.starlight(player.getUniqueId());}
-    @Override public boolean spend(Player player,String transaction,long amount){return games.noqui.spendStarlight(player.getUniqueId(),transaction,amount);}
-    @Override public void reward(Player player,String transaction,long amount){
-        if(!games.noqui.rewardStarlight(player.getUniqueId(),transaction,amount))throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");
+    @Override public boolean spend(java.util.UUID player,String transaction,long amount){return games.noqui.spendStarlight(player,transaction,amount);}
+    @Override public void reward(java.util.UUID player,String transaction,long amount){
+        if(!games.noqui.rewardStarlight(player,transaction,amount))throw new IllegalStateException("별빛 지갑이 준비되지 않았습니다.");
     }
     @Override public void prepareEntry(Player player){
         if(games.playing(player))throw new IllegalArgumentException("진행 중인 게임을 먼저 종료하세요.");

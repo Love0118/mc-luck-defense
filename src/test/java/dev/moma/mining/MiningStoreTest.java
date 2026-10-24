@@ -11,16 +11,32 @@ import static org.junit.jupiter.api.Assertions.*;
 class MiningStoreTest {
     @TempDir Path directory;
     private final UUID player=UUID.randomUUID();
-    private static final CaveLayout.Cell CELL=new CaveLayout.Cell(-20,49,-20);
+    private static final CaveLayout.Cell CELL=CaveLayout.cells().getFirst();
     static MiningStore.Profile session(){return MiningStore.Profile.fresh().recovery(new MiningStore.Recovery(UUID.randomUUID(),new byte[]{1,2,3}));}
     @Test void profilesToolsCargoAndRecoverySurviveRestart()throws Exception {
-        Path file=directory.resolve("mining.db");var p=session().upgrade(MiningStore.Operation.SPEED).upgrade(MiningStore.Operation.FORTUNE).credit(MiningRules.Ore.DIAMOND,8);
+        Path file=directory.resolve("mining.db");var p=session().upgrade(new MiningStore.Pending("speed",MiningStore.Operation.SPEED,150)).upgrade(new MiningStore.Pending("fortune",MiningStore.Operation.FORTUNE,600)).credit(MiningRules.Ore.DIAMOND,8);
         try(var store=new MiningStore(file)){store.save(player,p);}
         try(var store=new MiningStore(file)) {
-            var loaded=store.profile(player);assertEquals(p.tool(),loaded.tool());assertEquals(1,loaded.speed());assertEquals(1,loaded.fortune());
+            var loaded=store.profile(player);assertEquals(p.tool(),loaded.tool());assertEquals(51,loaded.speed());assertEquals(1,loaded.fortune());
             assertEquals(8L,loaded.cargo().get(MiningRules.Ore.DIAMOND));assertEquals(p.recovery().token(),loaded.recovery().token());
             assertArrayEquals(p.recovery().data(),loaded.recovery().data());
         }
+    }
+    @Test void requestedResetRunsOnceAndPreservesCargoRecoveryAndFutureUpgrades()throws Exception{
+        Path file=directory.resolve("mine.db");var p=session().credit(MiningRules.Ore.DIAMOND,5);
+        p=new MiningStore.Profile(p.tool(),180,3,p.cargo(),p.recovery(),null);
+        try(var store=new MiningStore(file)){
+            store.save(player,p);store.resetPickaxes();var reset=store.profile(player);
+            assertEquals(50,reset.speed());assertEquals(0,reset.fortune());assertNotEquals(p.tool(),reset.tool());assertEquals(p.cargo(),reset.cargo());assertEquals(p.recovery().token(),reset.recovery().token());
+            store.save(player,reset.upgrade(new MiningStore.Pending("upgrade",MiningStore.Operation.SPEED,150)));
+        }
+        try(var store=new MiningStore(file)){store.resetPickaxes();assertEquals(51,store.profile(player).speed());}
+    }
+    @Test void legacyFixedStepsDecodeBeforeOneTimeResetWithoutLosingMinerals()throws Exception{
+        var p=session().credit(MiningRules.Ore.EMERALD,7);byte[] legacy=MiningStore.encode(p);
+        java.nio.ByteBuffer.wrap(legacy).putInt(0,1).putInt(20,5);
+        var decoded=MiningStore.decode(legacy);assertEquals(175,decoded.speed());assertEquals(p.cargo(),decoded.cargo());
+        try(var store=new MiningStore(directory.resolve("legacy.db"))){store.save(player,decoded);store.resetPickaxes();assertEquals(50,store.profile(player).speed());assertEquals(7L,store.profile(player).cargo().get(MiningRules.Ore.EMERALD));}
     }
     @Test void cellClaimAndCargoAreAtomicAndCannotBeReplayedEvenAfterRestart()throws Exception {
         Path file=directory.resolve("mining.db");
@@ -47,7 +63,7 @@ class MiningStoreTest {
             store.save(player,session());store.replaceCells(Map.of(CELL,"STONE"),1);
             assertThrows(IllegalArgumentException.class,()->store.mine(player,CELL,"STONE",MiningRules.Ore.DIAMOND,1));
             assertFalse(store.mine(player,CELL,"IRON_ORE",MiningRules.Ore.IRON,1));
-            assertThrows(IllegalArgumentException.class,()->store.mine(player,new CaveLayout.Cell(0,49,-19),"STONE",null,0));
+            assertThrows(IllegalArgumentException.class,()->store.mine(player,new CaveLayout.Cell(0,CaveLayout.HUB_FLOOR,-30),"STONE",null,0));
             var pending=new MiningStore.Pending("sale",MiningStore.Operation.SALE,4);store.save(player,store.profile(player).pending(pending));
             assertThrows(IOException.class,()->store.mine(player,CELL,"STONE",null,0));assertEquals("STONE",store.cells().get(CELL));
         }
@@ -69,7 +85,7 @@ class MiningStoreTest {
     @Test void recoveryBuffersAreImmutableAndCodecRejectsBadLevelsOrTrailingData()throws Exception {
         byte[] bytes={1,2};var recovery=new MiningStore.Recovery(UUID.randomUUID(),bytes);bytes[0]=9;
         assertEquals(1,recovery.data()[0]);byte[] copy=recovery.data();copy[0]=9;assertEquals(1,recovery.data()[0]);
-        var encoded=MiningStore.encode(session());encoded[23]=99;
+        var encoded=MiningStore.encode(session());encoded[23]=(byte)201;
         assertThrows(IOException.class,()->MiningStore.decode(encoded));
         var valid=MiningStore.encode(session());assertThrows(IOException.class,()->MiningStore.decode(Arrays.copyOf(valid,valid.length+1)));
     }
