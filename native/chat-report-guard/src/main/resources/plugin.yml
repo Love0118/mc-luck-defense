@@ -1,0 +1,7 @@
+name: MomaChatGuard
+version: '1.0.0'
+main: dev.moma.chat.FreedomChatModule
+api-version: '26.3'
+description: FreedomChat packet protection for the Moundi server
+authors: [oharass, sulu, ocelotpotpie, pop4959, Moma]
+website: https://github.com/ocelotpotpie/FreedomChat

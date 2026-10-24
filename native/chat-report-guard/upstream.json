@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/ocelotpotpie/FreedomChat",
+  "commit": "740608eb5a7eb9c9fbb2afd47b1ad3dfc427e38e",
+  "version": "1.7.10 with upstream pending-ack fix",
+  "protocol": 777,
+  "license": "GPL-3.0",
+  "sourceSha256": {
+    "ru/bk/oharass/freedomchat/FreedomChat.java": "91286f269d85783337804e037c192314ce0c72a943be337abc1e21713fbfb243",
+    "ru/bk/oharass/freedomchat/FreedomHandler.java": "1509ddae8faabe53eed0dc323419c37a879689c6fcd1c2cd7a776d61c58b6284",
+    "ru/bk/oharass/freedomchat/PendingChatAcks.java": "8562930c4adbdb09321a1a7ef8c87d87e965a4be964daa738a40eb490b12d215",
+    "ru/bk/oharass/freedomchat/rewrite/CustomServerMetadata.java": "205dab939a189be8811a5d4027fc7041a65bb2c127ef0415bab6763d0708f582"
+  },
+  "upstreamOriginalSha256": {
+    "ru/bk/oharass/freedomchat/FreedomChat.java": "91286f269d85783337804e037c192314ce0c72a943be337abc1e21713fbfb243",
+    "ru/bk/oharass/freedomchat/FreedomHandler.java": "7c573b708f7a19c7f01f3ca9b77cdb03050f0087bd5f17133e1077226470d38a",
+    "ru/bk/oharass/freedomchat/PendingChatAcks.java": "8562930c4adbdb09321a1a7ef8c87d87e965a4be964daa738a40eb490b12d215",
+    "ru/bk/oharass/freedomchat/rewrite/CustomServerMetadata.java": "205dab939a189be8811a5d4027fc7041a65bb2c127ef0415bab6763d0708f582"
+  },
+  "compatibilityPatch": "Paper 26.3 build 26: unwrap Optional<MessageSignature> before pending-ack cleanup",
+  "hashNormalization": "UTF-8 source bytes, CRLF normalized to LF"
+}

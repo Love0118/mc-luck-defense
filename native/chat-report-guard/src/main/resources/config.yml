@@ -1,0 +1,4 @@
+rewrite-chat: true
+claim-secure-chat-enforced: false
+send-prevents-chat-reports-to-client: true
+rewrite-bedrock-only: false
