@@ -27,7 +27,7 @@ final class DefenseRewards {
         if(!Files.exists(config))plugin.saveResource("rewards.yml",false);
         var settings=YamlConfiguration.loadConfiguration(config.toFile());
         if(!settings.getString("formula","milestones-v1").equals("milestones-v1"))throw new IllegalArgumentException("Unsupported starlight reward formula");
-        if(settings.contains("starlight-per-round"))plugin.getLogger().info("Legacy starlight-per-round is ignored; rewards use 100-round milestones (30,60,90,...).");
+        if(settings.contains("starlight-per-round"))plugin.getLogger().info("Legacy starlight-per-round is ignored; rewards use 100-round milestones (50,100,150,...).");
         return plugin.getDataFolder().toPath().resolve("starlight-rewards.json");
     }
     DefenseRewards(Path file,Supplier<NoquiHooks> hooks,Consumer<String> warning)throws IOException {
@@ -47,7 +47,7 @@ final class DefenseRewards {
         int current=Math.max(0,round/100);String key=session+":"+player;int before=checkpoints.getOrDefault(key,0);
         if(current<=before)return;
         for(int checkpoint=before+1;checkpoint<=current;checkpoint++)
-            pending.putIfAbsent("moma-milestone:"+key+":"+checkpoint,new Reward(player,30L*checkpoint));
+            pending.putIfAbsent("moma-milestone:"+key+":"+checkpoint,new Reward(player,50L*checkpoint));
         checkpoints.put(key,current);dirty=true;flush();
     }
     void flush() {

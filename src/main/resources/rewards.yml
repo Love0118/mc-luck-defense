@@ -1,4 +1,4 @@
-# On reaching checkpoint k = floor(round / 100), pay 30*k starlight immediately.
-# Cumulative totals: R99=0, R100=30, R200=90, R300=180, R1000=1650.
+# On reaching checkpoint k = floor(round / 100), pay 50*k starlight immediately.
+# Cumulative totals: R99=0, R100=50, R200=150, R300=300, R1000=2750.
 # The legacy starlight-per-round setting is ignored; existing wallet balances remain intact.
 formula: milestones-v1
