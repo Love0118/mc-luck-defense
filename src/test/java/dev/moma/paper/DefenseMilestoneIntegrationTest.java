@@ -29,8 +29,8 @@ class DefenseMilestoneIntegrationTest {
             },s->{});
             games.join(owner,"a");var session=games.session(owner);games.spectate(viewer,session.sessionId);
             nextRound(session,99);games.tick();assertTrue(paid.isEmpty());assertTrue(games.playing(owner));
-            nextRound(session,100);games.tick();assertEquals(10,paid.values().stream().mapToLong(Long::longValue).sum());assertTrue(games.playing(owner));
-            nextRound(session,300);games.tick();assertEquals(60,paid.values().stream().mapToLong(Long::longValue).sum());assertEquals(3,paid.size());assertTrue(games.playing(owner));
+            nextRound(session,100);games.tick();assertEquals(30,paid.values().stream().mapToLong(Long::longValue).sum());assertTrue(games.playing(owner));
+            nextRound(session,300);games.tick();assertEquals(180,paid.values().stream().mapToLong(Long::longValue).sum());assertEquals(3,paid.size());assertTrue(games.playing(owner));
             games.leave(viewer);assertEquals(3,paid.size());games.leave(owner);games.disconnect(owner);assertEquals(3,paid.size());
         }
     }
