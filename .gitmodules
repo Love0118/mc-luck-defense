@@ -1,0 +1,4 @@
+[submodule "noqui"]
+	path = noqui
+	url = https://github.com/Love0118/noqui.git
+	branch = beta

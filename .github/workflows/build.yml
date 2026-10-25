@@ -11,44 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - run: python3 noqui/lobby-assets/build_pack.py --check
-      - run: python3 noqui/lobby-assets/test_pack.py
-      - run: python3 noqui/hint-assets/build_pack.py --output target/noqui-hint-pack
-      - run: git diff --exit-code -- noqui/plugin/src/main/resources/hint-pack.properties
-      - run: python3 -m unittest discover -s noqui/hint-assets/tools -p 'test_*.py'
-      - run: mvn -B -ntp -f noqui/plugin/pom.xml clean install
+          cache-dependency-path: |
+            pom.xml
+            noqui/plugin/pom.xml
+      - run: mvn -B -ntp -f noqui/plugin/pom.xml -DskipTests clean install
       - run: mvn -B -ntp -Dbuild.commit=${{ github.sha }} clean verify
       - run: python3 -m unittest discover -s benchmarks/traits -p test_progression_report.py
       - run: python3 -m unittest discover -s scripts/maintenance -p 'test_*.py'
-      - run: python3 -m pip install -r noqui/tools/requirements.txt
-      - run: python3 -m unittest discover -s noqui/tools -p 'test_*.py'
       - run: java -cp target/classes dev.moma.sim.SimulatorMain 4 123 1 target/simulation-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: mc-luck-defense
           path: target/mc-luck-defense-*.jar
-      - uses: actions/upload-artifact@v4
-        with:
-          name: noqui-plugin
-          path: noqui/plugin/target/noqui-plugin-*.jar
-  noqui-web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: cargo test --locked --manifest-path noqui/web/Cargo.toml
-      - run: node --test noqui/web/tests/browser.cjs
   publish-beta:
     if: github.ref == 'refs/heads/beta' && github.event_name != 'pull_request'
-    needs: [verify, noqui-web]
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: write
