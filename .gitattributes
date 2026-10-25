@@ -1,2 +1,5 @@
 noqui/deploy/gsit-source/** text eol=lf
 native/chat-report-guard/** text eol=lf
+noqui/hint-assets/** text=auto eol=lf
+noqui/hint-assets/pack/licenses/* -whitespace
+noqui/plugin/src/main/resources/hint-* text eol=lf
