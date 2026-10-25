@@ -62,6 +62,7 @@ public final class MiningGame implements Listener,AutoCloseable {
             cave=new MiningWorld(plugin,store);npc=new MiningNpc(cave);
             for(Player player:Bukkit.getOnlinePlayers())if(host.inSharedLobby(player))items.cargo(player,store.profile(player.getUniqueId()));
             plugin.getServer().getPluginManager().registerEvents(this,plugin);started=true;
+            MiningCargoDrops.start(this,plugin,store,items,host);
             task=Bukkit.getScheduler().runTaskTimer(plugin,this::tick,1,1);
         } catch(IOException | RuntimeException failure) {
             close();throw new IllegalStateException("Mining could not start safely",failure);
@@ -226,9 +227,9 @@ public final class MiningGame implements Listener,AutoCloseable {
             });}return;
         }
         if(owns(player) || inWorld(player.getLocation())) {
-            // Shared bearer items may move locally; generated tools/cargo and crafting stay protected.
+            // Shared items and ore may move locally; generated tools and crafting stay protected.
             if(!personalInventory(e.getView())||e.getClickedInventory()!=player.getInventory()
-                    ||MiningItems.reservedSlot(e.getSlot())||items.managed(e.getCurrentItem())||items.managed(e.getCursor())||e.isShiftClick()&&e.getSlotType()!=InventoryType.SlotType.ARMOR
+                    ||MiningItems.reservedSlot(e.getSlot())||items.managed(e.getCurrentItem())||items.managed(e.getCursor())
                     ||e.getHotbarButton()>=0&&items.managed(player.getInventory().getItem(e.getHotbarButton()))
                     ||e.getClick()==ClickType.SWAP_OFFHAND&&items.managed(player.getInventory().getItemInOffHand()))e.setCancelled(true);
         } else if(items!=null && (items.managed(e.getCurrentItem()) || items.managed(e.getCursor())))e.setCancelled(true);
@@ -236,16 +237,16 @@ public final class MiningGame implements Listener,AutoCloseable {
     @EventHandler(priority=EventPriority.HIGHEST) public void drag(InventoryDragEvent e){if(e.getWhoClicked() instanceof Player p&&items!=null){
         if(items.managed(e.getOldCursor())||owns(p)&&(!personalInventory(e.getView())||e.getRawSlots().stream().anyMatch(s->s<e.getView().getTopInventory().getSize()||MiningItems.reservedSlot(e.getView().convertSlot(s))||items.managed(e.getView().getItem(s)))))e.setCancelled(true);
     }}
-    private static boolean personalInventory(InventoryView view){var type=view.getTopInventory().getType();return type!=null&&type.name().equals("CRAFTING");}
+    private static boolean personalInventory(InventoryView view){var top=view.getTopInventory();return top instanceof PlayerInventory||top instanceof CraftingInventory crafting&&crafting.getMatrix()!=null&&crafting.getMatrix().length==4;}
     @EventHandler(priority=EventPriority.HIGHEST) public void open(InventoryOpenEvent e) {
         if(!(e.getPlayer() instanceof Player p) || !owns(p))return;
         Inventory inv=e.getInventory();
         if(inv.getHolder() instanceof org.bukkit.block.BlockState || inv.getHolder() instanceof org.bukkit.block.DoubleChest
                 || inv.getHolder() instanceof Entity entity && !(entity instanceof Player))e.setCancelled(true);
     }
-    @EventHandler(priority=EventPriority.HIGHEST) public void drop(PlayerDropItemEvent e){if(owns(e.getPlayer()) || items.managed(e.getItemDrop().getItemStack()))e.setCancelled(true);}
-    @EventHandler(priority=EventPriority.HIGHEST) public void pickup(EntityPickupItemEvent e){if(e.getEntity() instanceof Player p && (owns(p) || items.managed(e.getItem().getItemStack())))e.setCancelled(true);}
-    @EventHandler(priority=EventPriority.HIGHEST) public void swap(PlayerSwapHandItemsEvent e){if(owns(e.getPlayer()) || items.managed(e.getMainHandItem()) || items.managed(e.getOffHandItem()))e.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST) public void drop(PlayerDropItemEvent e){if(items.managed(e.getItemDrop().getItemStack()))e.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST) public void pickup(EntityPickupItemEvent e){if(e.getEntity() instanceof Player && items.managed(e.getItem().getItemStack()))e.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST) public void swap(PlayerSwapHandItemsEvent e){if(items.managed(e.getMainHandItem()) || items.managed(e.getOffHandItem()))e.setCancelled(true);}
     @EventHandler(priority=EventPriority.HIGHEST) public void durability(PlayerItemDamageEvent e){if(owns(e.getPlayer()) || items.managed(e.getItem()))e.setCancelled(true);}
     @EventHandler(priority=EventPriority.HIGHEST) public void craft(CraftItemEvent e){if(e.getWhoClicked() instanceof Player p && owns(p))e.setCancelled(true);}
     @EventHandler(priority=EventPriority.HIGHEST) public void interact(PlayerInteractEvent e) {
@@ -303,6 +304,7 @@ public final class MiningGame implements Listener,AutoCloseable {
     private static void mainThread(){if(!Bukkit.isPrimaryThread())throw new IllegalStateException("Mining must run on the server thread");}
     @Override public void close() {
         mainThread();if(closed)return;closed=true;if(task!=null)task.cancel();menuActions.clear();
+        MiningCargoDrops.stop(this);
         var recoveries=new HashSet<>(active);recoveries.addAll(blocked);
         for(UUID id:recoveries) {
             Player player=Bukkit.getPlayer(id);if(player==null)continue;transitioning.add(id);

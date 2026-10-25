@@ -48,6 +48,7 @@ public final class GameRuntime implements GameModule {
         games.rewards=new DefenseRewards(host,()->games.noqui);
         games.rewards.flush();
         games.mining.start();
+        if(games.noqui!=NoquiHooks.NONE)QuizTicketInventory.register(host,games,mineBridge);
         if(initialBoot)for(var player:Bukkit.getOnlinePlayers())if(!games.noqui.owns(player))games.tools.restore(player);
         events.registerEvents(preferences,host);
         events.registerEvents(new WardrobeListener(games),host);events.registerEvents(mineBridge,host);
@@ -116,6 +117,7 @@ public final class GameRuntime implements GameModule {
         }
     }
     private void detach() {
+        if(games.noqui!=NoquiHooks.NONE)QuizTicketInventory.unregister(games);
         if(games.mining!=null){games.mining.close();games.mining=null;}
         games.noqui.close();games.noqui=NoquiHooks.NONE;
         if(reboot!=null){reboot.remove();reboot=null;}

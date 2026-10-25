@@ -24,7 +24,7 @@ final class MiningItems {
         meta.lore(Arrays.stream(lore).map(MiningItems::text).toList());item.setItemMeta(meta);return item;
     }
     boolean marked(ItemStack item){return item!=null && !item.isEmpty() && item.getPersistentDataContainer().has(serial,PersistentDataType.STRING);}
-    boolean managed(ItemStack item){return marked(item) || item!=null && !item.isEmpty() && (item.getPersistentDataContainer().has(NAVIGATION,PersistentDataType.STRING)||item.getPersistentDataContainer().has(CARGO,PersistentDataType.STRING));}
+    boolean managed(ItemStack item){return marked(item) || item!=null && !item.isEmpty() && item.getPersistentDataContainer().has(NAVIGATION,PersistentDataType.STRING);}
     boolean owned(ItemStack item,UUID id,UUID tool) {
         return marked(item) && item.getType()==Material.IRON_PICKAXE && item.getAmount()==1
                 && id.toString().equals(item.getPersistentDataContainer().get(owner,PersistentDataType.STRING))
@@ -66,26 +66,14 @@ final class MiningItems {
     private int cargoSpace(Player player){
         int space=0;boolean mining=marked(player.getInventory().getItem(4));var contents=player.getInventory().getStorageContents();
         for(int slot=0;slot<contents.length;slot++)if((!mining||!RESERVED.contains(slot))&&(contents[slot]==null||contents[slot].isEmpty()||cargoItem(contents[slot])))space++;
+        if(cargoItem(player.getInventory().getItemInOffHand()))space++;
+        if(cargoItem(player.getItemOnCursor()))space++;
         return space;
     }
-    boolean canCarry(Player player,MiningStore.Profile p,MiningRules.Ore ore,int amount){return cargoSlots(p.credit(ore,amount).cargo())<=cargoSpace(player);}
+    boolean canCarry(Player player,MiningStore.Profile p,MiningRules.Ore ore,int amount){return cargoSlots(p.credit(ore,amount).cargo())<=cargoSpace(player)&&CargoStacks.capacity(player,ore,marked(player.getInventory().getItem(4)))>=amount;}
     private static long cargoSlots(Map<MiningRules.Ore,Long> cargo){long slots=0;for(long count:cargo.values())slots=Math.addExact(slots,(count+63)/64);return slots;}
     static Material material(MiningRules.Ore ore){return Material.valueOf(switch(ore){case COPPER->"RAW_COPPER";case IRON->"RAW_IRON";case GOLD->"RAW_GOLD";case LAPIS->"LAPIS_LAZULI";default->ore.name();});}
     void cargo(Player player,MiningStore.Profile p){
-        var inv=player.getInventory();var contents=inv.getStorageContents();boolean mining=marked(inv.getItem(4));
-        for(int slot=0;slot<contents.length;slot++)if(cargoItem(contents[slot]))contents[slot]=null;
-        for(int slot=contents.length;slot<inv.getSize();slot++)if(cargoItem(inv.getItem(slot)))inv.setItem(slot,null);
-        if(cargoItem(player.getItemOnCursor()))player.setItemOnCursor(null);
-        int slot=0;
-        for(var ore:MiningRules.Ore.values()){
-            long remaining=p.cargo().getOrDefault(ore,0L);
-            while(remaining>0){
-                while(slot<contents.length&&(contents[slot]!=null&&!contents[slot].isEmpty()||mining&&RESERVED.contains(slot)))slot++;
-                if(slot==contents.length)break;
-                var item=icon(material(ore),"&f"+ore.label,"&7광산 채굴 광물");item.setAmount((int)Math.min(64,remaining));
-                var meta=item.getItemMeta();meta.getPersistentDataContainer().set(CARGO,PersistentDataType.STRING,ore.name());item.setItemMeta(meta);contents[slot++]=item;remaining-=item.getAmount();
-            }
-        }
-        inv.setStorageContents(contents);
+        CargoStacks.reconcile(player,p,marked(player.getInventory().getItem(4)));
     }
 }

@@ -12,6 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class MiningMenuTest {
+    @Test void oreAndSharedItemsCanMoveShiftDragDropAndSwapWhileMineToolsStayProtected()throws Exception{
+        var game=new MiningGame(mock(JavaPlugin.class),mock(MiningGame.Host.class));var player=participant(game);var items=mock(MiningItems.class);field(game,"items",items);
+        var inventory=mock(PlayerInventory.class);when(player.getInventory()).thenReturn(inventory);
+        var top=mock(CraftingInventory.class);when(top.getMatrix()).thenReturn(new ItemStack[4]);when(top.getSize()).thenReturn(5);
+        var view=mock(InventoryView.class);when(view.getTopInventory()).thenReturn(top);when(view.convertSlot(20)).thenReturn(10);
+        var ore=mock(ItemStack.class);var click=mock(InventoryClickEvent.class);when(click.getWhoClicked()).thenReturn(player);when(click.getView()).thenReturn(view);when(click.getClickedInventory()).thenReturn(inventory);when(click.getCurrentItem()).thenReturn(ore);when(click.getSlot()).thenReturn(10);when(click.isShiftClick()).thenReturn(true);
+        game.click(click);verify(click,never()).setCancelled(true);
+        var drag=mock(InventoryDragEvent.class);when(drag.getWhoClicked()).thenReturn(player);when(drag.getView()).thenReturn(view);when(drag.getRawSlots()).thenReturn(Set.of(20));when(drag.getOldCursor()).thenReturn(ore);game.drag(drag);verify(drag,never()).setCancelled(true);
+        var entity=mock(org.bukkit.entity.Item.class);when(entity.getItemStack()).thenReturn(ore);var drop=mock(org.bukkit.event.player.PlayerDropItemEvent.class);when(drop.getPlayer()).thenReturn(player);when(drop.getItemDrop()).thenReturn(entity);game.drop(drop);verify(drop,never()).setCancelled(true);
+        var swap=mock(org.bukkit.event.player.PlayerSwapHandItemsEvent.class);when(swap.getPlayer()).thenReturn(player);when(swap.getMainHandItem()).thenReturn(ore);game.swap(swap);verify(swap,never()).setCancelled(true);
+        when(items.managed(ore)).thenReturn(true);game.drop(drop);verify(drop).setCancelled(true);game.swap(swap);verify(swap).setCancelled(true);
+    }
     @Test void leftClickDoesNotDenyVanillaDiggingBeforeBlockBreakCanFire()throws Exception{
         var game=new MiningGame(mock(JavaPlugin.class),mock(MiningGame.Host.class));var player=participant(game);
         var event=mock(org.bukkit.event.player.PlayerInteractEvent.class);when(event.getPlayer()).thenReturn(player);

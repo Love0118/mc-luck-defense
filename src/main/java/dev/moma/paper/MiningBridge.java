@@ -55,9 +55,11 @@ final class MiningBridge implements MiningGame.Host, Listener {
     void refresh(Player player){
         var inventory=player.getInventory();var old=inventory.getItem(3);
         if(!games.noqui.started()){if("noqui".equals(id(old)))inventory.setItem(3,null);return;}
-        int amount=(int)Math.clamp(games.noqui.ticketCount(player.getUniqueId()),1,64);
-        if("noqui".equals(id(old))&&old.getAmount()==amount)return;
-        set(player,3,Material.PAPER,"noqui","&b노래퀴즈");inventory.getItem(3).setAmount(amount);
+        long count=games.noqui.ticketCount(player.getUniqueId());int amount=(int)Math.clamp(count,1,64);
+        var countKey=new NamespacedKey("momadefense","noqui_ticket_count");
+        if("noqui".equals(id(old))&&old.getAmount()==amount&&old.getItemMeta().getPersistentDataContainer().getOrDefault(countKey,PersistentDataType.LONG,-1L)==count)return;
+        var icon=Ui.item(Material.PAPER,"&b노래퀴즈","&7출제권 "+count+"장","&7우클릭: 로비 · 출제");icon.setAmount(amount);
+        var meta=icon.getItemMeta();meta.getPersistentDataContainer().set(KEY,PersistentDataType.STRING,"noqui");meta.getPersistentDataContainer().set(countKey,PersistentDataType.LONG,count);icon.setItemMeta(meta);inventory.setItem(3,icon);
     }
     private static String id(ItemStack item){return item==null||!item.hasItemMeta()?null:item.getItemMeta().getPersistentDataContainer().get(KEY,PersistentDataType.STRING);}
     @Override public void openSharedShop(Player player){games.noqui.openSharedShop(player);}
