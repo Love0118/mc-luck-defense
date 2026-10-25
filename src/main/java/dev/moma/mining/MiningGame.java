@@ -63,6 +63,7 @@ public final class MiningGame implements Listener,AutoCloseable {
             for(Player player:Bukkit.getOnlinePlayers())if(host.inSharedLobby(player))items.cargo(player,store.profile(player.getUniqueId()));
             plugin.getServer().getPluginManager().registerEvents(this,plugin);started=true;
             MiningCargoDrops.start(this,plugin,store,items,host);
+            if(plugin.getServer().getPluginManager().isPluginEnabled("Noqui"))MiningResetControl.register(plugin,cave);
             task=Bukkit.getScheduler().runTaskTimer(plugin,this::tick,1,1);
         } catch(IOException | RuntimeException failure) {
             close();throw new IllegalStateException("Mining could not start safely",failure);
@@ -96,6 +97,7 @@ public final class MiningGame implements Listener,AutoCloseable {
             host.giveTools(player);var profile=store.profile(id);items.give(player,profile);items.cargo(player,profile);
             if(!player.teleport(cave.spawn()))throw new IOException("Mining entry teleport was refused");
             player.saveData();
+            MiningResetCycle.show(cave,player);
         } catch(IOException | RuntimeException failure) {
             active.remove(id);boolean restored=!snapshot;
             // capture may commit its vault before saveData throws; inspect it rather than trusting the flag.
@@ -115,7 +117,7 @@ public final class MiningGame implements Listener,AutoCloseable {
         transitioning.add(id);
         try {
             if(!active.contains(id) && !blocked.contains(id) && store.profile(id).recovery()==null)return;
-            recovery.restore(player,false);active.remove(id);blocked.remove(id);items.remove(player);
+            recovery.restore(player,false);active.remove(id);blocked.remove(id);items.remove(player);MiningResetCycle.hide(cave,player);
         } catch(IOException | RuntimeException failure){blocked.add(id);fail(player,failure);throw new IllegalStateException("Mining inventory recovery is pending",failure);}
         finally{transitioning.remove(id);}
     }
@@ -127,6 +129,7 @@ public final class MiningGame implements Listener,AutoCloseable {
         if(!worldFailed)try{cave.tick();if(ticks%5==0)npc.tick();}
         catch(IOException | RuntimeException failure){worldFailed=true;plugin.getLogger().log(Level.SEVERE,"Mining world edits stopped; durable state retained",failure);}
         if(ticks%20!=0)return;
+        MiningResetCycle.update(this,cave,worldFailed);
         for(Player player:cave.world.getPlayers()) {
             UUID id=player.getUniqueId();if(transitioning.contains(id))continue;
             if(active.contains(id)) {
@@ -200,7 +203,7 @@ public final class MiningGame implements Listener,AutoCloseable {
     @EventHandler(priority=EventPriority.LOWEST) public void joined(PlayerJoinEvent e){recover(e.getPlayer());}
     @EventHandler(priority=EventPriority.HIGHEST) public void quit(PlayerQuitEvent e) {
         Player player=e.getPlayer();if(!owns(player))return;UUID id=player.getUniqueId();transitioning.add(id);
-        try{recovery.restore(player,true);active.remove(id);blocked.remove(id);}
+        try{recovery.restore(player,true);active.remove(id);blocked.remove(id);MiningResetCycle.hide(cave,player);}
         catch(IOException | RuntimeException failure){blocked.add(id);plugin.getLogger().log(Level.SEVERE,"Mining quit inventory recovery retained for "+id,failure);}
         finally{transitioning.remove(id);}
     }

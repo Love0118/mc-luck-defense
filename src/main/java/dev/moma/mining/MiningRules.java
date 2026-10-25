@@ -47,7 +47,7 @@ final class MiningRules {
         return new Attempt(draw<offer.success()+offer.destruction()?Outcome.DESTROYED:Outcome.FAILURE,0);
     }
     static boolean depleted(int remaining, int initial, double threshold) {
-        return initial > 0 && remaining < initial * Math.clamp(threshold, .05, .75);
+        return initial > 0 && remaining <= initial * Math.clamp(threshold, .05, .75);
     }
     static Ore randomOre(RandomGenerator random) {
         int draw = random.nextInt(100);

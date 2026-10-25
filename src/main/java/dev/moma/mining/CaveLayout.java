@@ -137,7 +137,7 @@ final class CaveLayout {
         var next = new LinkedHashMap<>(current);
         var stone = new ArrayList<Cell>();
         current.forEach((c, material) -> {
-            if (!occupied.test(c) && (material.equals("AIR") || material.equals("STONE"))) {
+            if (!occupied.test(c)) {
                 next.put(c, "STONE"); stone.add(c);
             }
         });

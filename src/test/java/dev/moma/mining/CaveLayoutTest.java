@@ -39,14 +39,20 @@ class CaveLayoutTest {
         for(int z=-20;z<=20;z++)assertEquals("RAIL",CaveLayout.shell(new CaveLayout.Cell(0,57,z)));
         assertEquals("AIR",CaveLayout.shell(new CaveLayout.Cell(0,58,-19)));
     }
-    @Test void regenerationFillsMinedAirButExcludesPlayerBodyAndExistingOre() {
+    @Test void regenerationFillsMinedAirButExcludesPlayerBodyAndRerollsTheOreGeneration() {
         var cells=new LinkedHashMap<CaveLayout.Cell,String>();for(var c:CaveLayout.cells())cells.put(c,"AIR");
         var occupied=CaveLayout.cells().get(0);var ore=CaveLayout.cells().get(1);cells.put(ore,"EMERALD_ORE");
         var next=CaveLayout.refill(cells,occupied::equals,new Random(77));
-        assertEquals("AIR",next.get(occupied));assertEquals("EMERALD_ORE",next.get(ore));assertEquals(cells.size(),next.size());
+        assertEquals("AIR",next.get(occupied));assertEquals(cells.size(),next.size());
         assertEquals(1,next.values().stream().filter("AIR"::equals).count());
         assertTrue(next.values().stream().filter("STONE"::equals).count()>cells.size()/2);
         assertTrue(next.values().stream().anyMatch("DIAMOND_ORE"::equals));assertEquals("AIR",cells.get(occupied));
+        for(int i=0;i<4;i++){
+            next=CaveLayout.refill(next,occupied::equals,new Random(80+i));
+            long ores=next.values().stream().filter(m->MiningRules.Ore.fromBlock(m)!=null).count();
+            assertTrue(ores>cells.size()*.20&&ores<cells.size()*.23,"Timed resets must not accumulate unmined ore");
+            assertEquals("AIR",next.get(occupied));
+        }
     }
     @Test void compactShallowMineHasConnectedClimbsLightingAndSixSafeMinerStations(){
         assertEquals(48,CaveLayout.RADIUS*2);assertEquals(16,CaveLayout.HUB_FLOOR-CaveLayout.FLOOR);

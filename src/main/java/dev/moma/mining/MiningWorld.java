@@ -25,8 +25,8 @@ final class MiningWorld implements AutoCloseable {
     MiningWorld(JavaPlugin plugin,MiningStore store)throws IOException {
         this.plugin=plugin;this.store=store;
         budget=Math.clamp(plugin.getConfig().getInt("mining.edits-per-tick",2048),256,4096);
-        double configured=plugin.getConfig().getDouble("mining.refill-threshold",.25);
-        threshold=Double.isFinite(configured)?Math.clamp(configured,.05,.75):.25;
+        double configured=plugin.getConfig().getDouble("mining.refill-threshold",.60);
+        threshold=Double.isFinite(configured)?Math.clamp(configured,.05,.75):.60;
         String name=plugin.getConfig().getString("mining.world","moma_mining");
         if(name==null || !name.matches("moma_mining(?:_[a-z0-9_-]{1,20})?"))throw new IOException("Mining requires its own moma_mining world");
         var key=new NamespacedKey(plugin,"mining_world");
@@ -60,6 +60,7 @@ final class MiningWorld implements AutoCloseable {
             for(int x=-CaveLayout.RADIUS;x<=CaveLayout.RADIUS;x++)for(int z=-CaveLayout.RADIUS;z<=CaveLayout.RADIUS;z++)
                 for(int y=CaveLayout.FLOOR;y<=CaveLayout.ROOF;y++)edits.add(new CaveLayout.Cell(x,y,z));
         } else edits.addAll(cells.keySet());
+        MiningResetCycle.initialize(this,store,threshold,this::refill).counts(remaining,initial);
     }
     boolean ready(){return ready;}
     Location spawn(){return new Location(world,.5,CaveLayout.HUB_FLOOR+1,-19.5,0,0);}
@@ -97,7 +98,8 @@ final class MiningWorld implements AutoCloseable {
             if(initialBuild){world.save();store.meta("shell-built",world.getUID().toString());initialBuild=false;}
             ready=true;
         }
-        if(ready && MiningRules.depleted(remaining,initial,threshold))refill();
+        var cycle=MiningResetCycle.current(this);cycle.counts(remaining,initial);
+        if(ready && cycle.shouldReset())refill();
     }
     private int countOres(){return (int)cells.values().stream().filter(s->MiningRules.Ore.fromBlock(s)!=null).count();}
     private void refill()throws IOException {
@@ -108,9 +110,10 @@ final class MiningWorld implements AutoCloseable {
         // Persist the complete new desired generation before changing visible blocks.
         store.replaceCells(changes,count);cells.putAll(changes);initial=count;remaining=count;
         edits.addAll(changes.keySet());ready=edits.isEmpty();
+        var cycle=MiningResetCycle.current(this);cycle.counts(remaining,initial);cycle.scheduleNext();
     }
-    void mined(CaveLayout.Cell c){String old=cells.put(c,"AIR");if(MiningRules.Ore.fromBlock(old)!=null)remaining--;world.getBlockAt(c.x(),c.y(),c.z()).setType(Material.AIR,false);}
-    @Override public void close(){for(long p:tickets)world.removePluginChunkTicket((int)(p>>32),(int)p,plugin);tickets.clear();}
+    void mined(CaveLayout.Cell c){String old=cells.put(c,"AIR");if(MiningRules.Ore.fromBlock(old)!=null)remaining--;world.getBlockAt(c.x(),c.y(),c.z()).setType(Material.AIR,false);var cycle=MiningResetCycle.current(this);cycle.counts(remaining,initial);}
+    @Override public void close(){MiningResetCycle.close(this);for(long p:tickets)world.removePluginChunkTicket((int)(p>>32),(int)p,plugin);tickets.clear();}
     private static final class EmptyGenerator extends ChunkGenerator {
         @Override public boolean shouldGenerateNoise(){return false;}
         @Override public boolean shouldGenerateSurface(){return false;}

@@ -23,9 +23,9 @@ class MiningRulesTest {
         assertEquals(10,gains.size());assertEquals(3,outcomes.size());
         for(int i=0;i<1000;i++){var low=MiningRules.roll(MiningRules.Upgrade.SPEED,50,random);assertNotEquals(MiningRules.Outcome.DESTROYED,low.outcome());var cap=MiningRules.roll(MiningRules.Upgrade.SPEED,299,random);assertTrue(cap.gain()<=1);}
     }
-    @Test void strictQuarterThresholdCountsOnlyRemainingOre() {
-        assertFalse(MiningRules.depleted(25,100,.25));assertTrue(MiningRules.depleted(24,100,.25));
-        assertFalse(MiningRules.depleted(0,0,.25));assertFalse(MiningRules.depleted(100,100,.25));
+    @Test void sixtyPercentThresholdCountsOnlyRemainingOreAndIncludesTheBoundary() {
+        assertFalse(MiningRules.depleted(61,100,.60));assertTrue(MiningRules.depleted(60,100,.60));assertTrue(MiningRules.depleted(59,100,.60));
+        assertFalse(MiningRules.depleted(0,0,.60));assertFalse(MiningRules.depleted(100,100,.60));
     }
     @Test void everyUnitPriceIsAnIntegerFromOneToTenAndSaleRejectsOverflow() {
         assertEquals(1,MiningRules.price(-1));assertEquals(10,MiningRules.price(999));

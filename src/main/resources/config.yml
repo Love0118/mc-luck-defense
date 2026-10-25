@@ -2,7 +2,7 @@
 mining:
   world: moma_mining
   edits-per-tick: 2048
-  refill-threshold: 0.25
+  refill-threshold: 0.60
   prices:
     coal: 1
     copper: 2
