@@ -42,6 +42,15 @@ final class CaveLayout {
         return air(c)?"AIR":"STONE";
     }
     static String blockData(Cell c){var value=STRUCTURES.get(c);return value==null?null:"minecraft:"+value;}
+    /** Extra clearance for a standing player's 1.8-block body while stepping up a half-height stair. */
+    static List<Cell> stairClearance(){
+        var cells=new ArrayList<Cell>();
+        for(int base:new int[]{44,50})for(int x:new int[]{-14,10}){
+            for(int step=0;step<6;step++)cells.add(new Cell(x+step,base+step+4,7));
+            for(int head=1;head<=3;head++)cells.add(new Cell(x+6,base+6+head,7));
+        }
+        return List.copyOf(cells);
+    }
     private static Map<Cell,String> structures(){
         var map=new HashMap<Cell,String>();
         // Ballast, wooden sleepers and a continuous main rail, with a working siding.
@@ -90,6 +99,7 @@ final class CaveLayout {
             if(Math.abs(x)<=3)continue;
             map.put(new Cell(x,floor+1,6),"spruce_fence");map.put(new Cell(x,floor+2,6),"lantern");
         }
+        for(var cell:stairClearance())map.put(cell,"air");
         return Map.copyOf(map);
     }
     private static void frame(Map<Cell,String> map,int x,int z,boolean across){

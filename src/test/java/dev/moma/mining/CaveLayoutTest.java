@@ -5,6 +5,25 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CaveLayoutTest {
+    @Test void standingPlayersCanTraverseEveryRampAndLandingWithoutCrouching(){
+        for(int base:new int[]{44,50})for(int start:new int[]{-14,10})for(double offset=-.2;offset<=6.5;offset+=.125){
+            double front=offset+.3;
+            double feet=front>=6?base+7:base+(int)Math.floor(front)+1+(front-Math.floor(front)<.5?.5:1);
+            double minX=start+offset-.3,maxX=start+offset+.3,minY=feet+1e-6,maxY=feet+1.8;
+            for(int x=(int)Math.floor(minX);x<Math.ceil(maxX);x++)for(int y=(int)Math.floor(minY);y<Math.ceil(maxY);y++){
+                String material=CaveLayout.shell(new CaveLayout.Cell(x,y,7));if(material.equals("AIR")||material.equals("LIGHT"))continue;
+                if(material.equals("SPRUCE_STAIRS")){
+                    assertFalse(overlap(minX,minY,maxX,maxY,x,y,x+1,y+.5));
+                    assertFalse(overlap(minX,minY,maxX,maxY,x+.5,y+.5,x+1,y+1));
+                }else assertFalse(overlap(minX,minY,maxX,maxY,x,y,x+1,y+1),"Blocked standing passage at "+x+","+y+",7");
+            }
+        }
+        for(var cell:CaveLayout.stairClearance()){
+            assertTrue(CaveLayout.terrace(cell)||CaveLayout.route(cell),"Repairs must stay outside the ore ledger");
+            assertFalse(CaveLayout.mineable(cell));assertFalse(CaveLayout.cells().contains(cell));
+        }
+    }
+    private static boolean overlap(double ax,double ay,double bx,double by,double x,double y,double xx,double yy){return ax<xx-1e-6&&bx>x+1e-6&&ay<yy-1e-6&&by>y+1e-6;}
     @Test void everyVeinComponentIsConnectedAndHasAtLeastThreeCells() {
         var eligible=CaveLayout.cells();
         for(int seed=0;seed<4;seed++) {

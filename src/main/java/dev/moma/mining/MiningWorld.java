@@ -60,6 +60,8 @@ final class MiningWorld implements AutoCloseable {
             for(int x=-CaveLayout.RADIUS;x<=CaveLayout.RADIUS;x++)for(int z=-CaveLayout.RADIUS;z<=CaveLayout.RADIUS;z++)
                 for(int y=CaveLayout.FLOOR;y<=CaveLayout.ROOF;y++)edits.add(new CaveLayout.Cell(x,y,z));
         } else edits.addAll(cells.keySet());
+        // Also repair existing worlds without regenerating ore or changing their reset deadline.
+        edits.addAll(CaveLayout.stairClearance());
         MiningResetCycle.initialize(this,store,threshold,this::refill).counts(remaining,initial);
     }
     boolean ready(){return ready;}
