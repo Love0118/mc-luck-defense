@@ -26,6 +26,7 @@ class MinigameMenuTest {
     private Inventory current;
 
     @BeforeEach void setup() {
+        games.noqui=mock(NoquiHooks.class);when(games.noqui.started()).thenReturn(true);
         when(player.isOnline()).thenReturn(true);when(player.hasPermission("moma.play")).thenReturn(true);
         when(games.quizCabinOwner(player)).thenReturn(true);when(player.getOpenInventory()).thenReturn(view);
         when(view.getTopInventory()).thenAnswer(c->current);
@@ -97,6 +98,7 @@ class MinigameMenuTest {
         verify(player).closeInventory();verify(player).sendMessage(Ui.text("&cscreen rejected"));
     }
     @Test void mineDestinationEntersOnceAndRemainsAccessibleInsideMine(){
+        when(games.noqui.started()).thenReturn(false);
         when(games.quizCabinOwner(player)).thenReturn(false);when(mining.owns(player)).thenReturn(true);
         menu.open(player);menu.click(click(MinigameMenu.MINE,ClickType.LEFT));tasks.removeFirst().run();
         verify(mining).join(player);verify(games,never()).visitLobby(any());verify(sessions,never()).open(any());
@@ -117,5 +119,25 @@ class MinigameMenuTest {
         menu.open(player);menu.click(click(MinigameMenu.MINE,ClickType.LEFT));
         when(lobby.contains(any())).thenReturn(true);tasks.removeFirst().run();
         verify(mining,never()).join(any());verify(player,never()).closeInventory();
+    }
+    @Test void stoppedOrMissingQuizOpensMoundiSessionsDirectlyFromLobby(){
+        when(lobby.contains(any())).thenReturn(true);when(games.quizCabinOwner(player)).thenReturn(false);
+        when(games.noqui.started()).thenReturn(false);menu.open(player);
+        games.noqui=NoquiHooks.NONE;menu.open(player);
+        verify(sessions,times(2)).open(player);verify(player,never()).openInventory(any(Inventory.class));
+        verify(games,never()).visitLobby(any());verify(games,never()).start(any());verify(mining,never()).join(any());
+        assertTrue(tasks.isEmpty());
+    }
+    @Test void stoppedQuizLetsMoundiSpectatorsOpenSessionsDirectly(){
+        when(games.quizCabinOwner(player)).thenReturn(false);when(games.watching(player)).thenReturn(true);
+        when(games.noqui.started()).thenReturn(false);menu.open(player);
+        verify(sessions).open(player);verify(player,never()).openInventory(any(Inventory.class));
+    }
+    @Test void directMoundiEntryStillChecksPermissionsOnlineStateAndActiveGame(){
+        when(lobby.contains(any())).thenReturn(true);when(games.noqui.started()).thenReturn(false);
+        when(player.hasPermission("moma.play")).thenReturn(false);menu.open(player);
+        when(player.hasPermission("moma.play")).thenReturn(true);when(games.playing(player)).thenReturn(true);menu.open(player);
+        when(games.playing(player)).thenReturn(false);when(player.isOnline()).thenReturn(false);menu.open(player);
+        verifyNoInteractions(sessions);verify(player,never()).openInventory(any(Inventory.class));
     }
 }

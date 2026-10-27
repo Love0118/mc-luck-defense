@@ -4,7 +4,9 @@
 
 처음 받을 때는 `git clone --branch beta --recurse-submodules https://github.com/Love0118/mc-luck-defense.git`을 사용하고, 기존 체크아웃에서는 `git submodule update --init --recursive`를 실행합니다. 이후 `mvn -B -ntp -f noqui/plugin/pom.xml install`과 `mvn -B -ntp verify` 순서로 빌드합니다. API를 갱신할 때는 Noqui의 통과한 커밋을 체크아웃한 후 이 저장소에서 `git add noqui`로 참조를 함께 커밋합니다. 웹 코드는 별도 `noqui-web` 폴더에 `web` 브랜치를 받아 작업합니다.
 
-## 1.0.40 Noqui 연동
+## 1.0.41 Noqui 연동
+
+노래퀴즈가 중지되어 있거나 Noqui가 없으면 마운디 로비·관전 중 미니게임 나침반은 마운디 참가·관전 창을 바로 엽니다. 노퀴 진행 중에는 기존 미니게임 선택 창을 유지합니다. 마운디 로비로 도착할 때 해당 월드의 보더를 다시 보내 이전 월드의 붉은 경고가 남지 않도록 하며, 치장 메뉴 아이템은 실제 갑옷으로 착용할 수 없습니다.
 
 광산은 48×48 크기의 밝은 3개 층으로 구성하며 광부 6명과 사다리·계단을 배치합니다. 노퀴와 광산은 곡괭이·임시 도구를 제외한 인벤토리를 공유하고 두 상점 모두 광물을 판매합니다. 속도 강화는 최대 300%, 20%p 구간별 비용·확률을 적용합니다.
 

@@ -66,6 +66,7 @@ final class Lobby {
     void send(Player player) {
         prepare(player);
         if (!player.teleport(spawn())) throw new IllegalStateException("Lobby teleport rejected for " + player.getUniqueId());
+        player.setWorldBorder(null);
         enableFlight(player);
     }
 }

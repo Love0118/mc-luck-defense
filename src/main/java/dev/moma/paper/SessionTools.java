@@ -102,9 +102,15 @@ final class SessionTools {
     }
     private ItemStack tool(Material material,String id,String name,String... lore) {
         ItemStack item=Ui.item(material,name,lore);var meta=item.getItemMeta();
-        meta.getPersistentDataContainer().set(toolKey,PersistentDataType.STRING,id);item.setItemMeta(meta);return item;
+        meta.getPersistentDataContainer().set(toolKey,PersistentDataType.STRING,id);
+        if("wardrobe".equals(id)){
+            var wearable=meta.getEquippable();wearable.setAllowedEntities(java.util.List.of());
+            wearable.setEquipOnInteract(false);wearable.setSwappable(false);wearable.setDispensable(false);meta.setEquippable(wearable);
+        }
+        item.setItemMeta(meta);return item;
     }
     private void giveWardrobe(Player player) {
+        for(int slot=36;slot<=39;slot++)if("wardrobe".equals(id(player.getInventory().getItem(slot))))player.getInventory().setItem(slot,null);
         var data=player.getPersistentDataContainer();
         if(!data.has(wardrobeBackupKey,PersistentDataType.BYTE_ARRAY))
             data.set(wardrobeBackupKey,PersistentDataType.BYTE_ARRAY,ItemStack.serializeItemsAsBytes(new ItemStack[]{player.getInventory().getItem(4)}));

@@ -35,6 +35,7 @@ class SessionToolsTest {
         byte[] saved={1,2,3},oldSaved={4,5,6},wardrobeSaved={7,8,9};
         try(var stacks=mockStatic(ItemStack.class);var items=mockConstruction(ItemStack.class,(item,context)->{
             var meta=mock(ItemMeta.class);var itemData=data();when(meta.getPersistentDataContainer()).thenReturn(itemData);
+            when(meta.getEquippable()).thenReturn(mock(org.bukkit.inventory.meta.components.EquippableComponent.class));
             when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(call->{
@@ -57,6 +58,7 @@ class SessionToolsTest {
             inventory.setHeldItemSlot(7);assertTrue(tools.holding(player,"sound"));
             inventory.setHeldItemSlot(5);assertTrue(tools.holding(player,"summon_alerts"));
             inventory.setHeldItemSlot(4);assertTrue(tools.holding(player,"wardrobe"));
+            var wardrobeMenu=slots[4];
             assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
             assertTrue(NotificationPreferences.OTHER_SUMMON.enabled(player));NotificationPreferences.OTHER_SUMMON.toggle(player);
             assertFalse(NotificationPreferences.OTHER_SUMMON.enabled(player));
@@ -66,7 +68,8 @@ class SessionToolsTest {
             new SessionTools(plugin).restore(player);
             assertSame(original0,slots[0]);assertSame(original1,slots[1]);assertSame(other,slots[4]);assertSame(other,slots[5]);assertSame(other,slots[8]);assertNull(slots[10]);assertEquals(5,held[0]);
             tools.restore(player);assertSame(original0,slots[0]);assertSame(original1,slots[1]);
-            tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));
+            slots[38]=wardrobeMenu;slots[39]=original0;
+            tools.giveLobby(player); assertTrue(tools.holding(player,"sessions"));assertNull(slots[38]);assertSame(original0,slots[39]);
             var compassName=org.mockito.ArgumentCaptor.forClass(net.kyori.adventure.text.Component.class);
             verify(inventory.getItem(0).getItemMeta(),atLeastOnce()).displayName(compassName.capture());
             assertEquals(net.kyori.adventure.text.Component.text("미니게임",net.kyori.adventure.text.format.NamedTextColor.AQUA).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC,false),compassName.getAllValues().getLast());

@@ -30,6 +30,7 @@ class NoquiTicketSessionSwapTest {
         Map<byte[],ItemStack[]> snapshots=new IdentityHashMap<>();
         try(var stacks=mockStatic(ItemStack.class);var items=mockConstruction(ItemStack.class,(item,context)->{
             var meta=mock(ItemMeta.class);var pdc=data();when(meta.getPersistentDataContainer()).thenReturn(pdc);when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);when(item.getType()).thenReturn((Material)context.arguments().getFirst());
+            when(meta.getEquippable()).thenReturn(mock(org.bukkit.inventory.meta.components.EquippableComponent.class));
             int[] amount={1};when(item.getAmount()).thenAnswer(c->amount[0]);doAnswer(c->{amount[0]=c.getArgument(0);return null;}).when(item).setAmount(anyInt());
         })) {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(c->{byte[] key={(byte)snapshots.size()};snapshots.put(key,((ItemStack[])c.getArgument(0)).clone());return key;});

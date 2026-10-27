@@ -42,6 +42,7 @@ class NoquiReturnToolsTest {
             stacks.when(()->ItemStack.serializeItemsAsBytes(any(ItemStack[].class))).thenAnswer(c->{byte[] bytes={(byte)++sequence};serialized.put(bytes,c.getArgument(0,ItemStack[].class).clone());return bytes;});
             stacks.when(()->ItemStack.deserializeItemsFromBytes(any(byte[].class))).thenAnswer(c->serialized.get(c.getArgument(0)));
             items=mockConstruction(ItemStack.class,(item,context)->{var meta=mock(ItemMeta.class);var tags=data();when(meta.getPersistentDataContainer()).thenReturn(tags);when(item.getItemMeta()).thenReturn(meta);when(item.hasItemMeta()).thenReturn(true);
+                when(meta.getEquippable()).thenReturn(mock(org.bukkit.inventory.meta.components.EquippableComponent.class));
                 int[] count={1};when(item.getAmount()).thenAnswer(c->count[0]);doAnswer(c->{count[0]=c.getArgument(0);return null;}).when(item).setAmount(anyInt());});
         }
         public void close(){items.close();stacks.close();}

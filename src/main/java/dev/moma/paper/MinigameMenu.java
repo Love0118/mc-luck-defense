@@ -31,8 +31,9 @@ final class MinigameMenu implements Listener {
     }
     void open(Player player) {
         if(!eligible(player))return;
-        Holder holder=new Holder(player);holder.inventory=Bukkit.createInventory(holder,27,Ui.text("&b미니게임"));
         boolean inLobby=inMoundiLobby(player);
+        if((inLobby||games.watching(player))&&!games.noqui.started()){sessions.open(player);return;}
+        Holder holder=new Holder(player);holder.inventory=Bukkit.createInventory(holder,27,Ui.text("&b미니게임"));
         holder.inventory.setItem(MOMA,Ui.item(Material.GRASS_BLOCK,inLobby?"&a마운디 게임 참가":"&a마운디","&7게임 참가 / 관전"));
         holder.allowMine=mining!=null&&!inLobby;
         if(holder.allowMine)holder.inventory.setItem(MINE,Ui.item(Material.IRON_PICKAXE,"&e광산","&7입장"));
