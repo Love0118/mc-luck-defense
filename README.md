@@ -4,9 +4,9 @@
 
 처음 받을 때는 `git clone --branch beta --recurse-submodules https://github.com/Love0118/mc-luck-defense.git`을 사용하고, 기존 체크아웃에서는 `git submodule update --init --recursive`를 실행합니다. 이후 `mvn -B -ntp -f noqui/plugin/pom.xml install`과 `mvn -B -ntp verify` 순서로 빌드합니다. API를 갱신할 때는 Noqui의 통과한 커밋을 체크아웃한 후 이 저장소에서 `git add noqui`로 참조를 함께 커밋합니다. 웹 코드는 별도 `noqui-web` 폴더에 `web` 브랜치를 받아 작업합니다.
 
-## 1.0.42 안전 업데이트 수정
+## 1.0.43 안전 업데이트 수정
 
-Windows 설치본과 Linux 배포본의 기본 리소스 줄바꿈 차이 때문에 `/mud update`가 재시작이 필요한 변경으로 잘못 차단되던 문제를 수정했습니다. 실제 설정값과 로더는 그대로 유지하며 1.0.40에서 `/mud update`로 적용할 수 있습니다. [원인·검증](docs/release-1.0.42.md)
+Windows 설치본과 Linux 배포본의 기본 리소스 줄바꿈 차이 때문에 `/mud update`가 재시작 또는 밸런스 강제 적용이 필요한 변경으로 잘못 차단되던 문제를 수정했습니다. 실제 설정값과 로더는 그대로 유지하며 1.0.40에서 `/mud update`로 적용할 수 있습니다. [원인·검증](docs/release-1.0.43.md)
 
 ## 1.0.41 Noqui 연동
 

@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeResourcePackagingTest {
-    @Test void hostResourcesKeepTheInstalledLoadersLineEndings()throws Exception {
-        for(String resource:List.of("config.yml","wave-themes.tsv")) {
+    @Test void runtimeResourcesKeepTheInstalledLoadersLineEndings()throws Exception {
+        for(String resource:List.of("campaign.properties","config.yml","wave-themes.tsv")) {
             try(var input=getClass().getResourceAsStream("/"+resource)) {
                 assertNotNull(input,resource);
                 String text=new String(input.readAllBytes(),StandardCharsets.UTF_8);
