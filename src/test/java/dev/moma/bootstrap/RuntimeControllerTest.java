@@ -6,7 +6,9 @@ import java.util.*;
 import java.util.jar.*;
 import javax.tools.ToolProvider;
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,10 +18,16 @@ class RuntimeControllerTest {
     @TempDir Path dir;
     private final Map<String,Object> view=new HashMap<>();
     private MomaPlugin host;
+    private Server server;
+    private BukkitScheduler scheduler;
+    private final List<Runnable> reboots=new ArrayList<>();
     private Path installed,updates;
     @BeforeEach void setup()throws Exception {
         host=mock(MomaPlugin.class);when(host.getDataFolder()).thenReturn(dir.resolve("data").toFile());
         when(host.getLogger()).thenReturn(java.util.logging.Logger.getAnonymousLogger());
+        server=mock(Server.class);scheduler=mock(BukkitScheduler.class);
+        when(host.getServer()).thenReturn(server);when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLater(eq(host),any(Runnable.class),eq(100L))).thenAnswer(c->{reboots.add(c.getArgument(1));return null;});
         doAnswer(c->{view.clear();view.put("state",c.getArgument(0));return null;}).when(host).runtimeChanged(any());
         installed=jar("installed.jar","0.16.0","1","base","host","balance","");
         updates=Files.createDirectory(dir.resolve("update"));
@@ -156,6 +164,79 @@ class RuntimeControllerTest {
                 assertTrue(controller.installDownloaded(downloaded,true));
                 assertEquals("next",state().get("marker"));assertEquals(1,state().get("counter"));
                 assertFalse(Files.exists(updates.resolve(installed.getFileName())));
+            }
+        }
+    }
+    @Test void restartUpdateKeepsTheRunningGameUntilVerifiedJarIsStagedAndShutdownRuns()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            Path next=jar("restart.jar","1.0.44","2","next","new-host","balance","");
+            String original=RuntimeArtifact.hash(installed);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);
+                assertThrows(RuntimeController.RestartRequiredException.class,()->controller.installDownloaded(next,true));
+                controller.stageForRestart(next);
+                assertEquals(original,RuntimeArtifact.hash(installed));
+                assertEquals(RuntimeArtifact.hash(next),RuntimeArtifact.hash(updates.resolve(installed.getFileName())));
+                assertTrue(Files.exists(dir.resolve("data/runtime/cache/"+original+".jar")));
+                assertEquals("base",state().get("marker"));assertEquals(1,state().get("counter"));assertEquals(1,state().get("bindings"));
+                assertEquals(1,reboots.size());verify(server,never()).shutdown();
+                assertThrows(IllegalStateException.class,()->controller.check(true));
+                assertThrows(IllegalStateException.class,()->controller.reload(true));
+                assertThrows(IllegalStateException.class,()->controller.stageForRestart(next));
+                reboots.getFirst().run();verify(server,times(1)).shutdown();
+            }
+            Files.move(updates.resolve(installed.getFileName()),installed,StandardCopyOption.REPLACE_EXISTING);
+            try(var restarted=new RuntimeController(host,installed,updates)) {
+                restarted.start();assertEquals("1.0.44",restarted.version());assertEquals("next",state().get("marker"));
+            }
+        }
+    }
+    @Test void restartUpdateRejectsConflictingAndInvalidFilesWithoutSchedulingShutdown()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();advance(controller);
+                Path next=jar("restart.jar","1.0.44","1","next","new-host","balance","");
+                Path staged=Files.writeString(updates.resolve(installed.getFileName()),"other update");
+                assertThrows(IllegalStateException.class,()->controller.stageForRestart(next));
+                assertEquals("other update",Files.readString(staged));
+                assertThrows(Exception.class,()->controller.stageForRestart(Files.writeString(dir.resolve("invalid.jar"),"bad jar")));
+                assertEquals(1,state().get("counter"));assertTrue(reboots.isEmpty());verify(server,never()).shutdown();
+            }
+        }
+    }
+    @Test void restartSchedulingFailureRemovesOnlyItsOwnStageAndCanRetry()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();Path next=jar("restart.jar","1.0.44","1","next","new-host","balance","");
+                when(scheduler.runTaskLater(eq(host),any(Runnable.class),eq(100L)))
+                        .thenThrow(new IllegalStateException("scheduler unavailable"))
+                        .thenAnswer(c->{reboots.add(c.getArgument(1));return null;});
+                assertThrows(IllegalStateException.class,()->controller.stageForRestart(next));
+                assertFalse(Files.exists(updates.resolve(installed.getFileName())));assertTrue(reboots.isEmpty());
+                controller.stageForRestart(next);assertEquals(1,reboots.size());verify(server,never()).shutdown();
+            }
+        }
+    }
+    @Test void restartSchedulingFailurePreservesAnAlreadyStagedIdenticalUpdate()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();Path next=jar("restart.jar","1.0.44","1","next","new-host","balance","");stage(next);
+                when(scheduler.runTaskLater(eq(host),any(Runnable.class),eq(100L))).thenThrow(new IllegalStateException("scheduler unavailable"));
+                assertThrows(IllegalStateException.class,()->controller.stageForRestart(next));
+                assertEquals(RuntimeArtifact.hash(next),RuntimeArtifact.hash(updates.resolve(installed.getFileName())));
+                verify(server,never()).shutdown();
+            }
+        }
+    }
+    @Test void changedStagedFileCancelsRestartBeforeShutdown()throws Exception {
+        try(var bukkit=mockStatic(Bukkit.class)){bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            try(var controller=new RuntimeController(host,installed,updates)) {
+                controller.start();Path next=jar("restart.jar","1.0.44","1","next","new-host","balance","");
+                controller.stageForRestart(next);
+                Path staged=updates.resolve(installed.getFileName());Files.writeString(staged,"changed");
+                reboots.getFirst().run();verify(server,never()).shutdown();
+                assertEquals("base",state().get("marker"));assertEquals("changed",Files.readString(staged));
+                Files.delete(staged);assertEquals("0.16.0",controller.check());
             }
         }
     }

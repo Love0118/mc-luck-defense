@@ -4,6 +4,10 @@
 
 처음 받을 때는 `git clone --branch beta --recurse-submodules https://github.com/Love0118/mc-luck-defense.git`을 사용하고, 기존 체크아웃에서는 `git submodule update --init --recursive`를 실행합니다. 이후 `mvn -B -ntp -f noqui/plugin/pom.xml install`과 `mvn -B -ntp verify` 순서로 빌드합니다. API를 갱신할 때는 Noqui의 통과한 커밋을 체크아웃한 후 이 저장소에서 `git add noqui`로 참조를 함께 커밋합니다. 웹 코드는 별도 `noqui-web` 폴더에 `web` 브랜치를 받아 작업합니다.
 
+## 1.0.44 강제 업데이트 자동 재시작
+
+`/mud update force`는 호환되는 업데이트를 기존처럼 세션을 유지해 적용하고, 로더 변경이나 진행 중 세션의 상태 형식 변경으로 재시작이 필요하면 검증한 JAR를 준비한 뒤 5초 안내 후 서버를 재시작합니다. 재시작하면 진행 중인 게임은 종료됩니다. 일반 `/mud update`는 자동 재시작하지 않습니다. [동작·적용](docs/release-1.0.44.md)
+
 ## 1.0.43 안전 업데이트 수정
 
 Windows 설치본과 Linux 배포본의 기본 리소스 줄바꿈 차이 때문에 `/mud update`가 재시작 또는 밸런스 강제 적용이 필요한 변경으로 잘못 차단되던 문제를 수정했습니다. 실제 설정값과 로더는 그대로 유지하며 1.0.40에서 `/mud update`로 적용할 수 있습니다. [원인·검증](docs/release-1.0.43.md)
@@ -154,7 +158,7 @@ Paper에서 `/reboot` 명령을 해제하던 중 예외가 발생하고 롤백�
 
 ## 0.17.0 beta 자동 업데이트
 
-관리자 `/mud update`는 테스트를 통과해 공개된 beta 빌드를 다운로드하고, SHA-256·버전·커밋·현재 세션 호환성을 검사한 뒤 **안전 리로드까지 자동 실행**합니다. `/mud update check`는 최신 배포만 확인합니다. 실패 시 기존 런타임을 유지하거나 복구하며 서버를 자동 재시작하지 않습니다. 0.17.0 최초 설치에는 정상 재시작 한 번이 필요합니다. [배포 흐름과 제약](docs/release-0.17.0.md)
+관리자 `/mud update`는 테스트를 통과해 공개된 beta 빌드를 다운로드하고, SHA-256·버전·커밋·현재 세션 호환성을 검사한 뒤 **안전 리로드까지 자동 실행**합니다. `/mud update check`는 최신 배포만 확인합니다. 1.0.44부터 `/mud update force`는 재시작이 필요한 업데이트도 자동 적용합니다. 다운로드·검증·복원 오류가 발생하면 기존 런타임을 유지하거나 복구합니다. [현재 동작](docs/release-1.0.44.md) · [최초 도입](docs/release-0.17.0.md)
 
 ## 0.16.0 세션 유지 리로드
 

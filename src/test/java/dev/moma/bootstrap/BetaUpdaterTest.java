@@ -66,4 +66,45 @@ class BetaUpdaterTest {
             assertFalse(updater.busy());assertFalse(Files.exists(download));
         }
     }
+    @Test void forcedRestartRequiredUpdateStagesAndAnnouncesOnlyAfterMainThreadVerification()throws Exception {
+        when(runtime.installDownloaded(download,true)).thenThrow(new RuntimeController.RestartRequiredException("host changed"));
+        try(var updater=new BetaUpdater(host,runtime,feed,background::add)) {
+            updater.start(mock(CommandSender.class),false,true);background.remove().run();
+            verify(runtime,never()).stageForRestart(any());
+            main.remove().run();
+            var order=inOrder(runtime,host.getServer());
+            order.verify(runtime).installDownloaded(download,true);
+            order.verify(runtime).stageForRestart(download);
+            order.verify(host.getServer()).broadcast(any(net.kyori.adventure.text.Component.class));
+            verify(host.getServer(),never()).shutdown();
+            assertFalse(Files.exists(download));assertFalse(updater.busy());
+        }
+    }
+    @Test void restartRequiredWithoutForceDoesNotStageOrAnnounceARestart()throws Exception {
+        when(runtime.installDownloaded(download)).thenThrow(new RuntimeController.RestartRequiredException("host changed"));
+        try(var updater=new BetaUpdater(host,runtime,feed,background::add)) {
+            updater.start(mock(CommandSender.class),false);background.remove().run();main.remove().run();
+            verify(runtime,never()).stageForRestart(any());
+            verify(host.getServer(),never()).broadcast(any(net.kyori.adventure.text.Component.class));
+            assertFalse(Files.exists(download));assertFalse(updater.busy());
+        }
+    }
+    @Test void forcedActivationFailureDoesNotFallBackToRestart()throws Exception {
+        when(runtime.installDownloaded(download,true)).thenThrow(new IllegalStateException("restore failed"));
+        try(var updater=new BetaUpdater(host,runtime,feed,background::add)) {
+            updater.start(mock(CommandSender.class),false,true);background.remove().run();main.remove().run();
+            verify(runtime,never()).stageForRestart(any());
+            verify(host.getServer(),never()).broadcast(any(net.kyori.adventure.text.Component.class));
+            assertFalse(updater.busy());
+        }
+    }
+    @Test void stagingFailureDoesNotAnnounceARestart()throws Exception {
+        when(runtime.installDownloaded(download,true)).thenThrow(new RuntimeController.RestartRequiredException("host changed"));
+        doThrow(new java.io.IOException("disk full")).when(runtime).stageForRestart(download);
+        try(var updater=new BetaUpdater(host,runtime,feed,background::add)) {
+            updater.start(mock(CommandSender.class),false,true);background.remove().run();main.remove().run();
+            verify(host.getServer(),never()).broadcast(any(net.kyori.adventure.text.Component.class));
+            assertFalse(Files.exists(download));assertFalse(updater.busy());
+        }
+    }
 }

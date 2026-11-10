@@ -29,7 +29,9 @@ final class BetaUpdater implements AutoCloseable {
         if(closed)throw new IllegalStateException("업데이트 기능이 종료되었습니다.");
         if(!busy.compareAndSet(false,true)){tell(sender,"이미 베타 업데이트를 진행하고 있습니다.",NamedTextColor.YELLOW);return;}
         String currentHash=runtime.activeHash();
-        tell(sender,checkOnly?"베타 배포를 확인하고 있습니다…":"베타 업데이트 확인 → 다운로드 → 검증 → 안전 리로드를 진행합니다…",NamedTextColor.AQUA);
+        tell(sender,checkOnly?"베타 배포를 확인하고 있습니다…":forceBalance
+                ?"베타 업데이트를 확인하고 적용합니다. 필요한 경우 서버를 재시작합니다…"
+                :"베타 업데이트 확인 → 다운로드 → 검증 → 안전 리로드를 진행합니다…",NamedTextColor.AQUA);
         try {executor.execute(()->download(sender,checkOnly,forceBalance,currentHash));}
         catch(RuntimeException error){busy.set(false);throw error;}
     }
@@ -46,11 +48,19 @@ final class BetaUpdater implements AutoCloseable {
                     if(release.sha256().equals(runtime.activeHash()))tell(sender,"이미 최신 베타입니다. "+release.label(),NamedTextColor.GREEN);
                     else if(checkOnly)tell(sender,"공개 베타: "+release.label()+" · /mud update",NamedTextColor.AQUA);
                     else {
-                        tell(sender,"다운로드 검증 완료 · 세션을 확인하고 안전 리로드합니다…",NamedTextColor.AQUA);
-                        if(forceBalance)runtime.installDownloaded(downloaded,true);
-                        else runtime.installDownloaded(downloaded);
-                        tell(sender,"베타 "+release.label()+" 적용 완료 · 게임 세션이 유지되었습니다.",NamedTextColor.GREEN);
-                        host.getLogger().info("Beta update applied: "+release.label()+" sha256="+release.sha256());
+                        tell(sender,"다운로드 검증 완료 · 업데이트 호환성을 확인합니다…",NamedTextColor.AQUA);
+                        try {
+                            if(forceBalance)runtime.installDownloaded(downloaded,true);
+                            else runtime.installDownloaded(downloaded);
+                            tell(sender,"베타 "+release.label()+" 적용 완료 · 게임 세션이 유지되었습니다.",NamedTextColor.GREEN);
+                            host.getLogger().info("Beta update applied: "+release.label()+" sha256="+release.sha256());
+                        } catch(RuntimeController.RestartRequiredException required) {
+                            if(!forceBalance)throw required;
+                            runtime.stageForRestart(downloaded);
+                            tell(sender,"베타 "+release.version()+" 업데이트를 준비했습니다. 서버를 재시작합니다.",NamedTextColor.YELLOW);
+                            host.getServer().broadcast(Component.text("업데이트를 위해 5초 후 서버가 재시작되며 진행 중인 게임이 종료됩니다.",NamedTextColor.YELLOW));
+                            host.getLogger().info("Beta update restarting: "+release.label()+" sha256="+release.sha256()+" reason="+required.getMessage());
+                        }
                     }
                 } catch(Exception|LinkageError error){failed(sender,error);}
                 finally {cleanup(downloaded);busy.set(false);}

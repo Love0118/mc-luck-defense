@@ -18,7 +18,12 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
     private Loaded active;
     private RuntimeArtifact previous;
     private boolean changing;
+    private boolean restarting;
     private BetaUpdater updater;
+
+    static final class RestartRequiredException extends IllegalArgumentException {
+        RestartRequiredException(String message){super(message);}
+    }
 
     public RuntimeController(MomaPlugin host,Path installed,Path updates)throws IOException {
         this.host=host;this.installed=installed;this.updates=updates;
@@ -72,10 +77,11 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         return Files.isRegularFile(staged)?staged:active.artifact.path();
     }
     private void compatible(RuntimeArtifact artifact,boolean forceBalance) {
+        requireNoRestart();
         if(!artifact.hostHash().equals(hostArtifact.hostHash()))
-            throw new IllegalArgumentException("로더·의존성·플러그인 설정이 바뀐 업데이트는 정상 재시작이 필요합니다.");
+            throw new RestartRequiredException("로더·의존성·플러그인 설정이 바뀐 업데이트는 정상 재시작이 필요합니다.");
         if(active.module.hasSessions() && !artifact.schema().equals(active.artifact.schema()))
-            throw new IllegalArgumentException("진행 중인 게임과 상태 형식이 다릅니다. 세션 종료 후 적용하세요.");
+            throw new RestartRequiredException("진행 중인 게임과 상태 형식이 다릅니다. 세션 종료 후 적용하세요.");
         if(active.module.hasSessions() && !forceBalance && !artifact.balanceHash().equals(active.artifact.balanceHash()))
             throw new IllegalArgumentException("진행 중인 게임과 밸런스가 다릅니다. /mud reload force 또는 /mud update force로 적용할 수 있습니다.");
     }
@@ -91,7 +97,11 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         return artifact.version();
     }
     private void requireNoDownload() {
+        requireNoRestart();
         if(updater!=null && updater.busy())throw new IllegalStateException("베타 업데이트가 진행 중입니다.");
+    }
+    private void requireNoRestart() {
+        if(restarting)throw new IllegalStateException("업데이트 재시작이 이미 예약되었습니다.");
     }
     String activeHash(){return active.artifact.sha256();}
     boolean installDownloaded(Path path)throws Exception {return installDownloaded(path,false);}
@@ -102,6 +112,47 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         if(Files.exists(staged) && !RuntimeArtifact.hash(staged).equals(artifact.sha256()))
             throw new IllegalStateException("update 폴더에 다른 업데이트 파일이 있습니다. 먼저 정리해 주세요.");
         replace(artifact,forceBalance);return true;
+    }
+    void stageForRestart(Path source)throws Exception {
+        requireMainThread();requireNoRestart();
+        RuntimeArtifact artifact=cache(source),backup=cache(installed);
+        Files.createDirectories(updates);
+        Path staged=updates.resolve(installed.getFileName());
+        boolean existing=Files.exists(staged);
+        if(existing && (!Files.isRegularFile(staged) || !RuntimeArtifact.hash(staged).equals(artifact.sha256())))
+            throw new IllegalStateException("update 폴더에 다른 업데이트 파일이 있습니다. 먼저 정리해 주세요.");
+        Path pending=null;
+        try {
+            if(!existing) {
+                pending=Files.createTempFile(updates,"mud-update-",".part");
+                Files.copy(artifact.path(),pending,StandardCopyOption.REPLACE_EXISTING);
+                if(!RuntimeArtifact.hash(pending).equals(artifact.sha256()))throw new IOException("업데이트 파일이 복사 중 변경되었습니다.");
+                try{Files.move(pending,staged,StandardCopyOption.ATOMIC_MOVE);}
+                catch(AtomicMoveNotSupportedException ignored){Files.move(pending,staged);}
+            }
+            restarting=true;
+            try{host.getServer().getScheduler().runTaskLater(host,()->restartIfStaged(artifact),100L);}
+            catch(RuntimeException|LinkageError error) {
+                restarting=false;
+                if(!existing)try {
+                    if(Files.isRegularFile(staged) && RuntimeArtifact.hash(staged).equals(artifact.sha256()))Files.delete(staged);
+                } catch(IOException cleanup){error.addSuppressed(cleanup);}
+                throw error;
+            }
+            host.getLogger().info("Restart update staged: "+artifact.version()+" sha256="+artifact.sha256()+" backup="+backup.path());
+        } finally {if(pending!=null)Files.deleteIfExists(pending);}
+    }
+    private void restartIfStaged(RuntimeArtifact artifact) {
+        try {
+            Path staged=updates.resolve(installed.getFileName());
+            if(!Files.isRegularFile(staged) || !RuntimeArtifact.hash(staged).equals(artifact.sha256()))
+                throw new IOException("예약된 업데이트 파일이 변경되었거나 없습니다.");
+            host.getServer().shutdown();
+        } catch(Exception|LinkageError error) {
+            restarting=false;
+            host.getLogger().log(java.util.logging.Level.SEVERE,"Update restart cancelled",error);
+            host.getServer().broadcast(Component.text("업데이트 재시작이 취소되었습니다. 서버 로그를 확인하세요.",NamedTextColor.RED));
+        }
     }
     public void reload()throws Exception {reload(false);}
     public void reload(boolean forceBalance)throws Exception {requireMainThread();requireNoDownload();replace(cache(candidate()),forceBalance);}
@@ -168,6 +219,7 @@ public final class RuntimeController implements CommandExecutor,TabCompleter,Aut
         if(!sender.hasPermission("moma.admin")){sender.sendMessage(Component.text("관리자만 사용할 수 있습니다.",NamedTextColor.RED));return true;}
         try {
             if(action.equals("update")) {
+                requireNoRestart();
                 if(args.length>2 || args.length==2 && !Set.of("check","force").contains(args[1].toLowerCase(Locale.ROOT))) {
                     sender.sendMessage(Component.text("/mud update [check|force]",NamedTextColor.YELLOW));return true;
                 }
