@@ -1,1 +1,4 @@
 native/chat-report-guard/** text eol=lf
+src/main/resources/config.yml text eol=crlf
+src/main/resources/rewards.yml -text whitespace=cr-at-eol
+src/main/resources/wave-themes.tsv text eol=crlf
